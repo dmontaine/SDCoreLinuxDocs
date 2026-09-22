@@ -1,268 +1,116 @@
 Title: The Installed Scripts
-Subtitle: The thirty-seven PowerShell scripts installed beside SD - the execution policy they need, what their exit codes mean, and the ones you may need to run yourself.
+Subtitle: The three helper scripts installed beside SD, the sudoers scope that lets SD run them, and what their exit codes mean.
 
-SD's installer does most of its work in PowerShell rather than inside the
-installer script, and **it leaves every one of those scripts on the machine**.
-They are in `C:\Program Files\SD`, beside `sd.exe`, and they are there for two
-reasons: so that a step which failed during the installation can be run again
-without reinstalling, and so that a choice made in the wizard can be changed
-afterwards.
+**Unlike SD Core for Windows, which ships thirty-seven separate PowerShell
+scripts, this port does its privileged work through three: one general
+helper with many subcommands, and two standalone ones.** Where Windows
+needed a script per task because each ran as its own elevated PowerShell
+process, this port dispatches by argument through a single `sudo`-scoped
+entry point — the same shape of problem, a smaller surface because the
+mechanism is free to differ.
 
-**They are Windows scripts, not SD verbs.** Nothing here is typed at an `sd`
-prompt. Run them from a PowerShell prompt started with **Run as
-administrator** - almost all of them refuse a prompt that is not elevated, and
-say so rather than half-working. **`check-install.ps1` is the exception and
-wants an ordinary prompt**; the section on it says why.
+They are in `/usr/local/sbin`, and they are there for the same two reasons
+Windows's are: so that a step which failed during the installation can be
+run again without reinstalling, and so that a choice made at install time
+can be changed afterward.
+
+**They are shell scripts, not SD verbs.** Nothing here is typed at an `sd`
+prompt. Most need `sudo` to do anything; SD itself reaches them through a
+scoped `sudoers` entry that lets `sdusers` run exactly the subcommands
+each operation needs, nothing more.
 
 *Italics* mark something you supply, **bold** a word typed as it stands, and
 braces an optional part.
 
 ## What is here and what is not
 
-**Thirty-seven scripts ship.** They are the installer's own steps, the helpers
-SD launches while it is running, and the ones the administrator verbs call.
-Everything else in the project's
-`gplbld` directory - the verifiers, the probes, the build and test cycle - is
-development tooling and **is deliberately not installed**. If you have read
-about `cycle.ps1`, `assert-current.ps1` or a `verify-` script and cannot find
-it, that is why: they compare an install against the source tree it was built
-from, and they are destructive.
+**Three scripts ship.** Everything else in the project's `gplbld`
+directory — the verifiers, the probes, the build and test cycle — is
+development tooling and is deliberately not installed. If you have read
+about `check-stale-leads.py`, `assert-current.py` or a `witness-` or
+`verify-` script and cannot find it on an installed machine, that is why:
+they compare an install against the source tree it was built from, and
+some are destructive.
 
-## PowerShell execution policy — you do not need to change it
-
-Windows will not run a PowerShell script unless its **execution policy**
-allows it. On Windows desktop editions the default is `Restricted`, which
-allows no script at all; on Windows Server it is `RemoteSigned`, which allows
-a script written on the machine itself.
-
-**SD does not depend on that setting, and you should leave it alone.** Every
-one of the thirty-seven scripts is launched with an explicit
-`-ExecutionPolicy Bypass` on its own command line — by the installer, by the
-SD service, and by the SD verbs that call one. That switch applies to **that
-one PowerShell process, for that one script**. It changes nothing on the
-machine and nothing about any other script.
-
-**What happens if you change it anyway:**
-
-| what you do | what happens to SD |
-|---|---|
-| **Tighten it** to `Restricted` or `AllSigned`, for the machine or for your own account | **Nothing. SD carries on working.** The switch SD passes takes precedence over both of those settings |
-| **Loosen it** to `RemoteSigned`, `Unrestricted` or `Bypass` | **Nothing — and you have gained nothing.** SD was already unaffected. You have made the machine more permissive for every *other* script on it, which is a real cost for no benefit |
-| **Set it through Group Policy** | **This one stops SD.** See below |
-
-**So if you loosened the policy to get SD working, you can put it back.** That
-was needed on builds before 5 September 2026, where SD's own commands failed
-with *"running scripts is disabled on this system"*. It is fixed, and the
-workaround is no longer doing anything for you.
-
-**One thing it does not cover.** The `sh` verb opens an ordinary PowerShell
-prompt for you, and that prompt gets **no** such switch — it runs under
-whatever policy your machine sets. That is deliberate: SD lifts the
-restriction for the scripts it installed itself, and never for a shell you
-type into.
-
-### Group Policy is the exception, and it is the one to know about
-
-A **Group Policy** setting — *Turn on Script Execution*, under
-`Computer Configuration` or `User Configuration` → `Administrative Templates`
-→ `Windows Components` → `Windows PowerShell` — **outranks the switch SD
-passes.** Group Policy sits above the per-process setting in PowerShell's
-order of precedence, so on a machine where a policy sets the execution policy,
-SD cannot override it.
-
-**On a domain-joined or otherwise managed machine, check this before
-installing.** In an ordinary PowerShell prompt:
-
-```
-Get-ExecutionPolicy -List
-```
-
-If the `MachinePolicy` or `UserPolicy` row says anything other than
-`Undefined`, a policy is in force. **`RemoteSigned`, `Unrestricted` or
-`Bypass` there is fine** — SD's scripts are written on the machine by the
-installer, not downloaded. **A policy of `Restricted` or `AllSigned` will stop
-SD's administrative commands**, and the symptom is the *"running scripts is
-disabled on this system"* message from `create.account`, `append.sd.path`,
-`remote.api`, `remote.ssh` or an editor verb. **That needs your Windows
-administrator to relax the policy.** SD has no way around it, deliberately: a
-program that could defeat Group Policy would be a worse thing to have
-installed than an inconvenience.
-
-## The exit codes are a convention
-
-Every script prints what it did and then exits on the same three-value
-convention:
+## Exit codes
 
 | | |
 |---|---|
-| **0** | it is done. That includes *"it was already done"* - the scripts are written to be run twice |
-| **1** | it failed, and the line above the exit says why |
-| **2** | **it neither did the work nor failed.** It refused, or it could not run, or the work needs a restart first |
+| **0** | done. That includes *"it was already done"* — most subcommands are written to be run twice |
+| **2** | **refused.** The line above names why — `die()`'s own convention, printed as `sd-elevate: REFUSED - <reason>` |
+| **3** | (`remote-ssh` only) **nothing was there to change.** The firewall would not have gated anything anyway (no `ufw`, inactive, or already permissive), so reporting success would be the reassuring falsehood this project's own instrument rule refuses to print |
 
-**2 Is the one worth reading.** It is not an error code; it means the script
-declined to act and is telling you the condition. Each script below says what
-its own 2 means, because they differ - a refusal in `allow-ssh-groups.ps1` is
-not the same event as a pending restart in `install-ssh.ps1`. Only
-`sd-elevate.ps1` adds a fourth, **5**, for *not elevated*.
+**There is no exit 1.** A refusal and a failure are the same event here —
+`die()` is the one way this script stops short of doing what it was asked,
+and it always means 2.
 
-## The ones you may need to run
+## `sd-elevate`
 
-These answer a question or change a decision. Every command below is complete
-as written; run it from an elevated PowerShell prompt.
-
-### Is the installation sound?
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\check-install.ps1"
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\check-install.ps1" -Brief
+```sh
+sudo /usr/local/sbin/sd-elevate [--dry-run] <subcommand> ...
 ```
 
-Exit **0** nothing is wrong, **1** something is. `-Brief` prints one line per
-check with no preamble. **A check that cannot be answered yet is not a
-failure** and it says so separately.
+**`--dry-run` reports what it would do and changes nothing** — the
+argument, and it comes first.
 
-**Run this one without elevation.** It is the only script here that does, and
-the reason is the question it asks: *can this user's ordinary sign-in reach
-SD?* An administrator token reads the data tree through the `Administrators`
-entry on the ACL and would pass whether or not the answer is yes. The script
-notices it is elevated and says what the answer is worth, but that is a
-backstop rather than the intent. The Start Menu entry **Check the SD
-installation** runs it exactly this way.
+| Subcommand | Does |
+|---|---|
+| `useradd`, `userdel`, `userdel-home` | create or remove the Linux user behind an account — `userdel-home` also removes its home directory, only for a user SD created |
+| `passwd`, `setpw` | the Linux login password — `setpw` takes it on stdin, one line, never as an argument |
+| `pw-check` | judges a password against SD's own complexity rule, on stdin — used before the write, not only at it |
+| `groupadd`, `groupdel`, `addgroup`, `delgroup` | the account's own `sdu_`/`sdg_` group, and membership in it — this is what `modify.account add`/`delete` calls underneath |
+| `setgid`, `chown-account` | ownership and the setgid bit on an account directory, at creation |
+| `rmtree-account` | removes an account's directory tree, for `delete.account remove.home` |
+| `remote-api on \| local \| off \| show` | the `sdclient.socket` binding and the `ufw` rule — what `remote.api` calls |
+| `remote-ssh on \| off \| show` | the `ufw` rule for port 22 — what `remote.ssh` calls |
+| `cred-own query \| verify \| set` | an ordinary account's own write to `$cred`, which it cannot reach directly — what self-service `modify.password` calls |
 
-**And run it again later.** The installer offers this check as a tick box at
-the end, and that run is **always the incomplete one**: the installing user's
-logon token cannot carry the `sdusers` group until they sign out and back in,
-so every database check reports *"not yet"* by design. The Start Menu entry is
-there so the real run can be done afterwards without writing the command down.
+**Each subcommand re-derives whether the request is legal itself** — whose
+account directory it actually is, whether a user was one SD created —
+rather than trusting what the calling SD session claims. That is the whole
+of the protection: a session that could talk `sd-elevate` into an
+operation on somebody else's account would defeat every gate SD has above
+it.
 
-### The ssh server would not install
+## `ssh-forcecommand`
 
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-ssh.ps1"
-```
-
-Exit **0** installed and running, **2** installed but Windows needs a restart
-before the service exists, **1** failed.
-
-**This is the one that matters most.** Accounts SD creates sign in over ssh
-and nothing else, so until this succeeds nobody but you can use that SD. The
-installer prints this same command in its closing report when it could not
-install the server; it is repeated here because that report is easy to close.
-**It is slow** - `Add-WindowsCapability` downloads from Windows Update and can
-work for minutes in silence. Do not interrupt it.
-
-### An editor verb does nothing
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-editors.ps1"
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-editors.ps1" -CheckOnly
+```sh
+sudo /usr/local/sbin/ssh-forcecommand --install
+sudo /usr/local/sbin/ssh-forcecommand --remove
+sudo /usr/local/sbin/ssh-forcecommand --check
 ```
 
-Exit **0** every editor is present, **2** at least one is missing and could not
-be installed, **1** failed. `-CheckOnly` reports and installs nothing. What
-happened last time is in `C:\ProgramData\SD\install-editors.log`.
+Writes or removes the fenced `ForceCommand`/`DenyUsers` block in
+`/etc/ssh/sshd_config` — see [Remote access and the
+machine](05-remote-access-and-the-machine.html). `--install` validates the
+candidate with `sshd -t` **before** touching the live file, backs up to
+`sshd_config.before-sd`, and refuses rather than overwrite a
+`sshd_config` that already has its own `AllowGroups`/`AllowUsers`/
+`DenyGroups`/`DenyUsers` line — that is somebody else's decision. The
+installer runs `--install` non-fatally; a refusal here leaves SD
+installed and working, with the boundary not yet applied, and prints
+the command to apply it once the conflict is resolved.
 
-### The SD service
+## `sd-reconcile-accounts`
 
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-service.ps1" -Install
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-service.ps1" -Remove
-```
-
-Exit **0** done, **1** failed, **2** could not be attempted - not elevated, or
-`sdsvc.exe` is not there. `-Install` accepts *{-AppDir directory}* if SD is not
-in the usual place.
-
-### Who may reach the API from other computers
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Show
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Open
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Restrict
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Remove
+```sh
+sudo /usr/local/sbin/sd-reconcile-accounts          report, change nothing
+sudo /usr/local/sbin/sd-reconcile-accounts --sweep  remove them
 ```
 
-Exit **0** applied, **1** failed, **2** refused. `-Show` changes nothing.
-`-Open` allows any address, `-Restrict` this machine only; add *{-Port n}* for
-a port other than 4243. **This script owns its rule** - it created it, and
-`-Remove` takes it away.
-
-### Who may reach ssh from other computers
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-firewall.ps1" -Show
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Restrict
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Open
-```
-
-Exit **0** applied, **1** failed, **2** refused, or the rule is not there yet.
-
-**It toggles a rule it did not create.** Installing the OpenSSH capability
-creates `OpenSSH-Server-In-TCP` and enables it for any address; this narrows it
-to loopback or widens it again. It has no `-Remove`, deliberately: the rule is
-Microsoft's and SD must not delete it.
-
-### Who may ssh into this machine at all
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Check
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Installed
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Remove
-```
-
-Exit **0** done or nothing to do, **1** failed, **2** refused.
-
-**The write needs `-Installed` and the script's own Usage text leaves it
-out.** Without it you get *"-Installed not given"* and exit 2, and nothing is
-written. The switch means *an administrator asked for this*: the script
-rewrites `sshd_config` and restarts sshd, so it will not do that merely because
-it was run. `-Check` and `-Remove` do not need it.
-
-**It also refuses if `sshd_config` already says who may connect** - an existing
-`AllowGroups`, `AllowUsers`, `DenyGroups` or `DenyUsers` line is somebody
-else's decision and is left alone. That refusal is also exit 2, and it prints
-the lines it found.
-
-### The two remote-route groups
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\sync-route-groups.ps1" -Check
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\sync-route-groups.ps1"
-```
-
-Exit **0** success, **1** failure; it prints what it did either way. It creates
-the groups that decide which remote route an SD account may use, and seeds
-`sdssh` so an install that predates them does not lose ssh. `-Check` prints
-what it would do and changes nothing.
-
-### Re-stamping the account directories
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\secure-account-dirs.ps1" -Root "C:\ProgramData\SD\user_accounts" -WhatIf
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\secure-account-dirs.ps1" -Root "C:\ProgramData\SD\user_accounts"
-```
-
-Exit **0** every directory stamped, **1** at least one failed, **2** it could
-not run. Add *{-Account name}* for one account rather than all of them.
-
-**This is the only `secure-` script with a reason to be run again.** The others
-name one fixed path and the installer has already done them; this one walks a
-directory whose contents grow as accounts are made, and `create.account` stamps
-each new account itself.
-
-### May SD install on this machine?
-
-```
-powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-preflight.ps1"
-```
-
-Exit **0** clear to install, **1** refuse, **2** could not determine - which is
-also a refusal. **It changes nothing**: it reads the service registry, one
-TCP table and two files. The installer runs it before the wizard is drawn, and
-running it yourself is how you find out in advance why an installation would be
-refused on a machine that already has an ssh server.
+**Finds `accounts` records whose Linux user is gone** — removed from
+outside SD entirely (`userdel`, a decommission script), so SD was never
+consulted and the record outlived the user. `list sd.accounts` then
+answers wrongly, and `create.account` refuses to recreate the name: true
+of the record, false of the machine. Reports by default; `--sweep`
+removes the stale records and their directories, and needs root. Exit
+**0** the register is clean, **1** something stale is still there
+(reported, refused, or would not go), **2** the question could not be
+answered. Not run by the installer — a recovery tool for drift that
+happened outside SD's own verbs.
 
 ## Continued in
 
-[The Scripts SD Runs For Itself](09a-scripts-sd-runs-itself.html) — the
-scripts the installer, the verbs, the uninstaller and SD itself run.
+[The Scripts SD Runs For Itself](09a-scripts-sd-runs-itself.html) — what
+the daemon, the verbs and the installer invoke while running, rather than
+what an administrator runs by hand.
