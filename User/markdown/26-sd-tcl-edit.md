@@ -1,82 +1,71 @@
-Title: SD TCL - The edit Screen Editor
-Subtitle: Microsoft Edit, a menu bar and a dozen keys — the one to reach for when you just want to change a record.
+Title: SD TCL - The nano Screen Editor
+Subtitle: nano, a status-bar reference and a dozen keys — the one to reach for when you just want to change a record.
 
 ```
-edit {dict} file record
 nano {dict} file record
 ```
 
-`edit` opens a record in **Microsoft Edit**, a small full-screen editor that
-ships with Windows. It has a menu bar, the shortcuts everyone already knows,
-and nothing else to learn. **That is the point of it**: if you want to fix a
-line in a record and get on with your day, this is the one.
+**Unlike SD Core for Windows, `edit` is not a screen editor here** — there is
+no Linux program to alias it to the way Microsoft Edit serves that role
+there, so `edit` is simply a second name for **`ed`**, the line editor (see
+[ed](25-sd-tcl-ed.html)). The full-screen editor to reach for when you just
+want to fix a line and move on is `nano`.
 
-**`nano` is a second name for exactly this**, added for anyone arriving with
-Linux or `nano` habits — same catalogued program, same editor, same keys.
-There is no separate `nano` to learn.
+`nano` opens a record in **nano**, a small full-screen editor that ships
+with Debian and Ubuntu already. It has a status bar of key shortcuts always
+on screen, the shortcuts everyone already knows, and nothing else to learn.
+**That is the point of it**: if you want to fix a line in a record and get
+on with your day, this is the one.
 
-It has no syntax highlighting and no command language. For SD BASIC source —
-or for anything where you want highlighting, split windows, or a command bar —
-use [micro](27-sd-tcl-micro.html) instead. For a session with no terminal, or
-one you are driving from a script, use [ed](25-sd-tcl-ed.html).
+It has SD BASIC syntax highlighting for a `bp` record (system-wide, part of
+the installer's own setup) but no command language of its own. For split
+windows, a command bar or a plugin system, use [micro](27-sd-tcl-micro.html)
+instead. For a session with no terminal, or one you are driving from a
+script, use [ed](25-sd-tcl-ed.html).
 
 SD folds case, so a command may be typed in either case. Commands are shown here
 in lower case. In the tables, *italics* mark something you supply and **bold**
 marks a word typed as it stands; braces mark an optional part.
 
-> **The keys below are Microsoft Edit's own**, for the version SD checks for —
-> **1.2.1**, which is what ships in current Windows. SD installs that editor
-> and calls it; it does not implement it, so where a binding differs the editor
-> is right.
-
 ## Both editors are installed with SD
 
-**You do not install anything.** SD's installer checks for both editors and
-installs whichever is missing, machine-wide, so every account SD creates can
-reach them. Microsoft Edit is usually already there — it is part of current
-Windows, at `C:\Windows\System32\edit.exe`.
+**You do not install anything.** `nano` normally ships with the
+distribution already; the installer adds SD's own BASIC syntax
+highlighting to it, system-wide, so every account SD creates gets coloured
+`bp` records with nothing to configure. `micro` is installed as an
+ordinary package by the same installer.
 
-If that could not happen — an offline machine, or one whose policy blocks the
-package manager — the verb says so and names the command that installs it,
-rather than opening nothing and reporting the record unchanged.
+If either could not happen — an offline machine, or one whose policy blocks
+the package manager — the verb says so, rather than opening nothing and
+reporting the record unchanged; `ed`, which needs nothing installed, always
+works.
 
 ## The keys
 
-`Ctrl-S` saves and `Ctrl-Q` quits. Those two are most of what anyone needs.
+`Ctrl-O` writes out (saves) and `Ctrl-X` exits. Those two are most of what
+anyone needs.
 
 | | |
 |---|---|
-| **`Ctrl-S`** | save |
-| **`Ctrl-Q`** | exit |
-| **`Ctrl-W`** | close the file |
-| **`Ctrl-O`** · **`Ctrl-N`** | open a file · new file |
-| **`Ctrl-Z`** · **`Ctrl-Y`** | undo · redo |
-| **`Ctrl-X`** · **`Ctrl-C`** · **`Ctrl-V`** | cut · copy · paste |
-| **`Ctrl-A`** | select all |
-| **`Ctrl-F`** · **`Ctrl-R`** | find · replace |
-| **`Ctrl-G`** | go to line:column |
-| **`Ctrl-P`** | go to file |
-| **`Alt-Z`** | toggle word wrap |
+| **`Ctrl-O`** | write out (save) |
+| **`Ctrl-X`** | exit |
+| **`Ctrl-K`** · **`Ctrl-U`** | cut a line · paste (uncut) |
+| **`Ctrl-6`** / **`Alt-A`** | start a selection (mark text) |
+| **`Alt-U`** · **`Alt-E`** | undo · redo |
+| **`Ctrl-W`** | search |
+| **`Ctrl-\`** | search and replace |
+| **`Ctrl-_`** | go to line and column |
+| **`Ctrl-G`** | help |
+| **`Ctrl-C`** | show the cursor position |
 
-**The menu bar is the help.** There is no help screen — the Help menu holds
-only *About* — and there does not need to be one: **`F10`** or **`Alt`** and the
-menu's letter opens a menu, and every command is listed there **with its
-shortcut printed beside it**.
-
-| | |
-|---|---|
-| **`Alt-F`** | File |
-| **`Alt-E`** | Edit |
-| **`Alt-V`** | View |
-| **`Alt-H`** | Help |
-
-*Save As* is on the File menu and is the one common command with no shortcut of
-its own: `Alt-F` then `A`.
+**The status bar is the help.** The two lines above every editing session
+list the shortcuts in force; **`Ctrl-G`** opens the full help screen with
+everything else.
 
 ## What SD does around the editor
 
-The two screen editors are **one SD program with two names**, so everything in
-this section is equally true of [micro](27-sd-tcl-micro.html).
+The two screen editors are separate programs with a shared wrapper, so
+everything in this section is equally true of [micro](27-sd-tcl-micro.html).
 
 | | |
 |---|---|
@@ -130,67 +119,40 @@ token** — another `~`, a backtick, a `!`, a `-`, a `,`, or a mark. Everywhere
 else a tilde is left exactly as you wrote it, so `a~b` is still `a~b` and
 ordinary source reads normally.
 
-## One gate, and it is separate from the verb
+## No gate — every account reaches both, unconditionally
 
-**Every account has `edit` and `micro`** — there is no tier left to decide
-that. What decides whether either one *runs* is a single permission:
-`os.users` field 2, the `OS.EXECUTE` field.
+**Unlike SD Core for Windows, there is no `os.users`-style permission
+behind `nano` or `micro` here.** Every account has both verbs, and both run
+the moment they are typed — there is no record to grant, and nothing
+SDSYS needs to set up first. This port keeps no second wall behind an
+editor's own reach onto the machine: what an account's Linux user may
+read or write outside SD is exactly what an editor run from inside SD may
+touch, because they are the same permissions. See the *Administrator*
+set's *Accounts and Security* chapter, "There is no second wall for `sh`
+or `os.execute`."
 
-An editor runs outside SD, so it needs operating-system permission that `ed`
-does not. It comes from a record in the system file `os.users` whose field 2
-reads `yes`, **and only SDSYS can put one there.**
-
-**SDSYS reaches the operating system regardless of `os.users`** — the same
-identity check that grants administration grants this too, so signing in as
-SDSYS and running `sd` elevated gets both verbs working immediately, with
-no record needed. Every other account starts with no record at all and is
-refused until SDSYS grants one:
-
-| | |
-|---|---|
-| **`modify.account`** *name* **`os-on`** \| **`os-off`** | grant or withdraw `OS.EXECUTE` — and these two verbs |
-| **`modify.account`** *name* **`sh-on`** \| **`sh-off`** | the same for the `sh` verb |
-
-They are four switches over two fields rather than four names for one state,
-so `sh-off` leaves `OS.EXECUTE` alone. **`modify.account` needs SDSYS**, as
-it always has — signing in as SDSYS is what grants somebody the right not
-to have to.
-
-**`modify.account` refuses `SDSYS` as the target, for these keywords and
-every other one, before the keyword is even read** — SDSYS's own routes are
-not a setting to change:
+**A session with no terminal is still refused**, an API session or a
+script driving SD down a pipe having nowhere to draw a full screen:
 
 ```
-:modify.account sdsys os-off
-Remote access is never available to SDSYS
-```
-
-The record is ordinary data, so SDSYS can also edit it by hand with
-`ed os.users` *name*.
-
-**And a session with no terminal is refused before anything is written** — an
-API session, or a script driving SD down a pipe:
-
-```
-:edit bp zzed
-edit needs a terminal to draw on, and this session has none.
+:nano bp zzed
+nano needs a terminal to draw on, and this session has none.
 ed, the line editor, works anywhere.
 ```
 
 Both usage errors name the verb you typed rather than the program behind it:
 
 ```
-:edit
-No file name specified.  Usage: edit {dict} <file> <record>
-:edit bp
-No record name specified.  Usage: edit {dict} <file> <record>
+:nano
+No file name specified.  Usage: nano {dict} <file> <record>
+:nano bp
+No record name specified.  Usage: nano {dict} <file> <record>
 ```
 
 ## Who has these verbs
 
-**Every account has `edit`, `micro` and `ed`.** Whether `edit` and `micro`
-actually run is the separate `os.users` question above; `ed` needs nothing
-more than the verb.
+**Every account has `nano`, `micro` and `ed`, and all three simply run —
+there is nothing further to check.**
 
 ## See also
 

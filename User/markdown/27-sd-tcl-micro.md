@@ -6,7 +6,7 @@ micro {dict} file record
 ```
 
 `micro` opens a record in **micro**, a full-screen editor that does rather more
-than [edit](26-sd-tcl-edit.html) does. Two things make it the one to use for
+than [nano](26-sd-tcl-edit.html) does. Two things make it the one to use for
 programming:
 
 | | |
@@ -15,26 +15,27 @@ programming:
 | **it has a command bar and a help screen** | so everything it can do is reachable and readable without leaving the editor |
 
 It also has multiple files open at once, split windows, a plugin system and
-rebindable keys. **If you only want to change one line in a record**, `edit` is
-less to think about.
+rebindable keys. **If you only want to change one line in a record**, `nano`
+is less to think about.
 
 SD folds case, so a command may be typed in either case. Commands are shown here
 in lower case. In the tables, *italics* mark something you supply and **bold**
 marks a word typed as it stands; braces mark an optional part.
 
 > **The keys below are micro's own**, read from the default bindings and the
-> help text inside the executable SD installs — **micro 2.0.15**. The SD half of
-> the page describes SD Core for Windows W1.0-0.
+> help text inside the version SD installs — **micro 2.0.15**. SD installs
+> micro and calls it; it does not implement it, so where a binding differs
+> the editor is right.
 
 ## Both editors are installed with SD
 
-**You do not install anything.** SD's installer checks for both editors and
-installs whichever is missing, machine-wide, so every account SD creates can
-reach them.
+**You do not install anything.** `micro` is installed by SD's installer as
+an ordinary package. `nano` normally ships with the distribution already;
+the installer adds SD's own BASIC syntax highlighting to it.
 
-If that could not happen — an offline machine, or one whose policy blocks the
-package manager — the verb says so and names the command that installs it,
-rather than opening nothing and reporting the record unchanged.
+If either could not happen — an offline machine, or one whose policy blocks
+the package manager — the verb says so, rather than opening nothing and
+reporting the record unchanged.
 
 ## The keys
 
@@ -77,28 +78,16 @@ commands, and the two worth knowing on the first day are:
 | `> help keybindings` | every key, including the ones not listed above |
 | `> set` *option* *value* | change a setting for this session |
 
-## Saving is broken for an ordinary account in W1.0-0
+## Where micro keeps its configuration, and why saving works here
 
-> **`micro` draws, edits and highlights correctly and then cannot save**,
-> unless the session is elevated:
->
-> ```
-> Permission denied. Save with sudo not supported on Windows
-> ```
->
-> **The record you were editing is not touched and nothing is lost** — the
-> failure is on micro's side of the working copy, and quitting without saving
-> leaves the record exactly as it was.
->
-> **It is not a permission problem with your file or your account.** SD points
-> micro's configuration directory at a folder under `C:\Program Files`, which
-> micro has to write to and an ordinary account may not. It is recorded as a
-> release blocker in the project's fix lists.
->
-> **Until it is fixed, use `ed` for anything you intend to save.** It runs
-> inside SD, needs no external editor and no operating-system access, and is
-> documented on [SD TCL - The ed Line Editor](25-sd-tcl-ed.html). `micro` is
-> still useful for reading a record with syntax highlighting.
+**Unlike SD Core for Windows, this port has no release blocker around
+saving.** micro looks for its configuration in the calling user's own
+`~/.config/micro` — a directory that account already owns, since it is
+simply their own home. There is nothing under a shared, root-owned
+install path for an ordinary account to fail to write to. The syntax
+rules SD ships are copied into that directory on first use (`gpl.bp/edit`
+does the copy itself, with no privilege needed), and stay there for every
+later edit.
 
 ## Highlighting SD BASIC
 
@@ -115,15 +104,15 @@ recognises. A record edited out of any other file is plain text.
 
 ## What SD does around the editor
 
-The two screen editors are **one SD program with two names**. The working copy,
-the save and compile questions, the two permission gates and the refusals are
-the same for both, and they are set out on
-[SD TCL - The edit Screen Editor](26-sd-tcl-edit.html#what-sd-does-around-the-editor).
+The two full-screen editors are separate programs with a shared wrapper.
+The working copy, the save and compile questions, and the refusals are the
+same for both, and they are set out on
+[SD TCL - The nano Screen Editor](26-sd-tcl-edit.html#what-sd-does-around-the-editor).
 
 In short: the record is copied into `$hold`, micro is run on the copy, and on
 the way out SD asks whether to save it and — for a `bp` record — whether to
-compile and catalogue it. Both verbs need `OS.EXECUTE` permission and a real
-terminal, and refuse a session driven down a pipe:
+compile and catalogue it. Both `nano` and `micro` need a real terminal and
+refuse a session driven down a pipe:
 
 ```
 :micro bp zzed
@@ -148,17 +137,17 @@ character, and `~` is the only escape character.**
 **Marks in a row are separated by a comma** — a text mark, a text mark and a
 value mark is `~!,~!,~~`. The conversion is lossless: no record is refused and
 none is mangled. The full rules are on
-[SD TCL - The edit Screen Editor](26-sd-tcl-edit.html#marks-and-how-to-type-one).
+[SD TCL - The nano Screen Editor](26-sd-tcl-edit.html#marks-and-how-to-type-one).
 
 ## Who has these verbs
 
-**Every account has `micro`, `edit` and `ed`.** Whether `micro` and `edit`
-actually run is a separate `os.users` question — see [SD TCL - The edit
-Screen Editor](26-sd-tcl-edit.html#one-gate-and-it-is-separate-from-the-verb);
-`ed` needs nothing more than the verb.
+**Every account has `micro`, `nano`, `edit` and `ed`, and all four simply
+run** — unlike SD Core for Windows, there is no permission behind
+`micro`/`nano` to grant first. See [SD TCL - The nano Screen
+Editor](26-sd-tcl-edit.html#no-gate--every-account-reaches-both-unconditionally).
 
 ## See also
 
-[SD TCL - The edit Screen Editor](26-sd-tcl-edit.html) ·
+[SD TCL - The nano Screen Editor](26-sd-tcl-edit.html) ·
 [SD TCL - The ed Line Editor](25-sd-tcl-ed.html) ·
 [SD TCL - Programs and the Catalogue](24-sd-tcl-programs-and-the-catalogue.html).

@@ -7,9 +7,12 @@ a terminal nor operating-system permission. That is what makes it the editor for
 a phantom, an API session, a session driven down a pipe, and anything you want
 to automate.
 
-The other two are [edit](26-sd-tcl-edit.html) and [micro](27-sd-tcl-micro.html),
-which hand the record to a full-screen Windows program. Use one of those when
+The other two are [nano](26-sd-tcl-edit.html) and [micro](27-sd-tcl-micro.html),
+which hand the record to a full-screen program. Use one of those when
 you are sitting at a terminal and want to see the whole record at once.
+**`edit` is not a third program** — it is a second name for `ed` itself,
+since there is no Linux program to alias it to the way SD Core for
+Windows aliases it to Microsoft Edit.
 
 SD folds case, so a command may be typed in either case. Commands are shown here
 in lower case. In the tables, *italics* mark something you supply and **bold**
@@ -18,7 +21,7 @@ commands are shown in upper case**, which is how `ed`'s `HELP` prints them; it
 folds case too.
 
 > **Every listing on this page was produced by running it**, on SD Core for
-> Windows W1.0-0, against a scratch record in an account's `bp` file.
+> Linux, against a scratch record in an account's `bp` file.
 
 ## Starting it
 
@@ -368,13 +371,13 @@ is reported as line 2.
 
 ## Who has it
 
-**Every account has `ed`, `edit` and `micro` now.** `edit` and `micro` still
-need `os.users` field 2 to actually run — see [The edit Screen
-Editor](26-sd-tcl-edit.html) — but `ed` needs nothing beyond having the
-verb, which every account does.
+**Every account has `ed`, `edit`, `nano` and `micro`, and all of them
+simply run** — unlike SD Core for Windows, there is no permission behind
+`nano`/`micro` to grant first. See [The nano Screen
+Editor](26-sd-tcl-edit.html).
 
 ## See also
 
-[SD TCL - The edit Screen Editor](26-sd-tcl-edit.html) ·
+[SD TCL - The nano Screen Editor](26-sd-tcl-edit.html) ·
 [SD TCL - The micro Screen Editor](27-sd-tcl-micro.html) ·
 [SD TCL - Programs and the Catalogue](24-sd-tcl-programs-and-the-catalogue.html).

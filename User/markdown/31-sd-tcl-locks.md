@@ -73,7 +73,7 @@ sequence is:
 outside SD keeps both its user-table entry and its record and file locks, so
 everything wanting that record waits for a process that is not there. **Nothing
 an ordinary account can type will clear that**, and guessing at it wastes time —
-the recovery is an elevated `sd -cleanup`, which is an administrator's.
+the recovery is `sd -cleanup`, run as SDSYS, an administrator's.
 
 ## Task locks, and why you will rarely meet one
 
@@ -103,7 +103,7 @@ inspecting or clearing the table by hand.
 **The split is between your locks and everybody's.** Giving back what you hold
 is something any session may do. Looking at the machine's lock table, taking a
 numbered flag, or forcing another session's lock open are all administrator
-verbs, and `unlock` needs an elevated session on top of that.
+verbs, and `unlock` needs an SDSYS session on top of that.
 
 ## See also
 

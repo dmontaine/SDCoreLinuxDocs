@@ -176,8 +176,9 @@ whichever reads better; nothing distinguishes them.
 > sent down one at all.** In a piped session the input stream *is* the script,
 > so discarding unread input discards the commands that have not run yet —
 > including the `off` that would have ended the session. **A run that did this
-> hung, was killed, and left a session in the user table that only an elevated
-> `sd -cleanup` could clear.** Both verbs are for a person at a terminal.
+> hung, was killed, and left a session in the user table that only `sd
+> -cleanup`, run as SDSYS, could clear.** Both verbs are for a person at a
+> terminal.
 
 ## The inactivity timer
 
@@ -321,7 +322,7 @@ is a stamped, attributed entry in the system error log:
 
 **The user number, the process id and the account name are added for you**, so
 a message does not need to say who wrote it. The log is
-`C:\ProgramData\SD\sdsys\errlog`, shared by every session, which makes `logmsg`
+`/usr/local/sdsys/errlog`, shared by every session, which makes `logmsg`
 the right way for a phantom or a scheduled job to report something a person will
 read later — there is no terminal to print to and no transcript kept.
 
