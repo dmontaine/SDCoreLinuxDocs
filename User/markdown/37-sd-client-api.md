@@ -11,64 +11,28 @@ talks to SD needs API access and may need nothing else.
 
 ## The library
 
-Four DLLs are installed. They are built from one source: each pair is the same
-code compiled twice under two output names, so the two files are not identical
-on disk but behave identically.
+Two names are installed, built from one source in one step:
 
 | | |
 |---|---|
-| 64-bit | `sdclilib.dll` and `sdclient.dll` |
-| 32-bit | `qmclilib.dll` and `qmclient.dll` |
+| `sdclilib.so` | what existing applications ask for |
+| `libsdcli.so` | the ordinary Unix `lib*.so` convention (`-lsdcli` at link time) |
 
-The `*clilib` names are what existing applications ask for; the `*client` names
-are for new work. **Renaming one to the other does not work**: an import library
-records the DLL name its symbols come from, so an application built against
-`sdclilib` loads `sdclilib.dll` whatever you call the file on disk. That is why
-both names are built rather than one being a copy of the other.
+**This port carries no 32-bit build** — a difference from SD Core for
+Windows, which ships a separate pair for QM-heritage applications.
 
-> **The architecture must match the application, not the machine.** A 32-bit
-> application on 64-bit Windows needs the 32-bit DLL. The 32-bit build is a
-> shipping deliverable rather than a testing convenience.
+### Where it is, and how to use it
 
-### Where they are, and how to use them
+Built to `bin/` under the source tree, installed alongside the server
+under `/usr/local/sdsys/bin`. Link against it (`-lsdcli`) or load it at
+runtime (`dlopen("sdclilib.so", ...)`) the ordinary way for a Linux shared
+library — there is no PATH-order concern the way a Windows DLL search has,
+because Linux resolves a shared library by its own rules (`rpath`,
+`LD_LIBRARY_PATH`, or the standard library paths), not by which directory
+happens to be searched first.
 
-```
-C:\Program Files\SD\usr\clients\client64\     sdclilib.dll  sdclient.dll
-C:\Program Files\SD\usr\clients\client32\     qmclilib.dll  qmclient.dll
-```
-
-Copy the DLL your application needs either **beside the application's own
-executable** or into `C:\Windows\System32`. Those are the two supported routes
-and either works.
-
-> **`C:\Program Files\SD\usr\bin` is normally on the system PATH**, because the
-> installer offers to put it there — the *"Add SD Core to the system PATH"*
-> task, which is ticked unless you untick it, and it is what makes `sd` run from
-> any directory. **All four client DLLs live in that directory too**, so an
-> application may find one without your having copied anything. That is
-> convenient, and it is not the same as choosing which copy it loads: PATH order
-> decides, and a stale copy earlier on the PATH wins. **Put the DLL where your
-> application will find it deliberately.**
-
-`usr\clients` holds the DLLs **and one import library for each** — `.dll.a`
-files, GNU-style, for linking rather than loading:
-
-```
-client64\     libsdclilib.dll.a  libsdclient.dll.a
-client32\     libqmclilib.dll.a  libqmclient.dll.a
-```
-
-They sit beside the DLLs so that everything a client *build* needs is in one
-place. **No header travels with them**: `sdclilib.h` reaches every installation
-at `C:\ProgramData\SD\sdsys\syscom\sdclilib.h`.
-
-**All four DLLs also appear in `C:\Program Files\SD\usr\bin`, beside `sd.exe`**,
-and each copy is byte-identical to the one under `usr\clients`. The 32-bit pair
-is there because `usr\bin` is on the PATH, and that is where a **32-bit
-administrative utility** finds its client. Those copies are the server's own and
-are not the ones you should be taking — with one exception, which is the next
-section. **The import libraries are deliberately not in `usr\bin`**: a linker
-input has no business in a directory that goes on the PATH.
+The header, `sdclilib.h`, ships with the source tree at
+`sdb_ai/sd64/gplsrc/sdclilib`.
 
 ## Connection
 
@@ -77,27 +41,26 @@ input has no business in a directory that goes on the PATH.
 | `SDConnect(host, port, user, pass, account)` | over the network, to port **4243** |
 | `SDConnectLocal(account)` | on the same machine. Sends no password and never did |
 
-> `SDConnectUDS` (Unix Domain Socket) appears in the header but is not
-> applicable on Windows. The Windows port supports local and TCP
-> connections only.
+> **`SDConnectUDS` (Unix Domain Socket) is not available, on either
+> port.** It sent its credential over the socket in a way that predates
+> SCRAM, and was removed here for the same reason the old cleartext API
+> login was: `SDConnect` and `SDConnectLocal` are the two routes.
 
-### SDConnectLocal has a requirement the other does not
+### How SDConnectLocal actually works here
 
-`SDConnectLocal` starts a session by running `sd.exe`, and **it looks for
-`sd.exe` beside itself** — in the directory the loaded DLL came from, not on
-the PATH.
+**Unlike SD Core for Windows, where `SDConnectLocal` runs the server
+binary found beside the loaded DLL** (so a copy of the library sitting
+somewhere else fails to find it), **this port `fork()`s and `exec()`s the
+server directly, at a path it already knows** — the installation's own
+`bin/sd`, not a path relative to wherever `sdclilib.so` happened to be
+loaded from. Communication is over a pair of pipes to the child process,
+not a socket. There is nothing to copy alongside your application for a
+local connection to work; the library finds the server itself.
 
-So a copy of the DLL sitting next to your own application will not make a local
-connection: there is no `sd.exe` there. Two ways round it:
-
-| | |
-|---|---|
-| Load the copy in `usr\bin` | it is beside `sd.exe`, which is why that copy exists |
-| Use `SDConnect` instead | connect to `127.0.0.1` on port 4243 like any other client |
-
-`SDConnectLocal` sends no password at all. It takes the identity of the process
-that called it and checks that account's grants, so the account has to be one
-the calling Windows user may enter.
+`SDConnectLocal` sends no password at all. It takes the identity of the
+process that called it (`setuid`/`setgid` to match, before the child
+process starts) and checks that account's grants, so the account has to
+be one the calling Linux user may enter.
 
 **The login is SCRAM-SHA-256.** A client that sends a password in
 clear is refused. The server sets a puzzle only someone who knows the
@@ -267,7 +230,7 @@ function pointers; `UnloadSdCliLib` releases it.
 
 ```python
 import ctypes
-_lib = ctypes.CDLL('./sdclilib.dll')
+_lib = ctypes.CDLL('./sdclilib.so')
 
 SDConnect = _lib.SDConnect
 SDConnect.argtypes = [ctypes.c_char_p, ctypes.c_int,
@@ -287,7 +250,7 @@ Per-arity `CFUNCTYPE` definitions are provided for `SDCall` and
 
 | | |
 |---|---|
-| `sh` and `OS.EXECUTE` | refused over the API |
+| `sh` and `OS.EXECUTE` | **not refused over the API on this port** — unlike SD Core for Windows, both run at the account's own Linux permissions the same as any other session. `SDCLIENT` in `sd.conf` is the configurable control, if a site wants one; see the *Administrator* set's *Configuration* chapter |
 | Open files outside the account | refused (status 3035 — *not permitted*) |
 | Reach the credential file | never, and cannot be added |
 | Enumerate accounts | refused; all three failure cases give the same message |
