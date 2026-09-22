@@ -174,7 +174,6 @@ phantom or a piped script.
 |---|---|
 | The unit | `sd.service`, `sdclient.socket` |
 | After an unclean shutdown | SD starts anyway, once the daemon's own liveness — not just the segment's presence — is checked. See [Running SD](03-running-sd.html) |
-| Nested sessions | SD will not start a second time inside itself |
 | `sd <command>` | needs SDSYS, or an entry in `batch.jobs` — see above |
 
 ## Setting no password

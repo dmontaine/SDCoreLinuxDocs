@@ -56,15 +56,20 @@ always leaves a clean slate; the "segment present, daemon dead" case above
 is specifically about a crash the machine itself did **not** restart from
 (SD killed, or `sd.service` restarted, while the box stays up).
 
-## SD will not start a second time inside itself
+## `sh` runs at the account's own Linux permissions, unconditionally
 
-If you leave SD with **`sh`** and then type `sd` in that shell, it says so and
-returns you to the session you already have.
+There is no elevation or grant it needs first, unlike an account confined
+by a second SD-level wall. See [Security and the operating
+system](12a-security-and-the-operating-system.html).
 
-Worth knowing alongside it: **`sh` runs at the account's own Linux
-permissions, unconditionally** — there is no elevation or grant it needs
-first, unlike an account confined by a second SD-level wall. See
-[Security and the operating system](12a-security-and-the-operating-system.html).
+**Unverified for this port, so stated as a question rather than copied as
+a fact**: SD Core for Windows specifically detects and refuses starting a
+second `sd` session from inside an `sh` spawned by a first one. No
+equivalent check (an environment marker, a session-nesting guard) was
+found in this tree's `op_sh.c` or `sd.c` — typing `sd` inside `sh` may
+simply start another, genuinely nested interactive session rather than
+being refused. Worth confirming on a live install before relying on
+either behaviour.
 
 ## The command line
 

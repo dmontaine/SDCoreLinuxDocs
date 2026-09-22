@@ -1,10 +1,11 @@
 Title: Encryption and the SDEXT interface
-Subtitle: What libsodium provides, what an application can reach, and why field encryption has no key route in W1.0-0.
+Subtitle: What libsodium provides, what an application can reach, and why field encryption has no key route.
 
-SD Core for Windows links libsodium and ships it as `libsodium-26.dll` beside
-the server. Two things are built on it: the credential exchange that
-authenticates an API login, and a pair of BASIC functions that encrypt and
-decrypt a string.
+SD Core for Linux links libsodium (`libsodium-dev`, installed as an ordinary
+distribution package by the installer) rather than shipping its own copy.
+Two things are built on it: the credential exchange that authenticates an
+API login, and a pair of BASIC functions that encrypt and decrypt a
+string.
 
 > This document is separate so that it can be withheld. It links to nothing
 > outside the administrator set. Where a page in another set is worth naming,
@@ -22,10 +23,11 @@ keeps a SCRAM-SHA-256 verifier in the credential store, the API login proves
 knowledge of the password without sending it, and the primitives behind that
 exchange are the ones listed further down.
 
-**For encrypting application data**, W1.0-0 does not provide a usable route. The functions exist and work, but the only way to
-produce a key they accept is an internal-only call. This is set out in full
-under *Why field encryption is not available* below, because a site planning to
-encrypt fields needs to know before it writes the application, not after.
+**For encrypting application data**, this port does not provide a usable
+route. The functions exist and work, but the only way to produce a key they
+accept is an internal-only call. This is set out in full under *Why field
+encryption is not available* below, because a site planning to encrypt
+fields needs to know before it writes the application, not after.
 
 ## What was removed
 
@@ -33,7 +35,6 @@ encrypt fields needs to know before it writes the application, not after.
 |---|---|
 | The `encrypt.field` verb | Removed. It pointed at a program, `$CRYPTO`, which never existed in the GPL release, so the verb could not have worked in any build derived from it |
 | `encrypt()` and `decrypt()` | Removed upstream in July 2024 and replaced by `sdencrypt()` and `sddecrypt()`. The old names do not compile |
-| The Python half of SDEXT | Removed with the embedded interpreter. The `SD_Py*` keys, `SDPYFUNC.H`, twenty `PY_*` programs and the object opcode all went. A program referencing a Python key does not compile, and the state it tested for cannot be reached |
 
 ## sdencrypt() and sddecrypt()
 
@@ -59,23 +60,22 @@ checked exactly: a key of any other length is refused.
 ### Why field encryption is not available
 
 A passphrase is not a key, and this is where a reader will otherwise lose a
-day. On W1.0-0:
+day.
 
 ```
 sdencrypt('The quick brown fox', 'secretkey', 202)
 ```
 
-returned nothing and set `status()` to **10204**, a key length error. `secretkey`
-is nine characters and the function wanted 44.
+returns nothing and sets `status()` to **10204**, a key length error.
+`secretkey` is nine characters and the function wanted 44.
 
 The function that turns a password into a key of the right length is
 `sdext()`'s `SD_KEYFROMPW`, and `sdext()` is internal-only — it needs a program
-compiled with `$internal`, which needs an administrator working in the system
-account. **So an ordinary program cannot obtain a key these functions will
-accept, and there is no supported way in.**
+compiled with `$internal`, which needs SDSYS. **So an ordinary program cannot
+obtain a key these functions will accept, and there is no supported way in.**
 
-An application that must encrypt data in W1.0-0 should do it outside SD, in the
-client, and store the result as an ordinary string.
+An application that must encrypt data on this port should do it outside SD,
+in the client, and store the result as an ordinary string.
 
 ## The SDEXT interface
 
@@ -97,9 +97,8 @@ reported at the last line rather than at the call. That behaviour is covered by
 set.
 
 `$internal` needs both halves: the compiler tests for internal mode **and** for
-the administrator flag. Internal mode alone was enough until 13 August 2026 and
-was not safe, because internal programs are the only ones that may set the
-administrator flag.
+the administrator flag. Internal mode alone was not safe on its own, because
+internal programs are the only ones that may set the administrator flag.
 
 ### The keys
 
@@ -127,16 +126,20 @@ server's own — a decode failure there is a defect, not a wrong password. A
 caller deciding whether to admit a login must still treat the error as a
 refusal.
 
-`SD_EUID_SET` and `SD_EUID_RESTORE` call the POSIX identity functions provided
-by the server's runtime. They do not change the Windows process token, and SD's
-own identity model does not use them.
+**`SD_EUID_SET` and `SD_EUID_RESTORE` are load-bearing on this port, not
+dormant.** They call the real POSIX identity functions (`sdext_eguid.c`),
+and `logto` uses them directly: `SD_EUID_SET` also reloads the caller's
+supplementary Linux group membership on the way in, which is how a
+session picks up a group grant made since it started without needing a
+fresh login. `!EUID_SET('sdsys', ...)` is also how `cproc` drops back to
+`sdsys`'s own identity after a privileged step.
 
 ### What uses it
 
 Eight shipped programs call `sdext()`, and they are the whole of its use:
-`APISRVR`, `CRED_SET`, `CRED_VERIFY`, `SD_GET_SALT`, `SD_KEY_FROM_PW`,
-`SDCLIENT`, `EUID_SET` and `EUID_RESTORE`. Between them they set a credential,
-verify one, and run the API's SCRAM exchange.
+`apisrvr`, `cred_set`, `cred_verify`, `sd_get_salt`, `sd_key_from_pw`,
+`sdclient`, `euid_set` and `euid_restore`. Between them they set a credential,
+verify one, run the API's SCRAM exchange, and manage identity for `logto`.
 
 None of the eight is catalogued for general use, and none has a VOC entry, so
 they are not an indirect route to the interface either.
