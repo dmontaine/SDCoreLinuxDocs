@@ -44,7 +44,7 @@ printer reset
 | | |
 |---|---|
 | **file** | write to a record in a directory file |
-| **name** | send to a named Windows printer |
+| **name** | send to a named printer, via the configured spooler command |
 | **display** | send to the terminal |
 | **close** | finish the job and release the unit |
 | **reset** | put every unit back to its default |
@@ -180,22 +180,28 @@ applies here too.
 
 ## Printing on this port
 
-**A named printer is a Windows printer.** `printer name` takes the name as
-Windows knows it, and the spooler flags in key `7` include a **raw mode** that
-sends bytes straight through without the driver reformatting them — which is
-what a line printer or a label printer needs.
+**Output is written to a file, then handed to whatever command `SPOOLER`
+in `sd.conf` names** — typically `lpr` or `lp` on a machine running CUPS,
+or any other shell command an administrator configures. `printer name`
+passes the name through as an argument to that command; the spooler
+flags in key `7` include a **raw mode** that asks the configured command
+to send bytes straight through without a driver reformatting them —
+which is what a line printer or a label printer needs, and matches
+`lpr -o raw`'s own meaning if that is what `SPOOLER` names.
 
-**There is no `lp` and no PostScript pipeline.** The Linux original assumed
-both; this port hands the job to the Windows spooler instead. A report that
-worked by writing PostScript to a pipe needs a driver that accepts it, or raw
-mode and a printer that understands what you send.
+**Unlike SD Core for Windows, there is no separate driver layer to work
+around.** Whatever the configured spooler command accepts — a
+PostScript pipe, raw bytes, a CUPS filter — is what a report can rely
+on; check `SPOOLER`'s actual value on the machine you are targeting
+rather than assume a particular pipeline.
 
 ## What is not here
 
-Nothing in the printing group has been removed from this port, but the
-**destination model changed**: printing goes to the Windows spooler rather than
-to a POSIX print command, and `printer.setting` keys that named a Linux
-facility do not apply.
+Nothing in the printing group has been removed from this port, and the
+destination model is the one it has always used: a file handed to a
+configurable spooler command. `printer.setting` keys that named a
+facility neither this port nor the underlying spooler command
+implements still do not apply.
 
 ## See also
 

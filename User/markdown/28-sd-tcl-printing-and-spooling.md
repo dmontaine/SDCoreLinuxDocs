@@ -60,10 +60,10 @@ the prompt:
 | | |
 |---|---|
 | **`as`** *name*, **`as pathname`** *path* | the name or path a mode 3 unit writes to |
-| **`at`** *printer* | the Windows printer to send to |
+| **`at`** *printer* | the printer name passed to the configured spooler command (`SPOOLER` in `sd.conf`, typically `lpr` or `lp`) |
 | **`brief`** | suppress the confirmation prompt |
 | **`keep.open`** | hold the unit open between jobs — see below |
-| **`copies`** *n*, **`landscape`**, **`portrait`**, **`duplex`** | passed to the Windows spooler |
+| **`copies`** *n*, **`landscape`**, **`portrait`**, **`duplex`** | passed to the configured spooler command |
 | **`newline cr`** \| **`lf`** \| **`crlf`** | the line ending written |
 | **`nfmt`** | send the data with no formatting at all |
 | **`style`** *name* | apply a report style |
@@ -75,7 +75,7 @@ printer-formatting set and behave as they always did.
 
 ```
 printer {unit} query                    report one unit
-printer {unit} at printer.name          send it to a Windows printer
+printer {unit} at printer.name          send it via the configured spooler
 printer {unit} file file.name record    send it to a record
 printer {unit} width n | lines n        the page
 printer {unit} top.margin n | bottom.margin n | left.margin n
@@ -123,8 +123,8 @@ been set:**
 
 | | |
 |---|---|
-| `Printer        : (Default)` | mode 1, no printer named — the Windows default |
-| `Printer        : `*name* | mode 1, that Windows printer |
+| `Printer        : (Default)` | mode 1, no printer named — the spooler's own default |
+| `Printer        : `*name* | mode 1, that printer name, passed to the configured spooler |
 | `Target         : $hold P`*n* | mode 3, nothing named — the unit's own hold record |
 | `Pathname       : `*path* | mode 3, that destination |
 
@@ -156,7 +156,12 @@ it alone.)*
 |---|---|
 | *Invalid print unit number* | `printer` with nothing after it, or a unit outside the range |
 | *Unexpected token (%1)* | a keyword it does not know |
-| *Printer name not recognised* | `at` with a name Windows does not have |
+
+**Unlike SD Core for Windows, `at` accepts any name without checking it
+against a list of installed printers.** This port hands whatever name you
+give it straight to the configured spooler command; a name the spooler
+itself does not recognise fails when the job is actually sent, not when
+`at` is typed.
 
 ## Holding a unit open
 
@@ -280,11 +285,13 @@ which is what a fresh account reports. **`off`** clears it again.
 
 ## Printing on this port
 
-**A named printer is a Windows printer**, and printing goes to the Windows
-spooler rather than to a POSIX print command. There is no `lp` and no PostScript
-pipeline. The consequences for a report that assumed either are set out in
-[SD Basic - Printing](13-sd-basic-printing.html#printing-on-this-port), and they
-apply the same way to a unit set up with `setptr`.
+**Output is written to a file under the account's own `prt` directory,
+then handed to whatever command `SPOOLER` in `sd.conf` names** — `lpr` or
+`lp` on a CUPS-enabled machine, or any other shell command an
+administrator configures. See the *Administrator* set's *Configuration*
+chapter for the setting itself, and
+[SD Basic - Printing](13-sd-basic-printing.html#printing-on-this-port)
+for what a report that assumed a different printing model needs to know.
 
 ## See also
 
