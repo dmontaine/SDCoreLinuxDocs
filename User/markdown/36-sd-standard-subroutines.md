@@ -1,9 +1,16 @@
 Title: SD Standard Subroutines
-Subtitle: The 42 catalogued names beginning with !, which of them an application may use, and how each is called.
+Subtitle: The catalogued names beginning with !, which of them an application may use, and how each is called.
 
-SD ships forty-two catalogued routines whose names begin with `!`. They are in
-the global catalogue, so any account reaches them without cataloguing anything
-of its own.
+**This port ships fifty catalogued routines whose names begin with `!`** —
+counted directly from `gpl.bp`, not carried over from SD Core for
+Windows's own count of forty-two. Twenty are the embedded Python
+interface (`!PY_CREATEDICT` and the rest — see the *Administrator* set's
+*Encryption and the SDEXT interface* chapter; this page does not repeat
+them), and this port has no need for several Windows-only ones this page
+used to list — `!ELEVATE`, `!PS_SCRIPT`, `!DELETE_USER`, `!OS_GROUP` and
+`!PROFILE_DIR` among them, noted below where each would have been. They
+are in the global catalogue, so any account reaches them without
+cataloguing anything of its own.
 
 **Most exist to support SD itself and are not an interface for applications.**
 They are listed in full because a name in a stack trace, a `map` listing or an
@@ -51,8 +58,9 @@ Nothing here is typed at the TCL prompt. These are called from SD BASIC.
 | `!VALID_SHELL_CMD` | `valid_shell_cmd(cmd)` — is *cmd* acceptable to hand to a shell |
 
 The three validators are the ones SD's own administrative verbs use before
-handing a value to Windows. If you are building a command line or an account
-name from input, call them rather than reimplementing the rules.
+handing a value to the shell or the operating system. If you are building a
+command line or an account name from input, call them rather than
+reimplementing the rules.
 
 ### Sessions and users
 
@@ -107,22 +115,28 @@ These exist for SD's own use. They are catalogued because SD's programs are
 ordinary compiled programs and reach them the same way anything else does.
 
 **Calling them from an application is not supported.** Several refuse a session
-that is not elevated or not administrative, and some change the state of the
+that is not SDSYS or not administrative, and some change the state of the
 machine.
 
 | | |
 |---|---|
 | `!ATVAR` `!SETVAR` | read and set the `@` variables |
 | `!GETPU` `!SETPU` | read and set per-user values |
-| `!CREATE_USER` `!DELETE_USER` `!SET_PASSWD` | the Windows account half of `create.account`, `delete.account` and `modify.password` |
+| `!CREATE_USER` `!SET_PASSWD` | the Linux user account half of `create.account` and `modify.password` |
 | `!CRED_SET` `!CRED_VERIFY` | write and check a credential in the credential store |
 | `!SD_GET_SALT` `!SD_KEY_FROM_PW` | the key derivation behind that credential |
-| `!EUID_SET` `!EUID_RESTORE` | the POSIX effective identity calls |
-| `!ELEVATE` | starts, uses and stops the elevated helper |
-| `!PS_SCRIPT` `!PS_SCRIPT_OUT` | run a PowerShell script through that helper, without and with its output |
-| `!IS_USER` `!IS_GROUP` `!IS_GRP_MEMBER` `!IS_SD_USER` `!OS_GROUP` | Windows account and group questions |
-| `!PROFILE_DIR` | `profile_dir(username)` — where a Windows profile lives |
+| `!EUID_SET` `!EUID_RESTORE` | the real POSIX `setuid`/`setgid` calls, load-bearing on this port — see the *Administrator* set's *Encryption and the SDEXT interface* chapter |
+| `!IS_USER` `!IS_GROUP` `!IS_GRP_MEMBER` `!IS_SD_USER` | Linux account and group questions |
 | `!SDCLIENT` | the server side of the client API |
+
+**Unlike SD Core for Windows, there is no `!ELEVATE`, `!PS_SCRIPT`,
+`!DELETE_USER` or `!OS_GROUP` here.** Privileged work on this port goes
+through `sd-elevate`, a `sudo`-scoped external helper invoked directly
+(`os.execute`), not through an internal BASIC subroutine wrapping a
+second helper process — see the *Administrator* set's *The Installed
+Scripts* chapter. Deleting the Linux user is folded into `delete.account`
+itself rather than a separate internal call, and there is no Windows
+profile directory concept to have a subroutine for.
 
 ## What is not here
 
