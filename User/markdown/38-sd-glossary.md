@@ -1,21 +1,22 @@
 Title: SD Glossary
 Subtitle: Terms used in SD Core documentation, from account to VOC.
 
-This glossary defines the terms used throughout the SD Core for Windows
+This glossary defines the terms used throughout the SD Core for Linux
 documentation set. Terms are listed in alphabetical order.
 
 ## A
 
 **Account** — a workspace: a directory containing one or more files, a
-VOC, and its own `bp` source file. An account maps to a Windows group
+VOC, and its own `bp` source file. An account maps to a Linux group
 (`sdu_<name>` for user accounts, `sdg_<name>` for group accounts).
-Entry to an account is membership of its Windows group.
+Entry to an account is membership of its Linux group.
 
 **Administrator** — SDSYS, the one privileged account. There is no
-tier or keyword that makes any other account an administrator; being a
-Windows administrator, elevated or not, grants nothing. SDSYS is
-reached only by signing in to Windows as the `sdsys` account and
-starting `sd` elevated.
+tier or keyword that makes any other account an administrator; being
+able to `sudo`, able to or not, grants nothing. SDSYS is
+reached only by logging in to the machine locally as the `sdsys`
+account, its own password — no elevation needed, since being that
+account already is the privilege.
 
 **Alternate key index** — a secondary access path to records in a file,
 built from the values in a nominated field. Created with
@@ -35,13 +36,13 @@ is the format, field 6 is the header, field 7 is the association.
 **Background process** — a process started with `phantom` that runs
 without a terminal. The process that starts it does not wait for it.
 
-**Break key** — the interrupt key (Ctrl+C on Windows). Stops a running
+**Break key** — the interrupt key (Ctrl+C). Stops a running
 program or query and enters the debugger if one is active.
 
 **BASIC** — the programming language. See SDBasic.
 
 **bp** — the source file. An account's `bp` file is a directory file —
-an ordinary Windows folder with one file per program. `gpl.bp` is the
+an ordinary Linux directory with one file per program. `gpl.bp` is the
 shipped source for the system programs.
 
 ## C
@@ -72,7 +73,7 @@ The dictionary file is named `<filename>.dict` and lives beside the
 data file.
 
 **Directory file** — a file type where each record is a file on disk,
-stored in an ordinary Windows folder. Record ids are file names. The
+stored in an ordinary Linux directory. Record ids are file names. The
 `bp` file is a directory file.
 
 **Dynamic array** — a string containing field marks, value marks and
@@ -82,7 +83,7 @@ manipulation. Functions: `extract`, `ins`, `del`, `replace`,
 
 **Dynamic file** — a file type stored in SD's own binary format, with a
 hash-based group structure and automatic resizing. Not readable by
-ordinary Windows programs.
+ordinary Linux programs.
 
 ## F
 
@@ -102,10 +103,10 @@ possibly in another account. A remote file pointer.
 
 ## G
 
-**Group** — (1) a Windows group used for account membership. (2) In a
+**Group** — (1) a Linux group used for account membership. (2) In a
 dynamic file, the bucket that holds records hashed to the same slot.
 
-**Group account** — a shared workspace with no Windows account and no
+**Group account** — a shared workspace with no Linux user account and no
 sign-in of its own. Created with `create.account group`. Reached with
 `logto` or through an F-pointer.
 
@@ -150,7 +151,7 @@ by `analyse.file`.
 ## P
 
 **p-code** — the compiled bytecode that SD executes. Stored in the
-pcode library in `<sysdir>\bin` and loaded into shared memory at
+pcode library in `/usr/local/sdsys/bin` and loaded into shared memory at
 start-up.
 
 **Paragraph** — a VOC entry of type `PA` that holds a sequence of
@@ -197,7 +198,8 @@ or `SDReadNext`. Stored in the `$savedlists` file.
 with substitution parameters.
 
 **Session** — one connection to SD, from sign-in to `off`. Each
-session runs as the invoking user's Windows identity.
+session runs as the invoking user's Linux identity (a real `setuid`
+for an API session, not a filtered credential).
 
 **Standard** — retired, 18 Sep 2026. Used to name the lowest of three
 account tiers: enough to run an application and nothing that edited code
@@ -209,7 +211,12 @@ within a multivalue.
 
 **Suspended** — an account state, not a tier, that denies all entry.
 Reversible with `modify.account <name> unsuspended`. Does not touch the
-VOC or Windows group membership.
+VOC or Linux group membership.
+
+**systemd unit** — how SD runs on Linux. `sd.service` (the daemon) and
+`sdclient.socket` (the API listener) are created by the installer,
+enabled to start at boot, and removed by the uninstaller. Stopping
+`sd.service` ends every session on the machine.
 
 ## T
 
@@ -219,7 +226,9 @@ prompt and dispatches it.
 **Terminfo** — the terminal capability database. Defines what
 sequences a terminal sends for keys and what sequences to use for
 screen control. SD ships 63 definitions compiling to 100 terminal
-names. The terminfo compiler (`sdtic`) is not shipped with SD Core.
+names. **Unlike SD Core for Windows, the terminfo compiler (`sdtic`) is
+shipped and built with this port** (`make sd` produces it alongside the
+server).
 
 **Transaction** — a group of file updates that succeed or fail together.
 Declared with `start transaction` and committed with `commit` or
@@ -234,10 +243,3 @@ within a field.
 behind them. Each account has its own VOC. VOC entries are of types
 `V` (verb), `F` (file pointer), `PA` (paragraph), `S` (sentence),
 `K` (key), and `W` (external command).
-
-## W
-
-**Windows service** — how SD runs on Windows. The service **String
-Database (SD)** is created by the installer, starts automatically at
-boot, and is removed by the uninstaller. Stopping it ends every
-session on the machine.
