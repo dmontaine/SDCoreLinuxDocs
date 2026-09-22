@@ -6,8 +6,8 @@ each key, and what sequences to emit for screen control — cursor movement,
 clear, colour, bold, underline.
 
 Most installations never touch it. The 63 shipped definitions cover the
-terminals in ordinary use, and `windows` works with any Windows console, cmd,
-PowerShell or Windows Terminal session.
+terminals in ordinary use, and `linux` works with any standard Linux
+console or terminal emulator.
 
 ## The default terminal
 
@@ -18,15 +18,13 @@ term
 ```
 Page width: 120
 Page depth: 36
-Device    : windows
+Device    : linux
 ```
 
-The default terminal type is `windows`. This is an exact copy of the
-`linux` definition, which had the right byte sequences for Windows
-consoles, cmd, PowerShell and Windows Terminal.
+The default terminal type is `linux`.
 
 > Existing accounts keep their old setting until their VOC is updated.
-> Until then, `term windows` sets it for the session.
+> Until then, `term linux` sets it for the session.
 
 ## What ships
 
@@ -35,8 +33,8 @@ names** — the extra names are variants. For example, `vt100-w` and
 `vt220-at` are aliases that map to the same definition as their base
 name.
 
-Common names that work out of the box: `windows`, `linux`, `vt100`,
-`vt220`, `wyse60`, `ansi`, `xterm`.
+Common names that work out of the box: `linux`, `vt100`, `vt220`,
+`wyse60`, `ansi`, `xterm`.
 
 A name that is not installed is refused and your current type is kept:
 
@@ -51,7 +49,7 @@ There is no plain `vt320` — the shipped name is `vt320-at`.
 
 ```
 term                    * report current type and page size
-term windows            * set for this session
+term linux              * set for this session
 term 120,36             * set page size
 term default            * restore 120 x 36 (prints nothing; check with bare term)
 ```
@@ -82,9 +80,14 @@ definition.
 
 ## Compiling a definition
 
-**The terminfo compiler ships with SD.** `sdtic.exe` is in
-`C:\Program Files\SD\usr\bin`, beside `sd.exe`. Nothing needs building and
-nothing needs downloading.
+**`sdtic` is built alongside the server during installation** — it is
+what compiles `terminfo.src` at install time — **but, unlike SD Core for
+Windows, is not currently left on the machine afterward.** The installer
+deletes its whole temporary build tree once installation finishes, and
+`sdtic` was only ever in that tree. To compile a custom definition after
+the fact, build it yourself from a clone of the source
+(`make sd` in `sdb_ai/sd64` produces `bin/sdtic`) rather than expect a
+copy already on the machine.
 
 ```
 sdtic {options} src...
@@ -114,7 +117,7 @@ Edit that, then compile it back in. `-x` is the safe form while you are
 experimenting, because it refuses to overwrite a definition that already
 exists.
 
-The compiled definitions live under `C:\ProgramData\SD\sdsys\terminfo`, in
-single-letter directories by first letter. Writing there needs administrator
-rights, so run `sdtic` from an elevated prompt when you are adding a definition
+The compiled definitions live under `/usr/local/sdsys/terminfo`, in
+single-letter directories by first letter. Writing there needs SDSYS's own
+permissions, so run `sdtic` as `sdsys` when you are adding a definition
 for the machine.
