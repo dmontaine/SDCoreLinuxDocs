@@ -14,93 +14,91 @@ accounts are a different thing again: a shared place, not a person.
 
 ## SDSYS is the only administrator
 
-**SDSYS is a single Windows account made by the installer, not something
+**SDSYS is a single Linux user made by the installer, not something
 `create.account` can produce.** Administering SD — creating, deleting or
-granting accounts, changing system-wide state, reaching another account's
-files without a grant — means signing in to *Windows* as SDSYS and running
-`sd`, elevated. Being a Windows administrator grants nothing by itself: the
-account that ran this installer is an ordinary account like any other once
-setup finishes, and **elevating a session does not make it SDSYS**.
+changing an account, changing system-wide state, reaching another account's
+files without a grant — means logging in to the **machine itself**, locally,
+as `sdsys`, at its own password, and running `sd`. There is no elevation
+step because being logged in as `sdsys` already *is* the privilege: `sudo`,
+`su`, or any route into the `sdsys` account other than a genuine login is
+refused, checked against the kernel's own audit trail (which records who
+actually logged in, not which account a shell is currently running as).
 
-> **This is a full reversal of how SD Core 1.0 worked**, where a Windows
-> administrator's own account was automatically an SD administrator. If you
-> read that in an older document or in W1.0 release notes, it no longer
-> holds. The reasoning is in the *Administrator* set's *Accounts and
-> security* chapter.
+> **This matches SD Core for Windows's own model exactly at the result
+> level**, even though the mechanism differs (a real login vs. elevation
+> checked against the running session). Neither port lets an administrator
+> of the underlying operating system pick up SD privilege by virtue of
+> that — being a Linux `sudo`er, like being a Windows administrator,
+> grants nothing by itself. The reasoning is in the *Administrator* set's
+> *Accounts and security* chapter.
 
-**SDSYS's Windows sign-in password** is asked for once, during installation,
-in the window that appears after the wizard closes — that is what you type
-at the Windows login screen to reach it at all, and changing it afterward is
-an ordinary Windows administrative action, not an SD verb. SDSYS also has its
-own SD credential (`modify.password`, run from within an SDSYS session,
-changes its own), but that credential secures nothing remote: `remote.api`,
-`remote.ssh` and every other door out of SDSYS are refused outright, on
-purpose — see [Reaching the operating system](06-administrator-commands.html).
+**SDSYS's Linux login password** is set once, during installation
+(`sudo passwd sdsys`) — that is what you type at the machine's own login
+prompt to reach it at all, and changing it afterward is an ordinary Linux
+action (`passwd`), not an SD verb. SDSYS also has its own SD credential
+(`modify.password`, run from within an SDSYS session, changes its own),
+but that credential secures nothing remote: `sdsys` has no ssh or API
+access at all, from anywhere, under any setting — see
+[Reaching the operating system](06-administrator-commands.html).
 
 ## Creating an account
 
 ```
-create.account user <name> {ssh | api | both | none} {no.query}
+create.account user <name> {no.query}
 
 create.account group <name> {no.query}
 
 create.account other <name> <pathname> {no.query}
 ```
 
-**Creating an account needs an elevated SDSYS session.** Creating a Windows
-account needs an elevated token, and only SDSYS carries the identity that
-makes an elevated session mean anything to SD — see
+**Creating an account needs a real SDSYS session.** Creating a Linux user
+account needs root, and only a genuine login as `sdsys` carries the
+identity SD's own elevation helper checks before granting it — see
 [SDSYS is the only administrator](#sdsys-is-the-only-administrator) above.
 
-### The route keyword is optional now
+### There is no route keyword — every ordinary account gets both
 
-**Say nothing and the account gets `both`** (ssh and the API). Name one to be
-narrower: `ssh` for ssh only, `api` for the API only, `none` for neither —
-an account reached only with `logto`, from inside another session.
-
-**`create.account user … ssh` and `… both` are refused when the machine has no
-ssh server**, with a warning saying why: the account would have no way to
-arrive over ssh. `api` and `none` still work. The test is made against the
-machine when you type the command, so installing an ssh server later makes
-`ssh` start working. See [Installing SD Core](01-installation.html#what-you-are-asked).
+**Unlike SD Core for Windows, there is no `ssh`/`api`/`both`/`none`
+choice at creation.** The owner's ruling is literal: *"All accounts, other
+than SDSYS, will have remote ssh and API access."* `create.account` does
+not ask, and there is nothing to narrow — the only account with a
+different remote-access shape is SDSYS itself, which has none at all, and
+that is not a setting either.
 
 ### What creating a user account actually does
 
 | | |
 |---|---|
-| Makes a Windows local account | created disabled, then enabled when the password is set |
+| Makes a Linux user account | `useradd -m`, password locked until SD sets it |
 | Creates the group `sdu_<name>` | and writes it to the account record |
-| Joins `sdusers` | which is what grants access to the data tree |
-| Joins `sdsshonly` | this is what denies the console and Remote Desktop — every ordinary account gets it now; only SDSYS's own Windows account does not |
-| Joins `sdssh` and/or `sdapi` | to match the route keyword — see below |
+| Joins `sdusers` | which is what grants access to the data tree, and is what the ssh boundary matches against |
 | Prompts for a password | in SD, masked; it never goes on a command line |
 
-**A user account cannot be created without a password.** Refusing the prompt
-creates nothing at all. Previously it left an account you could not sign in
-to.
+**A user account cannot be created without a password.** Refusing the
+prompt creates nothing at all.
 
-**`sdssh` and `sdapi` govern the ssh and API doors specifically, separately
-from `sdsshonly`.** An account with route `none` still joins `sdsshonly` like
-every other ordinary account — that has always denied the *Windows* console
-and Remote Desktop, and has nothing to do with ssh — it simply also has
-neither `sdssh` nor `sdapi`, so it has no remote door of any kind and can
-only be reached with `logto`.
+**Joining `sdusers` is the whole of the remote-access grant.** Every
+`sdusers` member — every ordinary account, unconditionally — is
+`ForceCommand`'d into `sd` over ssh and reachable over the API; only
+`sdsys` is excluded, refused at the door on both routes rather than left
+ungranted. There is no separate ssh-only or API-only membership to choose.
 
 ### What every account can do
 
 **Every verb, from the moment it is created.** Compile, catalogue, edit,
 define files and indexes, run the bulk record editors, inspect processes —
 none of that is withheld any more. What an account cannot do is administer:
-create, delete, grant, or suspend another account; change system-wide
-configuration; or reach the operating system through `sh` or `OS.EXECUTE`
-unless SDSYS has switched that on for it — see
+create, delete, or suspend another account; change system-wide
+configuration. Reaching the operating system through `sh` or `OS.EXECUTE`
+needs **no permission at all** — see
 [Reaching the operating system](05a-managing-accounts.html#reaching-the-operating-system).
 
 > **None of this is a wall inside SD.** The VOC is the same for every
 > ordinary account; what actually stops one account reaching another's data
-> is the operating system's file permissions, the ssh confinement, and the
-> `os.users` permit list for `sh`/`OS.EXECUTE` — not the contents of a VOC.
-> See the *Administrator* set's *Accounts and security* chapter.
+> is the operating system's own file permissions and the ssh confinement —
+> not the contents of a VOC, and not a second SD-level gate on `sh`, which
+> this port does not have. See the *Administrator* set's *Accounts and
+> security* chapter.
 
 ## Suspended — a state, not a tier
 
@@ -119,7 +117,7 @@ does not exist and for one you are not granted, so the API cannot be used to
 find out which accounts exist or what state they are in.
 
 **It takes nothing away, which is why lifting it is free.** The VOC is left
-exactly as it is and no Windows group membership moves — suspending sets one
+exactly as it is and no group membership moves — suspending sets one
 field and unsuspending clears it. Suspending is not a substitute for
 deleting: it is reversible on purpose. See
 [Changing an account afterwards](05a-managing-accounts.html#changing-an-account-afterwards).
