@@ -1,43 +1,44 @@
 Title: Scheduled jobs
 Subtitle: Running an SD command on a timer, and the permit list that decides which ones.
 
-**A scheduled task can run an SD command, and only the commands an
-administrator has named for it.**
+**A cron job or a systemd timer can run an SD command, and only the
+commands an administrator has named for it.**
 
-Typing a command after `sd` — `sd my.report` — needed a session started with
-*Run as administrator* in earlier builds of this port. A scheduled task does
-not run that way, so there was no way to have SD do anything on a timer without
-handing the job administrator rights.
+Typing a command after `sd` — `sd my.report` — used to run unconditionally,
+with no gate at all: the group-membership test at entry proved *who* was
+running it, never *what* it might run unattended. A scheduled job has
+nobody at the keyboard to use judgement, so it needed a pre-vetted list
+instead, whoever's Linux identity is actually running it.
 
-There are two ways past that now:
+There are two ways past the gate now:
 
 | | |
 |---|---|
-| an elevated session | runs anything, exactly as before |
+| a session logged in as SDSYS | runs anything, exactly as before |
 | anything else | runs what is listed for its account in the SD system file `batch.jobs` |
 
 **Nothing changes for a session you type at.** Commands entered at the `:`
 prompt are unaffected, and so is plain `sd` with no command after it.
 
 **There is no password anywhere in this.** The job signs in as its own
-Windows account and SD puts it in the matching SD account, exactly as it would
-for a person at a keyboard. Nothing has to store a credential for the job to
-use, and the job grants nobody anything — no other account is in its group.
+Linux account and SD puts it in the matching SD account, exactly as it
+would for a person at a keyboard. Nothing has to store a credential for the
+job to use, and the job grants nobody anything — no other account is in its
+group.
 
 ## The permit list
 
-`batch.jobs` is a directory file in `C:\ProgramData\SD\sdsys`, so **one record
+`batch.jobs` is a directory file in `/usr/local/sdsys`, so **one record
 per account, named after the account**, holding one command name per line.
 
-**Only an administrator can change it.** It is read-only to SD users, by the
-same control and the same script as the
-[`os.users` permit list](06-administrator-commands.html#the-list) — a user who
-could add a line to their own record would be granting themselves the command
-line.
+**Only an administrator can change it.** It is read-only to `sdusers`
+(`sdsys:sdusers 750`) — a user who could add a line to their own record
+would be granting themselves the command line.
 
-**It is keyed by the account you end up in**, not by the Windows account name,
-and the two are usually the same. `sd -a<name>` cannot be used to reach
-somebody else's list: that form is refused unless the account is your own.
+**It is keyed by the account you end up in**, not by the Linux account
+name, and the two are usually the same. `sd -a<name>` cannot be used to
+reach somebody else's list: that form is refused unless the account is
+your own.
 
 **Any account can be given a list.** Every account has the same VOC now, so
 there is nothing about the account type to consider here; SDSYS's own
@@ -87,8 +88,8 @@ record in that account's VOC, with the commands on the lines after the type:
 **2. Check it runs when you type it**, in that account, before putting it on a
 timer.
 
-**3. Add the name to the account's record in `batch.jobs`**, signed in to
-Windows as SDSYS, elevated:
+**3. Add the name to the account's record in `batch.jobs`**, logged in to
+the machine as SDSYS:
 
 ```
 :ed batch.jobs fred
@@ -96,27 +97,29 @@ Windows as SDSYS, elevated:
 
 One command name per line. Create the record if the account has none.
 
-**4. Create the scheduled task.** Windows Task Scheduler runs it; two fields
-carry the whole of it:
+**4. Create the scheduled job.** Either cron or a `systemd` timer runs it —
+what matters is which Linux account the job runs as:
 
-| | |
-|---|---|
-| Program/script | `C:\Program Files\SD\usr\bin\sd.exe` |
-| Add arguments | `my.report` |
+```
+# crontab -u fred -e
+0 6 * * *  /usr/local/bin/sd my.report
+```
 
-The task runs as a Windows account, and that account needs a matching SD
-account — that is the whole of the sign-in. There is no password to configure
-anywhere in SD for it.
+The job runs as a Linux account, and that account needs a matching SD
+account — that is the whole of the sign-in. There is no password to
+configure anywhere in SD for it.
 
-**Do not tick "run with highest privileges".** It is not needed, and the
-whole point of `batch.jobs` is a job that runs without administrator rights. A
-task that is elevated passes the gate on elevation alone and never consults the
-list, so it would also be a job nobody had approved a command for.
+**Do not run it as `sdsys` or via `sudo`.** It is not needed, and the whole
+point of `batch.jobs` is a job that runs without administrator rights. A
+job that runs as `sdsys` passes the gate on identity alone and never
+consults the list, so it would also be a job nobody had approved a command
+for — and per [Security](12-security.html), `sdsys` cannot be reached that
+way regardless: SD checks the kernel's own audit loginuid (`K$LOGIN.UID`),
+set once by a real login and unforgeable by a cron job or a `sudo`'d
+shell, and refuses anything that isn't a genuine local login as `sdsys`.
 
-**Use a Windows account you already had** — that is the case the design was
-built around. Accounts that **`create.account`** makes are denied interactive
-logon at this machine on purpose, which Task Scheduler may or may not accept as
-the identity a task runs as.
+**Use a Linux account you already had** — that is the case the design was
+built around.
 
 ## When it refuses
 
@@ -142,5 +145,5 @@ An administrator grants it by adding the name to the account's record in
 the SD system file batch.jobs, which only an administrator can change.
 ```
 
-**A refusal is not a hang.** `sd <command>` no longer walks into a password
-prompt it cannot answer — see [Running SD](03-running-sd.html#the-command-line).
+**A refusal is not a hang.** `sd <command>` is never asked to set a
+password it cannot answer — see [Running SD](03-running-sd.html#the-command-line).
