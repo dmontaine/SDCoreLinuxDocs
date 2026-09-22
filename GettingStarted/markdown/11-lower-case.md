@@ -1,9 +1,10 @@
 Title: Lower case
 Subtitle: Commands, file names, record ids and account names are lower case now — and nothing you type has to change.
 
-**Everything that can be lower case is lower case.** SD used to be inconsistent
-about it: BASIC source is free-form and usually written lower case, while file
-names, field names and account names were forced up.
+**Everything that can be lower case is lower case, completely — no name
+exists in two casings.** SD used to be inconsistent about it: BASIC source
+is free-form and usually written lower case, while file names, field names
+and account names were forced up.
 
 **What you type does not change.** `LIST`, `list` and `List` all run the same
 verb, and so does every keyword — `with`, `by`, `no.page` and the rest.
@@ -19,49 +20,48 @@ as typed  →  lower  →  upper
 A name that matches exactly still wins, so nothing that works today changes. A
 name that exists in **no** case is still reported as not found.
 
-This order is used everywhere: the parser, the query processor, `RUN`,
-multifile resolution, the `LOGIN` paragraph lookup, and `SET.FILE`'s default
+This order is used everywhere: the parser, the query processor, `run`,
+multifile resolution, the `login` paragraph lookup, and `set.file`'s default
 `qfile` pointer.
 
-> **The change was additive, not a flip.** A `downcase` attempt was inserted
-> into a chain that already tried as-typed and then upper. On a tree whose ids
-> are all upper case the new attempt can never hit, so it changed no behaviour
-> and could not break anything.
-
-## What is spelled in lower case now
+## What is spelled in lower case, and that is the whole of it
 
 | | |
 |---|---|
-| Commands in the VOC | **`list`**, `count`, **`select`**, **`create.file`**, **`setptr`** … and that is how they appear in `list voc`, `listv` and `ct voc` |
-| System files on disk | `accounts`, `bp`, `bp.out`, `gpl.bp`, `messages`, `newvoc`, `pcode.out`, `syscom`, `voc`, `voc.dic`, `voc_template` and the rest |
-| The `BP` and `GPL.BP` VOC entries | `bp` and `gpl.bp` |
-| The hold file | `$hold` |
-| The saved select list file | `$savedlists` |
-| The command stack record | `$command.stack` |
-| Account names on disk | `sdsys\accounts\don`, matching the account's own directory in `user_accounts` |
+| Commands in the VOC | **`list`**, `count`, **`select`**, **`create.file`**, **`setptr`** … 399 of 399 `newvoc` records, 424 of 424 `voc_template` records — and that is how they appear in `list voc`, `listv` and `ct voc` |
+| BASIC source and include records | 217 `gpl.bp` records, 16 `syscom` includes — all of them |
+| System files on disk | `accounts`, `bp`, `bp.out`, `gpl.bp`, `messages`, `newvoc`, `pcode.out`, `syscom`, `voc`, `voc.dic`, `voc_template` and the rest — 0 of 15 `sdsys` directory names still upper case |
+| Account names on disk | `sdsys/accounts/don`, matching the account's own directory in `user_accounts` |
 | Files in a new account | created with lower-case names on disk |
 
-**Renaming these is cosmetic for resolution** — NTFS matches without being
-asked — but the stored path text is user-visible through `listf` and the
-current-directory reporting, which is the point.
+**This is a completed migration, not an additive fallback that leaves old
+spellings behind it** — every name in every ruled category is lower case,
+checked directly against the source tree (`tools/verify-nocase.py`, part
+of this project's own build checks), not merely claimed.
 
-## Record ids in directory files are no longer case sensitive
+## Record ids in your own data files are untouched, deliberately
 
-Two changes that go together:
+**`ext4` is case sensitive — a real difference from NTFS, which is not.**
+On a Windows machine `SUE` and `sue` are already the same file, so
+lower-casing an application's own data cost nothing there. On Linux they
+are two different files, so forcing an application's own record ids to
+lower case would silently change its data. **This is ruled out of scope on
+purpose**: the lower-case migration covers SD's own system names —
+commands, VOC entries, source, account ids — never the records an
+application stores in its own files. What you put in your own data keeps
+whatever case you gave it.
 
-- **Record ids in directory files** are matched case insensitively.
-- **Queries against a directory file** match ids the same way.
-
-**`create.file`** also takes a `no.case` option, which creates a file whose record
-ids are treated as case insensitive: SD writes records preserving the casing
-given by whatever performs the write, and reads locate records regardless of
-casing.
+**`create.file`** also takes a `no.case` option, which creates a file whose
+record ids are treated as case insensitive regardless: SD writes records
+preserving the casing given by whatever performs the write, and reads
+locate records regardless of casing. That is an opt-in choice for a file
+where you want it, not the system default.
 
 ## One correction worth reading
 
-**`LIST` and `CT` used to disagree about the same name.** `list voc $HOLD`
-answered *"'$HOLD' not found"* on the very record `ct voc $HOLD` had just shown
-you. `LIST`, `SORT`, `SELECT` and the rest of the query language now use the
+**`list` and `ct` used to disagree about the same name.** `list voc $hold`
+answered *"'$HOLD' not found"* on the very record `ct voc $hold` had just shown
+you. `list`, `sort`, `select` and the rest of the query language now use the
 same as-typed → lower → upper order as everything else.
 
 ## Account names
@@ -69,37 +69,9 @@ same as-typed → lower → upper order as everything else.
 **Account names have never been case sensitive and still are not.**
 **`create.account`**, **`logto`** and the rest accept whatever case you type.
 
-What changed is only how the register file is named on disk: new accounts are
-recorded in lower case, so `sdsys\accounts\don` matches the account's own
-directory. **Existing accounts keep the names they already have.**
-
-## Existing accounts are not touched
-
-**An account created before this keeps the upper-case names in its VOC and goes
-on working. there is nothing to migrate.** An account you create now, or one
-you refresh with **`update.accounts`**, gets the new spelling.
-
-Because SD only ever *adds* VOC records at an update, an old account will end
-up holding both spellings after **`update.accounts`**. That is harmless — they
-dispatch to the same programs.
-
-## The Turkish and Azeri fix
-
-The installer creates an SD account for whoever authorises the install, and to
-do that it matches your Windows user name against SD's copy of it — which means
-changing both to the same case.
-
-**Windows and SD did not change case the same way everywhere.** On a Turkish
-or Azeri system Windows turns `I` into a dotless `ı`, and SD does not. A user
-name containing that letter did not match itself, and the install finished
-**without giving you an SD account at all.**
-
-Both sides now use the same rule, which does not vary by locale. Nothing
-changes on a system whose locale was never affected.
-
-> If you are testing on a Turkish or Azeri locale, this is worth exercising
-> specifically — it is the kind of fault that only appears on the machine you
-> do not have.
+What changed is how the register file is named on disk: accounts are
+recorded in lower case, so `sdsys/accounts/don` matches the account's own
+directory on disk.
 
 ## Two related refusals that no longer depend on case
 
