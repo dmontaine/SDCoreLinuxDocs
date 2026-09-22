@@ -1,7 +1,7 @@
 Title: SD Core - Introduction and Getting Started
 Subtitle: What a multivalue database is, what SD is, the four components, and your first session.
 
-This page orients you to SD Core for Windows: what a multivalue database is,
+This page orients you to SD Core for Linux: what a multivalue database is,
 where SD came from, what the pieces are, and how to take your first steps. It
 is the only page in this set that assumes nothing.
 
@@ -25,9 +25,9 @@ that carries these marks, and `extract`, `insert`, `delete` and
 
 ## What SD is
 
-SD Core for Windows is a version of SD, with elements found in the main
-SD version and in ScarletDME. ScarletDME was a fork of the original GPL
-release of OpenQM 2.6.6.
+SD Core for Linux is built from upstream `sdb64`, a MultiValue database
+with elements found in the main SD version and in ScarletDME. ScarletDME
+was a fork of the original GPL release of OpenQM 2.6.6.
 
 **That lineage matters when you go looking for documentation.** Not all
 the features of the *commercial* OpenQM 2.6.6 were in the GPL release,
@@ -36,17 +36,18 @@ OpenQM 2.6.6 documents can be used as a reference, but SD Core has
 additions, changes and deletions — of features, of structure, of
 security and of commands. This documentation set covers those changes.
 
-If you have used OpenQM, or SD on Linux, much of SD Core will still be
+If you have used OpenQM, or upstream `sdb64`, much of SD Core will still be
 familiar: the same data model, the same query processor, the same
 BASIC.
 
-**SD Core for Windows is Windows only.** There are no `#ifdef` branches
-keeping Linux alive in this source — Linux SD is a separate project and
-this is not a build of it.
+**SD Core for Linux is Linux only.** There are no `#ifdef` branches
+keeping Windows alive in this source — SD Core for Windows is a separate
+project, kept in behavioural parity by deliberate policy, and this is not
+a build of it.
 
 SD Core is free software under the GNU General Public Licence v3. `config gpl`
-displays the licence and `config contrib` the list of contributors. The
-installer carries compiled binaries; the source is a separate download.
+displays the licence and `config contrib` the list of contributors. Installing
+means cloning the source and building it — see the GettingStarted set.
 
 ## The four components
 
@@ -55,7 +56,7 @@ installer carries compiled binaries; the source is a separate download.
 | **The command processor (TCL)** | reads what you type at the `:` prompt and dispatches it to a verb, a program, a paragraph or a query |
 | **The query processor** | runs `list`, `select`, `count`, `sort` and the rest — the reporting language |
 | **SDBasic** | the programming language: a compiled BASIC with dynamic arrays, file I/O, and the multivalue string functions |
-| **The SDClient API** | a C client library (`sdclilib.dll`) that lets an external application connect to SD, read and write records, execute commands and call subroutines |
+| **The SDClient API** | a C client library (`sdclilib.so`) that lets an external application connect to SD, read and write records, execute commands and call subroutines |
 
 ## Signing in
 
@@ -64,21 +65,21 @@ sd
 ```
 
 You land in **the SD account with your own name**. Nothing asks for a
-password — Windows has already authenticated you. SD asks Windows who
-you are.
+password — Linux has already authenticated you, at the console or over
+ssh.
 
 If `sd` answers *Account ... not in register*, you are in the wrong
 account or your group membership has not taken effect yet. If it
 answers *not registered for SD use*, you are not in the `sdusers`
 group.
 
-> **You must sign out and back in after being added to `sdusers`.**
-> Windows fixes group membership when you sign in. Until you get a new
-> logon token you cannot read the data tree at all, and the symptom
-> looks like a broken install.
+> **You must log out and back in after being added to `sdusers`.**
+> Group membership is fixed at login, the same as any Linux service.
+> Until you get a new session you cannot read the data tree at all, and
+> the symptom looks like a broken install.
 
-SD is already running. It is a Windows service — **String Database (SD)**
-— and Windows starts it at every boot. You do not type `sd -start`.
+SD is already running. It is a `systemd` service — `sd.service`,
+`sdclient.socket` — enabled at every boot. You do not type `sd -start`.
 
 ## Your first file and record
 
@@ -91,9 +92,9 @@ ed customers 1001
 to insert, type your lines, a full stop on its own line to stop
 inserting, then `fi` to file and exit.
 
-Every account can also use `edit` (Microsoft Edit, a full-screen
-editor) or `micro` (a full-screen editor with syntax highlighting).
-Both need `OS.EXECUTE` permission — see the administrator documentation.
+Every account can also use `nano` or `micro` (both full-screen editors
+with syntax highlighting) — unconditionally, with no permission to grant
+first. `edit` aliases `ed` here, not a full-screen editor.
 
 ```
 list customers
@@ -107,12 +108,12 @@ dots, so `clear-select` reaches `clear.select` too.
 ## Writing a program
 
 A program lives in a `bp` file — a directory file, which is an ordinary
-Windows folder with one file per program. You can write it in `ed`,
-in `edit`, in `micro`, or in any text editor you like (Notepad, VS Code,
-etc.) — the folder is on disk at:
+Linux directory with one file per program. You can write it in `ed`,
+in `nano`, in `micro`, or in any text editor you like — the folder is on
+disk at:
 
 ```
-C:\ProgramData\SD\user_accounts\<account>\bp
+/home/sd/user_accounts/<account>/bp
 ```
 
 Compile and catalogue it from inside SD:
@@ -131,32 +132,32 @@ myprog
 ## Becoming an administrator
 
 **There is no `logto` route to it.** SDSYS, the one administrator account,
-is reached only by signing in to Windows as the `sdsys` account itself and
-starting `sd` elevated — a fresh session, not a command typed from inside
-one you already have. `logto sdsys` from any other account is refused
-outright, whatever its elevation.
+is reached only by logging in to the machine itself, locally, as the
+`sdsys` account, its own password — a fresh session, not a command typed
+from inside one you already have. `logto sdsys` from any other account is
+refused outright, whatever route it came in by.
 
-**This needs the console, or a remote desktop or remote-control product
-installed as a service** — something Windows can draw a UAC consent prompt
-on. Over an ordinary ssh session there is no such screen, and in any case
-SDSYS itself has no ssh route to arrive over.
+**This needs the console, or a desktop-sharing view of it** (VNC,
+TeamViewer) — a real local login, which counts as local because it *is*.
+`sdsys` has no ssh or API route to arrive over, ever, from anywhere.
 
 ## What is not in SD Core
 
-The following were in OpenQM, in ScarletDME, or in SD on Linux, and
-are not in SD Core for Windows:
+The following were in OpenQM, in ScarletDME, or in upstream `sdb64`, and
+are not in SD Core for Linux:
 
 | Gone | Why |
 |---|---|
-| QMNet (remote files) | Removed; the API is the supported way to reach another SD server |
-| Embedded Python | Dropped; the intended use is as a back end data store reached through the API |
-| `sdlnxd` daemon | Linux-only; the Windows service replaces it |
+| SDNet (remote files) | Removed; the API is the supported way to reach another SD server |
 | `ENCRYPT.FIELD` verb | Removed; `sdencrypt()` and `sddecrypt()` in SDBasic are the supported route |
-| `sed`, `update.record`, `modify` editors | Gone; use `edit`, `micro` or `ed` |
+| `sed`, `update.record`, `modify` editors | Gone; use `nano`, `micro` or `ed` |
 | PROC language | Removed; use paragraphs instead |
 | NLS, `SET.LANGUAGE` | Removed; SD Core is English only |
-| Silent install | Refused deliberately; the installer asks questions that cannot be defaulted |
-| Multi-user Remote Desktop | Not supported; accounts SD creates are denied the console and RDP |
+| Unattended install | Not supported; the installer asks questions and sets passwords that cannot be scripted around |
+
+**Embedded Python is not on this list** — a real difference from SD Core
+for Windows, which dropped and later restored a narrower form of it. This
+port never removed it.
 
 ## Document conventions
 

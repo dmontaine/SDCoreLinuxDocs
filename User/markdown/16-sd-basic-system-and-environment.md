@@ -3,8 +3,7 @@ Subtitle: Asking SD about itself, about the machine, and about the session you a
 
 This page covers the enquiries: what time is it, who am I, where is the data,
 what did the last thing that failed say, and what may this account do. Most of
-it is one function, `system()`, and most of the surprises are about which form
-a path comes back in.
+it is one function, `system()`.
 
 SD folds case, so a program may be written in either case. Keywords are shown
 here in lower case. In the tables, *italics* mark something you supply and
@@ -24,7 +23,7 @@ system(key)
 
 | Key | | Value |
 |---|---|---|
-| `7` | terminal type | `windows` |
+| `7` | terminal type | `linux` |
 | `9` | CPU time used, ms | `45` |
 | `12` | time, as `time()` | `70787` |
 | `18` | **user number** | `67` (example) |
@@ -45,42 +44,36 @@ system(key)
 |---|---|---|
 | `31` | licence number | `0` |
 | `42` | IP address | *empty* |
-| `91` | **is this Windows?** | `1` |
-| `1006` | Windows NT style? | **`0`** |
+| `91` | is this Windows? | `0` — this port is never Windows |
+| `1006` | Windows NT style? | `0` — vestigial, never set on this port |
 | `1009` | endian — 0 little | `0` |
-| `1010` | platform name | `Windows` |
-| `1012` | SD version | `W1.0-0` |
+| `1010` | platform name | `Linux` |
+| `1012` | SD version | `L1.0-0` |
 | `1013` / `1014` | user limit, without / with the phantom pool | `20` / `20` |
-| `1015` | computer name | `Gitorli` (example) |
+| `1015` | computer name | `myhost` (example) |
 | `1017` | port number of a tcp connection | `0` |
 | `1028` | system id | `1028` |
 
-**Two of those three answer correctly and one does not.** `system(91)` reads
-`1` and `system(1010)` reads `Windows`. **`system(1006)`, "Windows NT style?",
-reads `0`** — it is the one to leave alone. **Ask `system(91)` whether this is
-Windows**; it is the key this port sets deliberately for that purpose.
+**`system(91)` and `system(1006)` are both Windows-only questions, and
+both read `0` here — that is not a keys-to-leave-alone caveat, it is the
+correct answer.** `system(1010)` is the one that actually tells you the
+platform: `Linux`, reliably.
 
-### Paths, and they are not all in the same form
+### Paths — one form, no translation layer
 
 | Key | | Value |
 |---|---|---|
-| `32` | the `sdsys` directory | `C:\ProgramData\SD\sdsys` |
-| `38` | the temporary directory | `/cygdrive/c/WINDOWS/TEMP` |
-| `1011` | the configuration file | `C:/ProgramData/SD/sd.conf` |
-| `1024` | the directory SD was started in | `/cygdrive/c/Users/dmont/OneDrive/Documents` |
+| `32` | the `sdsys` directory | `/usr/local/sdsys` |
+| `38` | the temporary directory | `/tmp` (example — falls back to the system default when `TEMPDIR` is unset in `sd.conf`) |
+| `1011` | the configuration file | `/etc/sd.conf` |
+| `1024` | the directory SD was started in | `/home/don/myproject` (example) |
 
-**Three different spellings of a Windows PATH come out of one function.** A
-backslash path, a POSIX `/cygdrive/` path, and a forward-slash path with a
-drive letter. `@sdsys` agrees with key 32 and `@path` — the account directory —
-is in the POSIX form.
-
-**A `/cygdrive/` path handed to a Windows program does not work.** Windows
-reads it as drive-relative and either fails silently or complains that the
-parent directory does not exist. This is not theoretical: it is what stopped
-the full-screen editors working the first time they were built for this port.
-There is a conversion function in the kernel and **an ordinary program cannot
-call it** — see "What is not here". **Take the path from configuration rather
-than from `system()` if a Windows program is going to see it.**
+**Unlike SD Core for Windows, which reads paths back in up to three
+different spellings** (a backslash path, a POSIX `/cygdrive/` path, and a
+forward-slash drive path, because its runtime sits on top of a POSIX
+emulation layer) **— there is only one spelling here.** This port runs
+natively, so every path `system()` returns is an ordinary Linux path, and
+`@sdsys` and `@path` agree with it without any conversion to worry about.
 
 ### Lists and structures
 
@@ -134,20 +127,20 @@ conversion codes.
 env(name)
 ```
 
-**`env()` is case sensitive and a wrong case looks exactly like a missing
-variable.**
+**`env()` is case sensitive, the ordinary Linux rule** — a wrong case
+looks exactly like a missing variable, because on Linux it *is* a
+different name.
 
 | | |
 |---|---|
-| `env('PATH')` | 926 characters |
-| `env('path')` | **0 characters** |
-| `env('ProgramData')` | `C:\ProgramData` |
+| `env('PATH')` | non-empty |
+| `env('path')` | **empty** — no such variable, lower case |
+| `env('HOME')` | your home directory |
 | `env('NOSUCHVAR')` | empty |
 
-Windows itself treats environment variable names as case-insensitive
-everywhere else, which is what makes this worth knowing. `ProgramData` works
-only because that is exactly how Windows spells it. **Get the spelling from
-`system(1025)` field 1 rather than from memory.**
+**Get the spelling from `system(1025)` field 1 rather than from memory**
+if you are ever unsure what a variable is actually called in this
+session's environment.
 
 ## CONFIG()
 
