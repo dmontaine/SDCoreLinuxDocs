@@ -9,7 +9,7 @@ in lower case. In the tables, *italics* mark something you supply and **bold**
 marks a word typed as it stands; braces mark an optional part.
 
 > **Every listing on this page was produced by running it**, on SD Core for
-> Windows W1.0-0, against a two-line program in an account's `bp` file.
+> Linux, against a two-line program in an account's `bp` file.
 
 ## Compiling
 
@@ -92,8 +92,9 @@ itself.
 | **global** | `gcat` in the system account — **every account sees it** |
 
 **Global cataloguing requires administrator privilege, and on this port that
-means an elevated session.** Without it you get *"Command requires
-administrator privileges"*. **The same gate applies to an implicit global
+means an SDSYS session** — logged in to the machine locally, as `sdsys`.
+Without it you get *"Command requires administrator privileges"*. **The
+same gate applies to an implicit global
 catalogue** — one chosen by a `*`, `!`, `_` or `$` prefix on the call name
 rather than by the `global` keyword — so the prefix is not a way round it.
 

@@ -232,14 +232,15 @@ can parse its own arguments. `@sentence` holds the same thing.
 
 ## The port's terminal, in one paragraph
 
-SD Core for Windows turns on the console's ANSI processing itself rather than
-inheriting it, so `@()` sequences work in an ordinary PowerShell window without
-the user configuring anything. Over ssh the session is a console session, so
-the same sequences reach the client terminal. **SD is a terminal system
-throughout; the API is the only way to reach it without one**, and there a
-program is reading a command's output rather than driving a screen. **Such a
-session has no geometry and no capabilities**, which is why `terminfo()`
-returns the null string above rather than guessing.
+**Unlike SD Core for Windows, there is no console-mode switch to turn on
+here** — a Linux terminal (a real console, `xterm`, `gnome-terminal`, an
+ssh client) already understands ANSI/terminfo escape sequences natively,
+so `@()` sequences just work, with nothing for SD or the user to
+configure first. **SD is a terminal system throughout; the API is the
+only way to reach it without one**, and there a program is reading a
+command's output rather than driving a screen. **Such a session has no
+geometry and no capabilities**, which is why `terminfo()` returns the
+null string above rather than guessing.
 
 ## What is not here
 
