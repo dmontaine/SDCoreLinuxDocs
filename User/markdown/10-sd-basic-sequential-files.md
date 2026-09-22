@@ -97,23 +97,25 @@ a separate statement — use it for anything that has to survive a crash, and
 `weofseq` at the start of a file is how you empty it: `openseq` positions at
 the beginning, and truncating there discards everything.
 
-### The line terminator is CRLF
+### The line terminator is LF
 
 Two lines written with `writeseq` and read back with `readblk`, byte by byte:
 
 | | |
 |---|---|
-| bytes | `65 66 13 10 67 68 13 10` |
-| meaning | `A` `B` **CR LF** `C` `D` **CR LF** |
+| bytes | `65 66 10 67 68 10` |
+| meaning | `A` `B` **LF** `C` `D` **LF** |
 
-**This port writes CRLF, not LF.** That is deliberate — a file SD produces
-opens correctly in Notepad and every other Windows tool, which was not true of
-the Linux original. `readseq` accepts either, and strips whichever it finds,
-so a file written on Linux still reads correctly here.
+**Unlike SD Core for Windows, which deliberately writes CRLF so a file
+opens correctly in Notepad, this port writes the platform's own LF only**
+— the original Linux behaviour, kept because there is no Windows tool
+here to accommodate. `readseq` accepts either LF or CRLF, and strips
+whichever it finds, so a file that started life on a Windows machine
+still reads correctly here.
 
-**It matters when you count bytes.** A file of *n* lines is *n* bytes longer
-than the same file with LF endings, so an offset computed by adding up line
-lengths must allow two bytes per line, not one.
+**It matters when you count bytes.** A file of *n* lines written on
+this port is *n* bytes shorter than the same file written by SD Core for
+Windows, whose CRLF endings cost an extra byte per line.
 
 ## Position
 

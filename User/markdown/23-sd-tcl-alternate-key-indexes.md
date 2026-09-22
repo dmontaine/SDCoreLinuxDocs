@@ -9,7 +9,7 @@ in lower case. In the tables, *italics* mark something you supply and **bold**
 marks a word typed as it stands; braces mark an optional part.
 
 > **Every listing on this page was produced by running it**, on SD Core for
-> Windows W1.0-0, against a six-record file whose field 1 held five `V` and one
+> Linux, against a six-record file whose field 1 held five `V` and one
 > `K`.
 
 ## Use `make.index`

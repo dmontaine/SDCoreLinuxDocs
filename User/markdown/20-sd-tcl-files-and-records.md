@@ -11,9 +11,9 @@ in lower case, which is what this port uses on disk. In the tables, *italics*
 mark something you supply and **bold** marks a word typed as it stands; braces
 mark an optional part.
 
-## The two kinds of file, and what they look like in Explorer
+## The two kinds of file, and what they look like on disk
 
-**Both kinds are a directory on Windows.** This surprises people who expect a
+**Both kinds are a Linux directory.** This surprises people who expect a
 database file to be one file.
 
 | | |
@@ -22,17 +22,22 @@ database file to be one file.
 | **directory** | a directory holding **one ordinary file per record**, named by the record id |
 
 `voc`, `$ipc` and `dict.dic` are dynamic. `messages`, `accounts` and `bp` are
-directory files — which is why you can open a BASIC program in Notepad and why
-`gpl.bp` is readable in the source tree.
+directory files — which is why you can open a BASIC program in any text
+editor and why `gpl.bp` is readable in the source tree.
 
 **A dictionary is a separate file that travels with the data file.** Verbs that
 can act on either take `dict` in front of the file name; with no `dict` they
 mean the data portion.
 
-**The shipped file names are lower case on disk in this port.** `voc`, `bp`,
-`newvoc`, `accounts`, `messages` and the rest were renamed. NTFS matches without
-being asked, so this changes nothing about what you can type — but it is what
-you will see in Explorer and in the path text SD reports back.
+**The shipped file names are lower case on disk in this port, and unlike SD
+Core for Windows, that rename is load-bearing rather than cosmetic.**
+`voc`, `bp`, `newvoc`, `accounts`, `messages` and the rest were renamed —
+NTFS is case-insensitive and would have matched the old spelling anyway,
+but `ext4` is case sensitive, so a mismatch here would have been a real
+file-not-found rather than an invisible non-issue. What you can type is
+unaffected either way (SD tries as-typed, then lower, then upper), and
+the lower-case spelling is what you will see in the path text SD reports
+back.
 
 ## Making and removing files
 

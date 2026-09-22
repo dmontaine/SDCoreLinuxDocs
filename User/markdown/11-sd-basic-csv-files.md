@@ -125,9 +125,13 @@ the decimal separator.
 
 ## Line endings
 
-CSV written by SD ends each line with **CRLF** — see
-[SD Basic - Sequential Files](10-sd-basic-sequential-files.html). That is what
-RFC 4180 specifies and what Windows tools expect. Reading accepts either.
+CSV written by SD is documented as following **RFC 4180**, which specifies
+CRLF. **Unlike SD Core for Windows, this port's sequential-file writing —
+which `writecsv` shares — uses LF only**, the platform's own convention
+(see [SD Basic - Sequential Files](10-sd-basic-sequential-files.html)); if
+another program's CSV reader is strict about RFC 4180's CRLF, check it
+against real output rather than assume the pair is there. Reading accepts
+either.
 
 ## What is not here
 

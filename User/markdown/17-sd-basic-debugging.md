@@ -251,7 +251,7 @@ From inside a program run from the command prompt:
 
 ```
 >STACK
-1: /cygdrive/c/ProgramData/SD/user_accounts/don/BP.OUT/ZZDBG @ 9
+1: /home/sd/user_accounts/don/bp.out/zzdbg @ 9
 Command processor
 ```
 

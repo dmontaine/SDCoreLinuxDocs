@@ -10,7 +10,7 @@ are shown here in lower case. In the tables, *italics* mark something you supply
 and **bold** marks a word typed as it stands; braces mark an optional part.
 
 > **Every listing on this page was produced by running it**, on SD Core for
-> Windows W1.0-0, in an administrator account. The file being queried is `voc`,
+> Linux, in an administrator account. The file being queried is `voc`,
 > because it is the one file every account has.
 
 ## The one thing to understand first
