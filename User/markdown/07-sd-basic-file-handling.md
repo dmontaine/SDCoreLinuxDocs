@@ -192,7 +192,7 @@ On a newly created dynamic file:
 |---|---|---|
 | `0` | is this variable an open file? | `1` |
 | `1` | the VOC name it was opened by | `ZZWORK` |
-| `2` | the path on disk | `/cygdrive/c/ProgramData/SD/user_accounts/don/ZZWORK` |
+| `2` | the path on disk | `/home/sd/user_accounts/don/zzwork` |
 | `3` | file type | `3` |
 | `5` | modulus | |
 | `6` | minimum modulus | `1` |
@@ -205,21 +205,10 @@ On a newly created dynamic file:
 File types: `1` SH, **`3` DH — an ordinary dynamic file**, `4` directory, `5`
 sequential.
 
-> **The PATH comes back in POSIX form, not as a Windows path** —
-> `/cygdrive/c/ProgramData/...`, not `C:\ProgramData\...`. **Handing that
-> string to a Windows program does not work** — Windows reads it as a
-> drive-relative path and either fails silently or reports that the parent
-> directory does not exist. This is not a theoretical caution: it is what
-> stopped the full-screen editors working the first time they were built for
-> this port.
->
-> **And the conversion function is not available to an ordinary program.**
-> The kernel can convert such a path, and `kernel()` is an internal-only
-> intrinsic — a `kernel(...)` call in a user account does not
-> compile, and the compiler's complaint is *"Matrix KERNEL is not referenced in
-> a DIM statement"*, reported at the last line of the program. See
-> [SD Basic - System and Environment](16-sd-basic-system-and-environment.html). **So a path a Windows program is going
-> to see should come from your own configuration, not from `fileinfo()`.**
+> **Unlike SD Core for Windows, there is no path-translation caveat
+> here.** This port runs natively, so the path `fileinfo()` returns is
+> already the one Linux program will use it directly — nothing to
+> convert.
 
 > **There is no record-count key.** Key `6` is the *minimum modulus* and reads
 > `1` on a small file whatever it contains — `1` with two records
@@ -280,7 +269,7 @@ things about it changed:
 | | |
 |---|---|
 | **VFS** | the virtual file system layer has been **removed from the C entirely**. `fileinfo()` never reports a VFS type, and the type code is gone |
-| **The data tree is private** | `C:\ProgramData\SD` is protected by an access-control list. A file created by SD is reachable through SD, and not by an ordinary Windows user poking at the directory |
+| **The data tree** | `/usr/local/sdsys` and the account directories are protected by ordinary Linux file permissions — see [Security](../GettingStarted/12-security.html) for exactly what that does and does not guarantee here |
 
 ## See also
 

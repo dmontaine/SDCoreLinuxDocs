@@ -8,23 +8,24 @@ rules for what can read them.
 
 ## Directory files
 
-A directory file is an **ordinary Windows folder** with one file per
+A directory file is an **ordinary Linux directory** with one file per
 record. The record id is the file name.
 
 | | |
 |---|---|
-| On disk | `C:\ProgramData\SD\user_accounts\<account>\<filename>\` |
+| On disk | `/home/sd/user_accounts/<account>/<filename>/` |
 | Record id | the file name |
-| Readable by | any Windows program (Notepad, Excel, etc.) |
+| Readable by | any text editor or Linux program |
 | Record ids | matched case insensitively |
 | `create.file` option | `no.case` for explicit case-insensitive ids |
 
-The `bp` file is a directory file. VOC, `batch.jobs`, `os.users`, and
-the dictionaries are all directory files.
+The `bp` file is a directory file. VOC, `batch.jobs`, and the
+dictionaries are all directory files.
 
-> SD writes directory file records with CR+LF line endings so that
-> Windows programs can open them. Reading handles CR+LF, LF, and CR on
-> its own.
+> SD writes directory file records with the platform's own (LF) line
+> endings, and reads either LF or CR+LF correctly — see [Other
+> hardening](../GettingStarted/13-hardening.html#line-endings) for what
+> that means for a file that started life on a Windows machine.
 
 ## Dynamic files
 
@@ -46,9 +47,9 @@ records that hash to it. `analyse.file` reports the structure of a real file:
 
 ```
 :analyse.file zzauditf
-Account           : /cygdrive/c/ProgramData/SD/user_accounts/don
+Account           : /home/sd/user_accounts/don
 File name         : zzauditf
-Path name         : /cygdrive/c/ProgramData/SD/user_accounts/don/ZZAUDITF
+Path name         : /home/sd/user_accounts/don/zzauditf
 Type              : Dynamic, version 2
 Group size        : 2 (2048 bytes)
 Large record size : 1638
