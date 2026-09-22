@@ -110,7 +110,7 @@ command processor re-parses when the name is typed as a command.
 
 **This matters for counting what an account has.** A tally of VOC records
 whose field 1 begins with `V` misses all four, and `count` is not a marginal
-verb. A standard account has **82** verbs, not 78.
+verb.
 
 ## What kind of thing a verb is
 
@@ -126,9 +126,10 @@ Field 2 of a verb record says how to run it, and field 3 says what to run:
 Field 4 carries dispatch options and **field 5 names a security subroutine**. If
 field 5 is present, that subroutine is called before the verb runs and can
 refuse it, in which case you are told the command is restricted. None of the
-shipped verbs uses field 5 — **the tiering in this port is done by giving or
-withholding the VOC record**, not by a security subroutine — but the mechanism
-is there for a site that wants a verb guarded rather than absent.
+shipped verbs uses field 5 — **every ordinary account has the whole VOC now,
+and what SDSYS alone can do is withheld by giving or withholding the VOC
+record itself**, not by a security subroutine — but the mechanism is there
+for a site that wants a verb guarded rather than absent.
 
 There are **41 internal verbs**, numbered, and the numbers are positional in the
 command processor's dispatch list. Several names share one: `off` and `quit` are

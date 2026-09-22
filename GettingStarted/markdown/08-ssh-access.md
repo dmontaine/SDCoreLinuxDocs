@@ -3,11 +3,10 @@ Subtitle: How people reach SD on this machine, why it is ssh, and the one thing 
 
 **Accounts SD creates cannot log in to Windows at this machine.** They are
 denied the physical console and Remote Desktop, deliberately and by group
-membership. Local terminal access belongs to administrators, who have ordinary
-Windows accounts.
+membership. Local terminal access belongs to SDSYS alone.
 
 **They reach SD over ssh, or through an API client, or both.** Which of those
-an account may use is chosen when it is created and is a required keyword — see
+an account may use is chosen when it is created — see
 [Per-account control](#per-account-control) below. This page covers the ssh
 route; [API access](09-api-access.html) covers the other.
 
@@ -16,13 +15,19 @@ everything else about running SD Core on Windows.
 
 ## The rule, and the one exception
 
-| | `create.account user x` | `create.account user x administrator` |
-|---|---|---|
-| Windows group | standard user | `Administrators` |
-| Administers SD | no | yes |
-| Local console / Remote Desktop | **denied** | allowed |
-| ssh | if granted | yes |
-| API | if granted | yes |
+| | `create.account user x` |
+|---|---|
+| Windows group | standard user |
+| Administers SD | no — only SDSYS does, and SDSYS is not created this way |
+| Local console / Remote Desktop | **denied** |
+| ssh | if granted (the default is both routes — see [Per-account control](#per-account-control)) |
+| API | if granted |
+
+**Every account `create.account` makes is denied the console — there is no
+exception any more.** SD Core 1.0 exempted an account created with an
+`administrator` keyword; that keyword is gone, and so is the exemption.
+**Local console access belongs to SDSYS alone**, a single Windows account
+the installer makes, never `create.account`.
 
 **"Denied the console" is about logging in to Windows, not about reaching
 sd.** An account with `api` and no `ssh` is a perfectly normal thing to
@@ -36,9 +41,10 @@ could also walk up to the machine and log in — which was never the intention. 
 verb that lifted the restriction (`RDPACCOUNT`) was built and deleted the next
 day for exactly that reason.
 
-**The rule that now holds without exception:** nobody SD creates can log in to
-Windows at this machine unless they are already a Windows administrator. **SD
-accounts reach the machine over ssh or through an API client.**
+**The rule that now holds without exception:** nobody `create.account` makes
+can log in to Windows at this machine, full stop. **SD accounts reach the
+machine over ssh or through an API client**, and administration happens only
+as SDSYS, at the console.
 
 If you want multi-user Remote Desktop, you want Windows Server and RDP client
 access licences, and probably a commercial product built for it.
@@ -53,7 +59,7 @@ Two Windows user rights, applied **to a group, once** — not per account:
 | `SeDenyRemoteInteractiveLogonRight` | blocks Remote Desktop |
 
 Both are on the group `sdsshonly`, and **`create.account`** joins every
-non-administrator account to it.
+account it makes to it, unconditionally.
 
 **Network logon is not denied, and must not be.** Win32-OpenSSH
 authenticates with a network logon — cleartext network logon for passwords, S4U
@@ -61,9 +67,9 @@ for public keys — so denying it would lock out the very access this exists to
 preserve. **This is the trap in the design and it is the one thing to get
 right.**
 
-**It cannot be `sdusers`.** That group grants access to the data files and
-administrators are in it too, so denying console logon there would lock
-administrators out of their own console. The two groups answer different
+**It cannot be `sdusers`.** That group grants access to the data files, and
+console/Remote Desktop denial is a separate question from data access — an
+account could need one without the other. The two groups answer different
 questions and must stay separate.
 
 ## An ssh session lands inside SD
@@ -71,8 +77,9 @@ questions and must stay separate.
 `sshd_config` carries a global `ForceCommand`, so signing in over ssh puts you
 straight into SD rather than at a Windows prompt.
 
-**That applies to everyone who may connect, administrators included** — the
-rule is about the route in, not about who took it.
+**That applies to everyone who can reach ssh at all** — the rule is about the
+route in, not about who took it. SDSYS is not among them: see
+[SDSYS has no remote door](#sdsys-has-no-remote-door) below.
 
 ### The cost: scp and sftp stop working inbound
 
@@ -103,14 +110,17 @@ Remote Desktop.
 ## Who may ssh in at all
 
 `AllowGroups` in `sshd_config` is the second layer: the deny rights stop local
-logon, `AllowGroups` decides who may connect.
+logon, `AllowGroups` decides who may connect at all — and it names one group,
+`sdssh`. **Not `Administrators`, not SDSYS: only accounts `create.account` or
+`modify.account` put in `sdssh`.** A session that is not a member is refused
+at authentication, before sshd even reaches `ForceCommand`.
 
 **THE "Limit ssh" CHECKBOX IS GONE. IT IS NOW A STATEMENT.** SD limits ssh to
-SD users and administrators and puts every ssh session straight into SD. It had
-been ticked by default for some time and was not really meant to be turned off,
-so presenting it as a checkbox suggested a choice that was not one. It is
-described on the *Before you install* page instead, with the scp cost stated
-plainly.
+accounts with the `sdssh` route and puts every one of those sessions straight
+into SD. It had been ticked by default for some time and was not really meant
+to be turned off, so presenting it as a checkbox suggested a choice that was
+not one. It is described on the *Before you install* page instead, with the
+scp cost stated plainly.
 
 The reason it can no longer be declined is that the machine it existed for —
 one with somebody else's ssh server — is now [turned away before the install
@@ -126,7 +136,7 @@ managed by policy. On such a machine, apply the confinement yourself, once,
 from an elevated prompt:
 
 ```
-powershell -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Installed
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Installed
 ```
 
 It checks the result with `sshd -T` and puts the original back if anything is
@@ -150,7 +160,7 @@ installation.** The rule is scoped to `127.0.0.1,::1` otherwise.
 > affected. Fix it with:
 >
 > ```
-> powershell -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Restrict
+> powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Restrict
 > ```
 >
 > It now reports *"ssh is reachable FROM THIS MACHINE ONLY"*. Check the current
@@ -164,14 +174,14 @@ installation is served entirely by `ssh localhost`.**
 
 ## Per-account control
 
-An account is told at creation which routes it may use, and one of the four
-keywords is required:
+An account is told at creation which routes it may use. **Say nothing and it
+gets `both`**; name one to be narrower:
 
 | | reaches SD by |
 |---|---|
 | `create.account user fred ssh` | a terminal session over ssh |
 | `create.account user fred api` | **an API client only** — no terminal, and nothing on this page applies to them |
-| `create.account user fred both` | either |
+| `create.account user fred both` | either — the default |
 | `create.account user fred none` | neither — reachable only with **`logto`** from another session |
 
 **An `api` account never touches any of this.** No ssh session, no
@@ -181,9 +191,7 @@ apply to them.
 
 `modify.account fred both` changes it afterwards — and remember the keyword
 says what the access **is**, not what to add, so `modify.account fred api`
-takes ssh away. **Administrators always have both, and it cannot be taken from
-them — but for an administrator both mean *from this machine only*.** See
-[Account types](05-account-types.html), and the section on remote
+takes ssh away. See [Accounts](05-account-types.html), and the section on remote
 administration below.
 
 **A suspended account is refused after the connection is made, not before.**
@@ -212,56 +220,58 @@ process opens the database under the invoking user's own token, so everyone who
 uses SD needs file access to the tree and can read another account's directory
 from outside SD. See [Security](12-security.html).
 
-## An administrator cannot sign in from another machine
+## SDSYS has no remote door
 
-**If your SD account is an ADMINISTRATOR account, SD refuses an ssh connection
-from another computer.** You will see:
+**SDSYS cannot ssh in, from this machine or any other.** There is no
+exception for a loopback connection: SDSYS's Windows account is never added
+to `sdssh`, because nothing but `create.account` joins that group and SDSYS
+is not created that way. `AllowGroups` refuses the connection before
+authentication even starts — there is no session for `ForceCommand` to ever
+apply to. The same is true of the API; see [API access](09-api-access.html).
 
-```
-An administrator may not sign in to this machine from another one.
-```
+> **This is a full reversal of SD Core 1.0 and early 1.1 builds**, where a
+> Windows administrator's SD account had both routes and could use them
+> locally — a loopback ssh or API connection was admitted, only a remote one
+> refused. If you read that in an older document, it no longer holds:
+> SDSYS has neither route, under any circumstance.
 
-and the connection ends. The same applies to the API.
-
-**ssh and the API still work for an administrator on this machine.** A loopback
-connection — `ssh you@localhost`, or an API client running on the same box — is
-admitted normally. It is *remote* that is refused, not ssh.
-
-**Nothing changes for ordinary accounts.** Standard and programmer accounts keep
-ssh from anywhere, exactly as before, and so does a Windows administrator whose
-SD account is an ordinary one. **It is the SD account tier that decides, not
-Windows group membership.**
+**Nothing changes for ordinary accounts.** Every account `create.account`
+makes reaches ssh from wherever its own `sdssh` membership allows, whether
+or not the Windows account behind it happens to be a domain admin or a
+member of `Administrators` — group membership outside `sdusers`/`sdssh`/
+`sdapi` has never been what SD asks about.
 
 ### Where administration happens
 
-- at this machine's own console, or
-- through a remote desktop or remote-control product **installed as a service**.
-
-A per-user install of a remote-control tool is not enough: it cannot display the
-Windows consent prompt, and the operator sees a frozen screen instead.
+**At this machine's own console only** — signing in to Windows as SDSYS,
+which needs to be either physically at the keyboard or through a remote
+desktop or remote-control product **installed as a service** (which Windows
+treats as a local, consent-capable session). A per-user install of a
+remote-control tool is not enough: it cannot display the Windows consent
+prompt, and the operator sees a frozen screen instead.
 
 ### Why
 
-Administration needs a screen Windows can draw its consent prompt on. That
-prompt is what makes an elevation something a person agreed to, rather than
-something that merely happened. A connection from another machine has no such
-screen.
+Becoming SDSYS needs a screen Windows can draw its UAC consent prompt on.
+That prompt is what makes elevation something a person agreed to, rather
+than something that merely happened, and there is no route to SDSYS that
+skips it — see [Accounts](05-account-types.html#sdsys-is-the-only-administrator).
 
 **And the token an ssh session carries is not a filtered one.** OpenSSH runs
-as a system service and builds the sign-in token itself, so the filtering that
-applies to an ordinary local sign-in never applies to it. Without this refusal
-a Windows administrator arriving over ssh would hold **full** administrator
-rights, with nobody asked to consent to anything. That is the hole this refusal
-closes.
+as a system service and builds the sign-in token itself, so the filtering
+that applies to an ordinary local sign-in never applies to it. Admitting
+SDSYS over ssh at all — local or remote — would hand out a session with no
+consent prompt in front of it. Refusing the connection outright, rather than
+trying to filter what it can do once inside, is what closes that.
 
 ### If you rely on remote administration today
 
-**It will stop working when you upgrade, and that is deliberate.** Use the
-console, or a service-installed remote desktop. If the account only needs
-ordinary, non-administrative work from another machine, ask an administrator to
-change its tier instead.
+**It does not work, and that is deliberate.** Use the console, or a
+service-installed remote desktop, signed in as SDSYS. An account that needs
+ordinary, non-administrative work from another machine was never an
+administration question — give it its own `ssh`/`api`/`both` route with
+`create.account` or `modify.account`.
 
-**Scheduled tasks are affected too.** A task that runs unattended has no screen
-either, so one signing in as an administrator account is refused. Give it an
-ordinary account and list the command it runs in the SD system file
-`batch.jobs`.
+**Scheduled tasks are affected too.** A task that runs unattended has no
+screen either, so nothing can become SDSYS to run one. List the command in
+the SD system file `batch.jobs`, run from an ordinary account.

@@ -48,10 +48,10 @@ so on. Nothing was renumbered when they were split.
 | **02** | **[Your first thirty minutes](02-first-run.html)** | **Start here if you just want it working** — install to a second user signing in, in eight steps |
 | **03** | [Running SD](03-running-sd.html) | The service, starting and stopping, and recovering from an unclean shutdown |
 | **04** | [Scheduled jobs](04-scheduled-jobs.html) | Running an SD command on a timer, and the permit list that decides which ones |
-| **05** | [Account types](05-account-types.html) | Standard, Programmer, Administrator, Suspended and Group — what each one is, and how to make one |
+| **05** | [Accounts](05-account-types.html) | Ordinary accounts, SDSYS, Suspended and Group — what each one may do, and how to make one |
 | **05a** | [Managing accounts](05a-managing-accounts.html) | Group accounts, sharing one, changing an account afterwards, and deleting it |
-| **06** | [Administrator commands](06-administrator-commands.html) | The verbs an administrator account gets, and how to use them |
-| **07** | [Programmer commands](07-programmer-commands.html) | The development verbs a standard account does not get |
+| **06** | [Administrator commands](06-administrator-commands.html) | The verbs only SDSYS has, and how to use them |
+| **07** | [Development and file commands](07-programmer-commands.html) | Compiling, editing, and the verbs that maintain files, indexes and records in bulk |
 | **08** | [ssh access](08-ssh-access.html) | How people reach SD on this machine, and why it is ssh |
 | **09** | [API access](09-api-access.html) | The client API, its port, and the login that replaced the old one |
 | **10** | [Client distribution](10-client-distribution.html) | Which library an application needs, and the one file no installer can update |
@@ -65,21 +65,23 @@ so on. Nothing was renumbered when they were split.
 
 **1. Signing in asks for no password.** Windows has already authenticated you.
 `sd` puts you in the SD account with your own name; if there is no such
-account, or you are not in the `sdusers` group, you are refused. Administration
-is gated on being an elevated Windows administrator, not on a secret SD holds.
-See [Security](12-security.html).
+account, or you are not in the `sdusers` group, you are refused.
+Administration is gated on being signed in to Windows as SDSYS, a single
+account the installer makes — not on being a Windows administrator, elevated
+or not, and not on a secret SD holds. See [Security](12-security.html).
 
 **2. Accounts SD creates cannot log in to Windows at this machine.** They are
 denied the physical console and Remote Desktop, deliberately. They reach SD
-**over ssh, or through an API client, or both** — and which of those is a
-required keyword on **`create.account`**. **Multi-user access over Remote Desktop
-is not supported** and is not a gap to be filled later. See
+**over ssh, or through an API client, or both** — chosen when the account is
+created, defaulting to both if you say nothing. **Multi-user access over
+Remote Desktop is not supported** and is not a gap to be filled later. See
 [ssh access](08-ssh-access.html) and [API access](09-api-access.html).
 
-**3. A new account gets a reduced VOC unless you say otherwise.** A standard
-account cannot compile, catalogue, edit or create files. `programmer` and
-`administrator` keywords on **`create.account`** decide that.
-See [Account types](05-account-types.html).
+**3. Every account gets the same VOC.** There is no reduced starting set any
+more — the account-tier model (`standard`/`programmer`/`administrator`) is
+gone. What an account cannot do is administer: that is SDSYS alone, and
+SDSYS is not something `create.account` can produce.
+See [Accounts](05-account-types.html).
 
 **4. Commands and names are lower case now.** Everything that can be lower case
 is. Typing in upper case still works — the lookup tries what you typed, then

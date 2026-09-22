@@ -3,12 +3,17 @@ Subtitle: Microsoft Edit, a menu bar and a dozen keys — the one to reach for w
 
 ```
 edit {dict} file record
+nano {dict} file record
 ```
 
 `edit` opens a record in **Microsoft Edit**, a small full-screen editor that
 ships with Windows. It has a menu bar, the shortcuts everyone already knows,
 and nothing else to learn. **That is the point of it**: if you want to fix a
 line in a record and get on with your day, this is the one.
+
+**`nano` is a second name for exactly this**, added for anyone arriving with
+Linux or `nano` habits — same catalogued program, same editor, same keys.
+There is no separate `nano` to learn.
 
 It has no syntax highlighting and no command language. For SD BASIC source —
 or for anything where you want highlighting, split windows, or a command bar —
@@ -125,57 +130,43 @@ token** — another `~`, a backtick, a `!`, a `-`, a `,`, or a mark. Everywhere
 else a tilde is left exactly as you wrote it, so `a~b` is still `a~b` and
 ordinary source reads normally.
 
-## Two gates, and both are separate from the verb
+## One gate, and it is separate from the verb
 
-| | |
-|---|---|
-| **the VOC tier** | decides whether you have the verb at all |
-| **`os.users` field 2** | the `OS.EXECUTE` field, decides whether it may run |
+**Every account has `edit` and `micro`** — there is no tier left to decide
+that. What decides whether either one *runs* is a single permission:
+`os.users` field 2, the `OS.EXECUTE` field.
 
 An editor runs outside SD, so it needs operating-system permission that `ed`
 does not. It comes from a record in the system file `os.users` whose field 2
-reads `yes`, **and only an administrator can put one there.**
+reads `yes`, **and only SDSYS can put one there.**
 
-**An administrator gets one without asking.** An account created with the
-**ADMINISTRATOR** tier — which is the tier of the account SD's installer makes
-for whoever installs it — is written into `os.users` as it is created, with both
-fields `yes`. So an administrator reaches the operating system **without
-elevating**, and these two verbs work in an ordinary session.
-
-**For an administrator it is a rule**, and it cannot be turned off. For every
-other tier it is a grant, and there are keywords for it:
+**SDSYS reaches the operating system regardless of `os.users`** — the same
+identity check that grants administration grants this too, so signing in as
+SDSYS and running `sd` elevated gets both verbs working immediately, with
+no record needed. Every other account starts with no record at all and is
+refused until SDSYS grants one:
 
 | | |
 |---|---|
-| **`create.account user`** *name* … **`os-on`** | give the new account `OS.EXECUTE` — and these two verbs |
-| **`create.account user`** *name* … **`sh-on`** | give it the `sh` verb |
-| **`modify.account`** *name* **`os-on`** \| **`os-off`** | change it afterwards |
+| **`modify.account`** *name* **`os-on`** \| **`os-off`** | grant or withdraw `OS.EXECUTE` — and these two verbs |
 | **`modify.account`** *name* **`sh-on`** \| **`sh-off`** | the same for the `sh` verb |
 
-They are four switches over two fields rather than four names for one state, so
-`sh-off` leaves `OS.EXECUTE` alone. **`modify.account` needs an elevated
-session**, as it always has — you elevate to grant somebody the right not to
-have to.
+They are four switches over two fields rather than four names for one state,
+so `sh-off` leaves `OS.EXECUTE` alone. **`modify.account` needs SDSYS**, as
+it always has — signing in as SDSYS is what grants somebody the right not
+to have to.
 
-**The four refuse an administrator, in both directions.** An administrator
-has all three routes — `ssh`, the API and the operating system — as a rule, and
-none of them is `modify.account`'s to change:
+**`modify.account` refuses `SDSYS` as the target, for these keywords and
+every other one, before the keyword is even read** — SDSYS's own routes are
+not a setting to change:
 
 ```
-:modify.account don os-off
-don is an administrator and always reaches the operating system
+:modify.account sdsys os-off
+Remote access is never available to SDSYS
 ```
 
-It is the same refusal `ssh`, `api`, `both` and `none` already give for an
-administrator, and it is deliberate rather than an oversight: the whole purpose
-of the tier is that it grants unlimited access.
-
-The record is ordinary data, so an administrator can also edit it by hand with
-`ed os.users` *name* from `sdsys`. An account of any other tier starts with no
-record and is refused until somebody grants it.
-
-An elevated session passes anyway, whatever the file says — otherwise an empty
-`os.users` would lock the machine's own administrator out.
+The record is ordinary data, so SDSYS can also edit it by hand with
+`ed os.users` *name*.
 
 **And a session with no terminal is refused before anything is written** — an
 API session, or a script driving SD down a pipe:
@@ -197,8 +188,9 @@ No record name specified.  Usage: edit {dict} <file> <record>
 
 ## Who has these verbs
 
-**`edit`, `micro` and `ed` are all programmer verbs.** A standard account has
-none of them.
+**Every account has `edit`, `micro` and `ed`.** Whether `edit` and `micro`
+actually run is the separate `os.users` question above; `ed` needs nothing
+more than the verb.
 
 ## See also
 

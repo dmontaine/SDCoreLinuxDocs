@@ -122,7 +122,6 @@ machine.
 | `!PS_SCRIPT` `!PS_SCRIPT_OUT` | run a PowerShell script through that helper, without and with its output |
 | `!IS_USER` `!IS_GROUP` `!IS_GRP_MEMBER` `!IS_SD_USER` `!OS_GROUP` | Windows account and group questions |
 | `!PROFILE_DIR` | `profile_dir(username)` — where a Windows profile lives |
-| `!SD_ADMIN_TIER` `!TIER_ALLOWS` | the account tier, and whether it permits something |
 | `!SDCLIENT` | the server side of the client API |
 
 ## What is not here

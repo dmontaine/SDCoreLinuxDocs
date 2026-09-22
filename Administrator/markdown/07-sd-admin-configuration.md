@@ -12,27 +12,33 @@ writes to.
 SD folds case, so a command may be typed in either case. Commands are shown
 here in lower case.
 
-> Every listing on this page was produced by running it, on SD Core for Windows
-> W1.0-0, from an unelevated session in an administrator account.
+> The parameter list and categories on this page are read from `config.c`
+> itself (`tools/confmap.py`, 22 Sep 2026), not from a live `:config`
+> capture on this port — the sample output below is illustrative, ported
+> from a real SD Core for Windows capture with Linux's own values swapped
+> in where they differ.
 
 ## The file
 
 ```
-C:\ProgramData\SD\sd.conf
+/etc/sd.conf
 ```
 
-The server and the client both read the `SD_CONFIG` environment variable first
-and fall back to that path. The file is installed only if it does not already
-exist and is marked never to uninstall, so edits to it survive an upgrade and
-survive removal of the product.
+The server and the client both read the `SD_CONFIG` environment variable
+first and fall back to that path (`sddefs.h`'s `SD_CONFIG_ENV`/
+`SD_CONFIG_DEFAULT` — one pair of names, both sides of the client/server
+split).
 
 It is plain text in one section:
 
 ```
 [sd]
-SDSYS=C:\ProgramData\SD\sdsys
+SDSYS=/usr/local/sdsys
 GRPSIZE=2
 NUMUSERS=20
+USRDIR=/home/sd/user_accounts
+GRPDIR=/home/sd/group_accounts
+DUMPDIR=/usr/local/sdsys/dumps
 ```
 
 Lines beginning `#` are comments. The shipped file is heavily commented and
@@ -62,22 +68,18 @@ The `config` verb reports what is in force:
 :config
 Virtual Machine Version Number W1.0-0
 APILOGIN  1
-APIPORT   4243
 CMDSTACK  99
 DEADLOCK  0
-DUMPDIR   C:\ProgramData\SD\sdsys\dumps
+DUMPDIR   /usr/local/sdsys/dumps
 ERRLOG    50 kb
 ...
 YEARBASE  1930
 ```
 
-SD accepts **52** parameters and the verb prints **43** of them. Nine are
-accepted in the file and never displayed: `CODEPAGE`, `CREATUSR`, `DEBUG`,
-`FDS`, `FIXUSERS`, `NETDIRS`, `PORTMAP`, `SDSYS` and `TXCHAR`.
-
-`NETDIRS` is the one to know about. It decides what an API session may reach
-outside its own account, and the verb will not tell you what it is set to. Read
-it from the file.
+SD accepts **50** parameters on this port (`APIPORT` and `NETDIRS` do not
+exist here — see *The API*, below) and the verb prints **42** of them.
+Eight are accepted in the file and never displayed: `CODEPAGE`, `CREATUSR`,
+`DEBUG`, `FDS`, `FIXUSERS`, `PORTMAP`, `SDSYS` and `TXCHAR`.
 
 The `config()` function reads one parameter from a program:
 
@@ -85,7 +87,7 @@ The `config()` function reads one parameter from a program:
 group.size = config('GRPSIZE')
 ```
 
-**49 parameters are readable this way.** The three that are not are `CREATUSR`,
+**47 parameters are readable this way.** The three that are not are `CREATUSR`,
 which stores nothing, `SDSYS`, and `TXCHAR`. The name is truncated to eight
 characters before it is matched; no parameter name is longer than eight, so
 that only shows up if you pass something which is not a parameter.
@@ -149,12 +151,12 @@ reads.
 
 | Parameter | Default on a new install | Effect |
 |---|---|---|
-| `SDSYS` | `C:\ProgramData\SD\sdsys` | The system account. SD does not start if the global catalogue is not found beneath it |
-| `USRDIR` | `C:\ProgramData\SD\user_accounts` | Where `create.account` puts a user account |
-| `GRPDIR` | `C:\ProgramData\SD\group_accounts` | Where `create.account` puts a group account |
-| `DUMPDIR` | `C:\ProgramData\SD\sdsys\dumps` | Where process dumps are written |
-| `TEMPDIR` | `/cygdrive/c/WINDOWS/TEMP` | Temporary files |
-| `SORTWORK` | `/cygdrive/c/WINDOWS/TEMP` | Work files for a sort that does not fit in memory |
+| `SDSYS` | `/usr/local/sdsys` | The system account. SD does not start if the global catalogue is not found beneath it |
+| `USRDIR` | `/home/sd/user_accounts` | Where `create.account` puts a user account |
+| `GRPDIR` | `/home/sd/group_accounts` | Where `create.account` puts a group account |
+| `DUMPDIR` | `/usr/local/sdsys/dumps` | Where process dumps are written |
+| `TEMPDIR` | unset | Temporary files. Falls back to the system default when unset |
+| `SORTWORK` | unset | Work files for a sort that does not fit in memory. Falls back to the system default when unset |
 | `JNLDIR` | empty | Journal directory |
 | `TERMINFO` | empty | An additional terminfo directory. The shipped definitions are found without it |
 
@@ -164,25 +166,26 @@ the whole variable state of the session that wrote it. The installer makes the
 dump directory write-only to SD users, so a dump can be added and nobody else's
 can be listed or read.
 
-`TEMPDIR` and `SORTWORK` are reported in POSIX form because that is how the
-server's runtime addresses them. `C:\WINDOWS\TEMP` and
-`/cygdrive/c/WINDOWS/TEMP` are the same directory.
-
 ## The API
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `APIPORT` | 4243 | The port the API listens on. If the line is absent no socket is created at all, which is how the API is turned off |
 | `APILOGIN` | 1 | Whether the API requires authentication. `0` is the weaker setting, not the safer one |
-| `NETDIRS` | unset | Directories outside its own account an API session may open, separated by semicolons because a Windows path contains a colon |
 | `SDCLIENT` | 0 | Restricts what an API session may do. Non-zero disables file access outright; `2` additionally refuses any subroutine not compiled as callable from a client |
 
-Unset is the strict value for `NETDIRS`. With nothing there, an API session can
-open files in the account it is standing in and nothing else. It never grants
-the credential store, the global catalogue, `os.users` or the account register,
-and naming those has no effect. A directory listed here is reachable by every
-API session in every account, so it is a decision about the machine rather than
-about one account.
+**There is no `APIPORT` and no `NETDIRS` on this port — a real structural
+difference, not an oversight.** SD Core for Windows sizes its listener from
+`sd.conf` at start-up and restarts SD itself to change it; here, whether SD
+listens for the API at all is `systemd`'s `sdclient.socket` unit, activated
+independently of any running `sd` process (see *Remote access and the
+machine*, in this set), and who may reach it is the firewall (`ufw`), moved
+by the `remote.api` verb rather than by editing this file. **And there is
+no config-file mechanism here that widens an API session's reach beyond
+its own account** — Windows's `NETDIRS` names directories every API session
+in every account may additionally open; this port has nothing playing that
+role, so an API session's file access is exactly its own account's, full
+stop, the same "no second wall" reasoning that removed `sh-on`/`os-on` (see
+*Accounts and Security*).
 
 `SDCLIENT` is not reported by the `config` verb and has no entry in the shipped
 `sd.conf`. It defaults to 0, which permits everything.
@@ -227,20 +230,21 @@ about one account.
 
 | Parameter | Default | Effect |
 |---|---|---|
-| `SH` | PowerShell, interactive | The shell a bare `sh` starts |
-| `SH1` | PowerShell, non-interactive | The shell `sh command` uses |
+| `SH` | `/bin/bash -i`, unset in the file | The shell a bare `sh` starts |
+| `SH1` | `/bin/bash -c`, unset in the file | The shell `sh command` uses |
 
-Both are full paths on a real install:
+Unset falls back to the compiled-in default:
 
 ```
-SH        C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -NoLogo
-SH1       C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -NonInteractive -Command
+SH        /bin/bash -i
+SH1       /bin/bash -c
 ```
 
-The difference between them matters. `SH1` carries `-NonInteractive` and `SH`
-does not, so a bare `sh` in a phantom or a scheduled job hands control to a
-shell with nobody at the keyboard. Operating system access has its own page in
-this set.
+**Both run at the account's own Linux permissions, unconditionally — SD
+keeps no second wall here** (see *Accounts and Security*, "There is no
+second wall for `sh` or `os.execute`"), unlike SD Core for Windows, where
+this same setting sits behind a separate `os.users` grant per account.
+Operating system access has its own page in this set.
 
 ## Parameters that are accepted and do nothing
 

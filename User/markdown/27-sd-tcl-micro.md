@@ -152,8 +152,10 @@ none is mangled. The full rules are on
 
 ## Who has these verbs
 
-**`micro`, `edit` and `ed` are all programmer verbs.** A standard account has
-none of them.
+**Every account has `micro`, `edit` and `ed`.** Whether `micro` and `edit`
+actually run is a separate `os.users` question — see [SD TCL - The edit
+Screen Editor](26-sd-tcl-edit.html#one-gate-and-it-is-separate-from-the-verb);
+`ed` needs nothing more than the verb.
 
 ## See also
 

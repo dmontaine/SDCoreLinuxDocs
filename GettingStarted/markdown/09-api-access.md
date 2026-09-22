@@ -5,11 +5,11 @@ The client API is the reason this port exists. SD Core for Windows is built to
 be used as a back end data store reached through the API, and that is the
 tie-breaker on most other design questions here.
 
-**The API is a normal way for any account to use SD**, not a facility reserved
-for developers and administrators. A person running a custom GUI program that talks
-to SD needs API access and may need nothing else — no ssh, no terminal, no
-development verbs. A standard-tier account with `api` access is an ordinary
-thing to create, and probably the commonest shape a deployed system will have:
+**The API is a normal way for any account to use SD.** A person running a
+custom GUI program that talks to SD needs API access and may need nothing
+else — no ssh, no terminal. An account with `api` access is an ordinary
+thing to create, and probably the commonest shape a deployed system will
+have:
 
 ```
 create.account user jane api
@@ -20,11 +20,11 @@ take the same arguments and return the same things. **What changed is
 underneath: the login protocol, the port, the identity a session runs as, and
 what it is allowed to open.**
 
-> **The account's tier and its access route are independent.** Tier decides
-> which verbs are in the VOC ([Account types](05-account-types.html)); `ssh` /
-> `api` / `both` / `none` decides how the account is reached. A standard
-> account with API access, a programmer with ssh only, and an administrator
-> with both are all normal.
+> **SDSYS is the one exception, and it has no API access at all.** It
+> carries no SD credential to authenticate an API connection with, by
+> design — see [Reaching the port is not getting in](#reaching-the-port-is-not-getting-in)
+> below. Every other account's access route (`ssh`/`api`/`both`/`none`) is
+> just a setting, chosen at creation or changed with `modify.account`.
 
 ## The login is SCRAM-SHA-256, and the old one is gone
 
@@ -79,8 +79,8 @@ client straight at port 4243 on the server.
 installation.** To change it afterwards, from an elevated prompt:
 
 ```
-powershell -File "C:\Program Files\SD\api-firewall.ps1" -Open
-powershell -File "C:\Program Files\SD\api-firewall.ps1" -Restrict
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Open
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Restrict
 ```
 
 **To turn the API off altogether**, comment out the `APIPORT` line in
@@ -98,34 +98,33 @@ no socket at all — "no API" is a real state, not just a firewall rule.
 
 ## Reaching the port is not getting in
 
-A caller must clear three gates, in this order:
+A caller must clear two gates, in this order:
 
 1. **Complete the SCRAM exchange** against a password held for that account —
    so **an account with no password cannot connect at all**.
 2. **Be a member of the `sdapi` group**, which an account joins only when you
    give it API access. `create.account user fred api` or `... both` does that;
    `ssh` or `none` does not.
-3. **If the account is an administrator, be connecting from this machine.**
-   An administrator is refused an API session from any other computer, however
-   good the password. Ordinary and programmer accounts are not affected.
-4. **Pass the account's own group check.**
 
-Gate 3 catches only the administrator tier, and it is not a setting — there is
-no keyword that turns it off. An administrator always has API access and it
-always stops at this computer:
+**SDSYS clears neither gate, ever, from any address including this
+machine's own loopback.** It has no SD credential to complete a SCRAM
+exchange with — its identity comes from Windows at the console, by design,
+not from anything SD stores — and it is never joined to `sdapi`, because
+only `create.account` does that and SDSYS is not created that way. There is
+no keyword that changes this and nothing to configure: it is not a rule the
+API enforces about *where* SDSYS connects from, it is that SDSYS has no way
+to authenticate over the API at all.
 
-> An administrator may not sign in to this machine from another one.
+> **This is a full reversal of SD Core 1.0 and early 1.1 builds**, where an
+> administrator's account had API access that worked locally and was
+> refused only from another machine — *"An administrator may not sign in to
+> this machine from another one."* If you read that wording in an older
+> document, it no longer applies: there is no local exception any more.
+> Administering SD, and reaching the API, are unrelated to each other now —
+> see [Accounts](05-account-types.html#sdsys-is-the-only-administrator).
 
-**A local API client is unaffected**, which is the point: an application on the
-server connecting to `127.0.0.1` works as an administrator exactly as before.
-The reason the tier is treated this way is that an administrator's session can
-reach the operating system, so SD requires one Windows can show a consent prompt
-on — the console, or a remote desktop or remote-control product installed as a
-service. The Administrator set covers it in full.
-
-**Failed API logins are written to the audit trail**, with the reason — an
-administrator refused this way is recorded with the address it came from. See
-[Other hardening](13-hardening.html).
+**Failed API logins are written to the audit trail**, with the reason and
+the address they came from. See [Other hardening](13-hardening.html).
 
 ## A session is confined to its own account
 
@@ -155,8 +154,8 @@ User not allowed in requested account
 
 **All three answer identically on purpose**, so the API cannot be used to
 enumerate which accounts exist or what state they are in. If you are debugging
-a client that has suddenly stopped connecting, `list accounts` from an SD
-session is where the answer is — the `Tier` column will read `SUSPENDED`.
+a client that has suddenly stopped connecting, `list accounts` from SDSYS
+is where the answer is — a suspended account shows it in that listing.
 
 ### If your data lives outside an account
 

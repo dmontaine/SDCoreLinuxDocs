@@ -108,38 +108,44 @@ count customers
 anything in ordinary data work behaves differently and is not described in this
 set, that is worth reporting.
 
-## 5. Become an administrator
+## 5. Become SDSYS
+
+**Leave this session** — `exit`, or close the window — and start a new one
+signed in to Windows as `SDSYS`, the account the installer made. From that
+Windows sign-in, at the machine:
 
 ```
-logto sdsys
+sd
 ```
 
-**You will get a UAC consent prompt** unless the session is already elevated.
-That is the gate — there is no SDSYS password, and there is deliberately no
-second shared secret held by every administrator.
+started **elevated**, lands you directly in SDSYS. **There is no `logto`
+route into SDSYS from any other account, however elevated** — SDSYS's own
+Windows sign-in is the only way in. See
+[Accounts](05-account-types.html#sdsys-is-the-only-administrator).
 
-**IF YOU ARE OVER ssh, THIS MAY NOT WORK.** A UAC prompt has no interactive
-desktop there. Start an elevated terminal at the machine instead. See
-[Security](12-security.html).
+**IF YOU ARE OVER ssh, THIS WILL NOT WORK AT ALL.** SDSYS has no ssh access,
+local or remote. Sign in at the machine itself, or through a remote desktop
+or remote-control product installed as a service.
 
 ## 6. Create an account for somebody else
 
 ```
-create.account user jane programmer both
+create.account user jane both
 ```
 
-Three things about that line, and each has caught people out:
+Two things about that line, and each has caught people out:
 
 | | |
 |---|---|
-| `programmer` | without it, `jane` gets a **standard** account and cannot compile, catalogue, edit or create files. See [Account types](05-account-types.html) |
-| `both` | one of `ssh`, `api`, `both`, `none` is **required**. There is no default |
-| it needs elevation | creating a Windows account cannot be done from a filtered token |
+| `both` | say nothing and this is the default. Name `ssh`, `api` or `none` to be narrower. See [Accounts](05-account-types.html) |
+| it needs SDSYS | creating a Windows account cannot be done from any other identity |
 
 You will be prompted for Jane's password, masked. **Refusing the prompt
 creates nothing at all** — a user account cannot exist without a password.
 
 **The password is for the API.** Console and ssh logins ask for nothing.
+**Every account gets the same VOC** — there is no `programmer`/`standard`
+choice to make any more.
 
 ## 7. Sign in as Jane
 
@@ -148,7 +154,7 @@ ssh jane@localhost
 ```
 
 **You land directly inside SD**, not at a Windows prompt. That is the forced
-command, and it applies to everyone who connects, administrators included.
+command, and it applies to everyone who can reach ssh at all.
 
 **Jane cannot log in to Windows at this machine.** She is denied the console
 and Remote Desktop by group membership, deliberately. She reaches SD over ssh
@@ -180,8 +186,9 @@ off
    <https://www.brianleach.co.uk/mvDeveloper>. See
    [API access](09-api-access.html) and
    [Client distribution](10-client-distribution.html).
-3. **A standard account.** Create one without `programmer` and confirm it can
-   run your application but not edit it.
+3. **Locking an account down.** Every account gets the full VOC now, so
+   confining one to just your application is a hardening step you take by
+   hand — see [Security](12-security.html#what-ships-secured-before-you-change-anything).
 4. **An upgrade.** Install over the top and check your data survived and
    **`update.accounts`** brought the VOC forward.
 

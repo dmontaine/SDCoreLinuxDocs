@@ -18,37 +18,29 @@ list.**
 is the whole of the protection: without it a user grants themselves any of the
 three in one line, and every check above it is decoration.
 
-**Four rules hold for all three:**
+**Three rules hold for all three:**
 
 **1. A missing record, or a missing file, means no.** An installation that has
-never set `os.users` up denies all three to ordinary accounts. That is the
-opposite of the VOC tier lists, where a missing record means the *full* VOC —
-do not carry one convention across to the other.
+never set `os.users` up denies all three to ordinary accounts.
 
-**2. An elevated session passes on its own**, whatever the list says, so an
-empty list cannot lock the machine's own administrator out.
+**2. SDSYS passes on its own**, regardless of the list, so an empty list
+cannot lock the machine's own administrator out. This is *narrower* than
+the identity check might suggest — it is not "elevated," it is "signed in
+to Windows as the `sdsys` account and running `sd` elevated," and nothing
+less passes. An elevated session in any other account gets no exemption at
+all; it is checked against `os.users` exactly like an unelevated one. See
+[Accounts](05-account-types.html#sdsys-is-the-only-administrator).
 
-> **An ssh session *can* be elevated.** Windows' OpenSSH runs as a system
-> service and builds the logon token itself, so a member of `Administrators`
-> arriving over ssh is handed a **full** token — not the filtered one a local
-> sign-in would produce, and with nobody asked to consent.
->
-> It is why SD now refuses an administrator any session that did not come from
-> this computer. Over ssh **on this machine** an administrator is still
-> elevated, and still passes this rule without needing a record.
-
-**3. An API session is never treated as an administrator — which is not the
-same as having no way out to the machine.** An API session never holds
-administrator rights and cannot reach SDSYS. But this list is consulted **by
-user name**, and it is consulted whether or not a session is elevated: an
-account whose `os.users` record says `yes` gets `sh` and `OS.EXECUTE` over the
-API exactly as it would anywhere else.
-
-> **Every administrator has such a record**, written when the account is created
-> and refused to `modify.account os-off`. So an administrator's API session can
-> genuinely run operating-system commands on the server — which is why an
-> administrator is refused an API connection from any other computer. From this
-> machine it works, and that is deliberate.
+**3. An API session is checked the same way as any other, by user name —
+and SDSYS has no API session to be checked.** The list is consulted whether
+or not a session arrived over the API: an ordinary account whose `os.users`
+record says `yes` gets `sh` and `OS.EXECUTE` over the API exactly as it
+would anywhere else, which is the real risk `os-on` plus API access
+creates — the *Administrator* set's *Accounts and Security* chapter has
+the detail. **SDSYS itself never reaches this path**: it carries
+no SD credential to authenticate an API connection with by design, and the
+API is refused to it outright regardless — see
+[API access](09-api-access.html).
 
 **4. Nothing in SD limits what you then do.** Once field 1 or field 2 says
 `yes`, SD is not standing between that person and the machine — **the boundary

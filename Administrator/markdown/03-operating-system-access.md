@@ -105,8 +105,7 @@ will be refused, wherever it is called from.
 | **field 2** | `yes` to allow `OS.EXECUTE` from a program, and the screen editors |
 
 Anything other than `yes` means no, and **a missing file or a missing record
-means no**. That is the opposite of the tier lists, where a missing record means
-the full set — do not carry the convention across.
+means no**.
 
 **It is keyed to `@logname`, the person, not the account.** The permission
 therefore does not change when somebody `logto`s somewhere else. That is
@@ -116,12 +115,11 @@ it.
 
 ### Editing it
 
-`os.users` is an ordinary SD file in the system account, edited with `ed` from
-`SDSYS` — which needs an elevated session to enter. **`create.account` writes
-the record for an administrator account as it creates it**, with both fields
-`yes`, and `modify.account`'s `sh-on`/`sh-off`/`os-on`/`os-off` keywords set the
-two fields afterwards. Hand-editing remains the only route for the case those
-keywords refuse.
+`os.users` is an ordinary SD file in the system account, edited with `ed`
+from SDSYS — which needs an elevated session to enter. **`create.account`
+writes no record at all**; both fields are off for every account until
+SDSYS grants them with `modify.account`'s `sh-on`/`sh-off`/`os-on`/`os-off`
+keywords.
 
 > **The file's ACL is the whole of the protection.** `os.users` is read-only
 > to `sdusers` on disk, which is what stops somebody adding their own name to
@@ -137,8 +135,8 @@ this:
 | | plain command | pipes, redirection, chaining |
 |---|---|---|
 | **on the list** | runs | **runs** |
-| not listed, **elevated** | runs | refused **5240** |
-| not listed, unelevated | refused **10053** | refused **10053** |
+| not listed, **is SDSYS** | runs | refused **5240** |
+| not listed, not SDSYS | refused **10053** | refused **10053** |
 
 ```
 don is not permitted to use the operating system shell
@@ -146,12 +144,13 @@ don is not permitted to use the operating system shell
 
 is message 10053, and it names the person rather than the account.
 
-**The middle row is the one people misread.** An elevated session that is not
-on the list keeps a restricted shell: it may run a command, but not one
-containing shell metacharacters. **Being on the list is what buys a real
-shell** — pipes, redirection and chaining are most of what a programmer wants
-one for, and that was the ruling behind lifting the ban for listed accounts.
-Elevation on its own does not lift it.
+**The middle row is the one people misread.** SDSYS, arriving without an
+`os.users` entry of its own, keeps a restricted shell: it may run a
+command, but not one containing shell metacharacters. **Being on the list
+is what buys a real shell** — pipes, redirection and chaining are most of
+what an ordinary account wants one for, and that was the ruling behind
+lifting the ban for listed accounts. Being SDSYS on its own does not lift
+it.
 
 ## What this does not gate
 
@@ -168,99 +167,77 @@ because that runs the TCL verb.
 
 ## Who has these verbs
 
-`sh` and `!` are administrator-tier, so an ordinary account does not have the
-names. **And the tier is not the permission** — an administrator account whose
-Windows login is not in `os.users`, and whose session is not elevated, has the
-verb and is refused by it. **Two gates, and both must pass.**
+`sh` and `!` are in every account's VOC — there is no tier to withhold
+them. **The VOC is not the permission** — any account, including SDSYS,
+whose Windows login is not in `os.users` has the verb and is refused by
+it. SDSYS is the one exception: see below.
 
-## An SD administrator is a shell on this machine
+## SDSYS is a shell on this machine, and only on this machine
 
-State this plainly to anyone deciding who gets an administrator account:
+State this plainly to anyone with the credential for the `sdsys` Windows
+account:
 
-**An SD administrator can run operating-system commands on the server as
-LocalSystem — from this machine.** A sign-in from any other computer is
-refused, over ssh and over the API alike.
+**SDSYS can run operating-system commands on the server as itself, the
+Windows account it signed in as — from this machine, and nowhere else.**
+Signing in to SDSYS at all means being at the console (or a remote-desktop
+or remote-control product installed as a service, which Windows treats the
+same way) — `sdsys` is denied ssh and denied network sign-in outright, so
+there is no remote session for this to ever apply to.
 
-The local half is not a defect, and no single setting produces it. It follows
-from three rules that are each reasonable on their own:
+`os.users` is not consulted for SDSYS: the same identity check that grants
+administration — see [Accounts and Security](01-accounts-and-security.html#read-this-before-anything-else-being-sdsys-is-the-whole-of-it)
+— grants `sh` and `OS.EXECUTE` too, unconditionally. That is *narrower*
+than the old model, not wider: an elevated session in an ordinary account
+used to pass this gate as well, and no longer does.
 
-| | |
-|---|---|
-| An administrator always has API access | and it cannot be taken away |
-| An administrator always has `OS.EXECUTE` | and that cannot be taken away either |
-| For a session that arrived over a socket, `os.users` is the authority | the session's own token is LocalSystem |
+### Why there is no tunnel to worry about here
 
-So an administrator account is, in effect, an operating-system shell on the
-server, and the operating system reports such a session as
-`nt authority\system`.
+**The old concern was an administrator tier reachable through a forwarded
+ssh connection that arrives looking local.** That does not apply to SDSYS:
+`sshd_config`'s `AllowGroups` never includes the `sdsys` Windows account, so
+there is no ssh session for SDSYS to exist in the first place, tunnelled or
+not — the refusal is at the door, before authentication, not a check on
+where the connection appears to originate. The API is refused the same
+way, for the same account, separately. See
+[Remote access and the machine](05-remote-access-and-the-machine.html).
 
-### Why remote is shut
-
-Those three rules would have made the administrator tier a shell for *anyone
-who could reach the port*, from anywhere. SD closes that at the door instead of
-weakening any of the three: **administration requires a session Windows can
-show a consent prompt on**, which means the console, or a remote-desktop or
-remote-control product installed as a service — not ssh and not the API.
-
-The refusal comes *after* the password has been checked, so it is a refusal
-rather than a silent drop, and it says what it is:
-
-> An administrator may not sign in to this machine from another one.
-
-Only the **tier** is refused. An ordinary or programmer account reaches the
-same machine over the same route and gets a session as before, which is worth
-knowing when you are diagnosing a connection that failed: if a non-administrator
-can get in, the network and the listener are fine.
-
-### The one route this does not close
-
-**An ssh tunnel ends on the server, so a connection forwarded through one
-arrives looking local, and is admitted.** SD sees the address the connection
-came from, and a tunnelled connection genuinely comes from this machine.
-
-That is a real limit and it is stated here rather than glossed over. Building
-such a tunnel still needs an ssh login to Windows in the first place, so it is
-not open to a stranger — but if your threat model includes an administrator who
-should not be administering remotely, close port forwarding in `sshd_config`
-rather than relying on this gate.
-
-What limits the rest of it is who holds an administrator account, who holds a
-credential for one, and who can reach the console.
+**An ordinary account's own `os.users` grant is a different question and
+still deserves the same caution the old wording gave.** `os-on` plus API
+access on *any* account puts an operating-system shell behind that
+account's own credential, reachable from wherever the API is reachable
+from — see [What `os-on` actually costs](01-accounts-and-security.html#what-os-on-actually-costs).
+That risk did not go away with the tiers; it just no longer has anything
+to do with being an administrator.
 
 The verify suite asserts all of this — the local session working, the remote one
 refused, and an ordinary account admitted over that same remote route as the
 control — so a future change that quietly reopened it shows up as a failing test
 rather than as a page that had silently become false.
 
-## The first logto out of the system account ends elevation
+## Leaving SDSYS by `logto` is one-way
 
-An administrator working in `SDSYS` is elevated. **The moment they `logto`
-anywhere else, that elevation is given up** — the administrator flag is cleared
-and the elevated helper is stopped.
-
-This is deliberate. Without it the helper would outlive the rights it belongs
-to, leaving a session able to do privileged work from an ordinary account.
-
-The consequence a reader meets first is that **a second hop is refused**:
+Working in `SDSYS` is elevated. **The moment that session `logto`s anywhere
+else, the administrator flag is cleared and the elevated helper is
+stopped** — and there is no `logto` back.
 
 ```
 :logto sales
-:logto payroll
 ```
 
-The second `logto` is not running as an administrator any more, so it costs a
-fresh UAC prompt. Recover by going back:
+This session is now `sales`, an ordinary account, permanently for its own
+lifetime. `logto sdsys` from here — or from any other account — is refused
+outright, whatever the session's elevation: SDSYS is reached one way only,
+by signing in to Windows as the `sdsys` account and starting `sd` fresh. See
+[Accounts and Security](01-accounts-and-security.html#read-this-before-anything-else-being-sdsys-is-the-whole-of-it).
 
-```
-:logto sdsys
-```
+**This is deliberate, and stricter than the old design it replaced.** A
+session that could `logto` back into SDSYS would let the elevated helper
+outlive the rights it belongs to; refusing the return closes that rather
+than relying on the helper alone to behave.
 
-An administrator who chains two hops and does not know this will read it as a
-fault. It is the design working.
-
-The step is quiet for the ordinary case: a session moving between two ordinary
-accounts never had privilege, so nothing is given up and nothing is written to
-the audit trail.
+The step is quiet for the ordinary case: a session moving between two
+ordinary accounts never had privilege, so nothing is given up and nothing
+is written to the audit trail.
 
 ## See also
 

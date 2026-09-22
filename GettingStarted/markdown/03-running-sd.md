@@ -120,16 +120,16 @@ their own — they arrive in their own and reach the rest with **`logto`**, whic
 where SD checks whether they are allowed in.
 
 **`sd <command>` needs an elevated session**, or an entry for that account in
-`batch.jobs`. **Any account can be given one, whatever its tier** — standard,
-programmer or administrator. The account type does not decide what may run; the
-administrator's list does. That is what makes scheduled jobs possible without
-handing them administrator rights — see
+`batch.jobs`. **Any account can be given one** — every account has the same
+VOC now, so there is nothing about the account to consider here; SDSYS's own
+`batch.jobs` list is what decides what may run. That is what makes scheduled
+jobs possible without giving them SDSYS's own rights — see
 [Scheduled jobs](04-scheduled-jobs.html).
 
 **`sd <command>` runs and exits, and is never asked to set a password.** Nor
 is any session with no terminal — a scheduled task, or a piped script. **Only
-an interactive `sd` with no command after it still asks**, and then only of an
-administrator account that has no password yet.
+an interactive `sd` with no command after it still asks**, and then only of
+an account that has no password yet.
 
 **Earlier builds of this port** reached the *"needs a password"* prompt and
 blocked for ever on a read that never got input, with nothing in any log

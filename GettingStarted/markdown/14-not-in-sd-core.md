@@ -27,18 +27,20 @@ record in Microsoft Edit and in micro — see
 what they are good for and what they cannot do. The three above are
 gone as *programs*; the capability is not.
 
-`modify` is received by **no account of any tier**.
+`modify` is not in SD Core at all, for any account.
 
 > **`micro` was on this page and has come off it — under its own name.** It
 > was removed on 17 Aug 2026 because it launched an external editor, which is a
 > way out of SD onto the machine underneath it. That was reversed on
 > 26 Aug 2026, and there are now **two** full-screen editors, **`edit`** and
-> **`micro`**: the same idea, done deliberately, limited to programmer and
-> administrator accounts and refused over the API.
+> **`micro`**: the same idea, done deliberately, gated by `os.users` field 2 —
+> every account has the verb, not every account has the permission — and
+> refused over the API regardless.
 
-**`modify.account` and `modify.password` are not affected.** They are different
-verbs with different programs behind them, and both remain administrator
-commands.
+**`modify.account` and `modify.password` are not affected.** They are
+different verbs with different programs behind them. `modify.account` is
+SDSYS's alone; `modify.password` is every account's, for its own password —
+only naming a different account needs SDSYS.
 
 > **`ed`** was never affected by the keyboard faults that hit the full-screen
 > editors — it reads whole lines and goes through the command-line editor. **If
@@ -111,14 +113,21 @@ was gone.
 `NLS`, `SET.LANGUAGE` and `LOAD.LANGUAGE` are removed. **SD Core is English
 only**, and these were the only callers of the message-language machinery.
 
-## Embedded Python
+## Embedded Python — reversed again, and reversed differently
 
-Dropped, and it is a statement about what SD Core is for rather than a
-packaging choice: the intended use is as a back end data store reached through
-the API.
+**Python inside `sd.exe` is dropped, permanently — but calling Python from
+SD BASIC is back**, as a separate, native helper process SD talks to over a
+pipe rather than a library loaded into the server. The distinction is not
+cosmetic: the earlier removal was because Python and the MSYS2 runtime
+`sd.exe` is built on cannot share one process safely (§5.3 — `long` is a
+different width on each side). The helper avoids that by never being the
+same process at all.
 
-The C sources, the Makefile flags, 20 `GPL.BP/PY_*` programs,
-`SYSCOM/SDPYFUNC.H`, the `SD_Py*` error codes and the SDEXT keys have all gone.
+**21 `gpl.bp/PY_*` programs** are BASIC-callable (`CALL !PY_CREATEDICT`,
+and so on) — there is no TCL verb, so this is a programming capability, not
+a command you type at the prompt. Access is gated per session, at the
+moment Python starts, by the same `os.users` field 2 permission that gates
+`OS.EXECUTE` — a session without it cannot start the helper at all.
 
 ## Field-level encryption
 
@@ -139,7 +148,7 @@ is the TCL verb that encrypted a field in place, and **nothing replaces that**.
 |---|---|
 | `RDPACCOUNT`, `NO.RDPACCOUNT` | typing it now stops **`create.account`** with *Unexpected token (RDPACCOUNT)* and makes no account |
 | `CREATUSR` | **`config`** no longer lists it; `config('CREATUSR')` returns nothing. A `CREATUSR` line in `sd.conf` is still accepted and ignored |
-| `umask` | removed from every tier. It controls POSIX file-mode bits, which Windows does not use for security |
+| `umask` | removed entirely. It controls POSIX file-mode bits, which Windows does not use for security — see [Security](12-security.html#what-ships-secured-before-you-change-anything) for what does the equivalent job here |
 | Field 4 of an `ACCOUNTS` record | the list of accounts allowed in. **`list.grants`** answers that question now |
 
 **Accounts already created with `RDPACCOUNT` keep their Windows sign-in.**

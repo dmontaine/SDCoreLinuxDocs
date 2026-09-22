@@ -3,8 +3,7 @@ Subtitle: Seeing who is logged in, ending a session that will not end itself, an
 
 These are the verbs for looking at the machine as a whole and intervening in it:
 **whose sessions are running, what they are holding, and how to take either
-away.** Every one of them is administrator-tier, and the ones that act on
-somebody else need an elevated session on top of that.
+away.** Every one of them is SDSYS's.
 
 > **This document is separate so that it can be withheld.** It links to
 > nothing outside the administrator set. Where a user-set page is worth naming,
@@ -306,17 +305,9 @@ any file, so nothing has to be written back.
 
 ## Who has these verbs
 
-**All of them are administrator-tier**, so a standard or programmer account does
-not have the names at all.
-
-| | |
-|---|---|
-| **the verb is enough** | `listu` `list.readu` `list.locks` `lock` `clear.locks` |
-| **needs elevation as well** | `unlock`, and `logout` against another Windows account's session |
-
-**The split is between looking and intervening.** Seeing who is on the machine
-and what they hold is an administrator's ordinary business. Taking a session or
-a lock away from somebody else asks for the elevated token as well.
+**All of them are SDSYS's**, so an ordinary account does not have the names
+at all — being SDSYS is the whole of the gate, for every verb on this page,
+including `unlock` and `logout` against another Windows account's session.
 
 ## See also
 

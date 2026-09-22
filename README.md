@@ -1,12 +1,32 @@
-# SD Core for Windows — documentation
+# SD Core for Linux — documentation
 
-Documentation for **SD Core for Windows W1.0-0**. The server source is in a
-separate repository, `sd4windows`; nothing here is needed to build SD, and
-nothing in `sd4windows` is needed to build these pages.
+Documentation for **SD Core for Linux**. The server source is in a separate
+repository, `sdcore4linux`; nothing here is needed to build SD, and nothing
+in `sdcore4linux` is needed to build these pages.
 
-**This repository does not have `sd4windows`'s no-binaries rule** (owner,
-26 Aug 2026). It does not track the rendered pages anyway — see *Generated*
-below.
+**Forked from SD Core for Windows's documentation, 22 Sep 2026**, once its
+own post-parity-audit pass (gate 48) landed — see `sdcore4linux`'s
+`CLAUDE.md`, "Project stance": *"conformity with SD Core for Windows is the
+goal, and it outranks conformity with upstream `sdb64`."* The two sets stay
+**separate, forked, not one merged set with inline platform differences**
+(the shape settled on the Windows side, gate 48, and adopted here without
+re-asking under the mailbox governance rule — a decision whose purpose is
+making the two systems' documentation the same needs the owner's approval
+in only one place): they align closely in *behaviour* — SDSYS-only
+administration, message numbers, TLS/SCRAM, the account model — but diverge
+at the *mechanism* level: `sdsys`'s own local login vs UAC elevation, native
+Unix permissions vs `os.users`, `usermod -aG` vs `GRANT`, bash/Python
+tooling vs PowerShell, install paths and the installer itself. That is
+exactly the procedural content that would clutter a merged page for both
+audiences, including the majority that reads identically either way.
+Conceptual content is written once (on whichever side reaches it first) and
+ported, not independently re-derived; procedural content stays genuinely
+separate because it has to.
+
+**This repository does not have `sdcore4linux`'s no-binaries rule** (that
+project's own `CLAUDE.md`, "Project constraints" — the same reasoning
+Windows's docs give for their own server repository). It does not track the
+rendered pages anyway — see *Generated* below.
 
 ## Layout
 
@@ -14,7 +34,7 @@ Three document sets, each with the same three folders:
 
 | | |
 |---|---|
-| `GettingStarted/` | 19 pages — installing SD Core on Windows, running it, and what differs from OpenQM and from SD on Linux. Named `Testing/` until the W1.0-0 audit, when the set stopped being for pre-release testers |
+| `GettingStarted/` | 19 pages — installing SD Core on Linux, running it, and what differs from OpenQM and from SD Core for Windows |
 | `User/` | **two references, both complete.** `01`-`18` SD BASIC by subject, where `18` is Modern Program Structure — scope, local routines and objects. `19`-`31` SD TCL by subject; the administrator verbs are not here, they are their own set. `32`-`34` VOC and dictionaries. `35`-`40` file system, standard subroutines, client API, glossary, terminfo, and a tutorial with worked programs. **The generated syntax cards live at the end, `94` onwards**, so more can be added without renumbering anything: `94` SD BASIC (411 names), `95` SD TCL (147 verbs) |
 | `Administrator/` | **fourteen documents, and a separate deliverable on purpose** — `00a` copyright and licence, `01` accounts and security, `01a` account maintenance, `02` sessions and locks, `03` operating system access, `04` encryption and the SDEXT interface, `05` remote access and the machine, `06` system limits, `07` configuration, `08` installation and the service, `09` and `09a` the 37 installed scripts, `10` restricted commands, `11` features the developers could not test. Everything in it is administrator-tier or unavailable to an application, **so an administrator can withhold the whole set.** `11` is why the other two sets carry no "this was not tested" footnotes: an application programmer needs the reference to read as settled, an administrator choosing what to put into production needs the gaps in one list |
 
@@ -88,14 +108,18 @@ after the introduction — a PDF is read from page one, and the bound book's
 front matter states no licence of its own precisely because the first document
 states it in full. `add_nav.py` now refuses a set whose licence page is not
 first, and `mkbook.py` refuses to write a book whose first document is not the
-licence page. **Both refusals were tested against the pre-fix layout**, and
-`release.ps1` reads their exit codes, so a set in the wrong order stops the
-release rather than shipping.
+licence page. **Both refusals were tested against the pre-fix layout**, and Windows's
+`release.ps1` reads their exit codes, so a set in the wrong order stops that
+release rather than shipping — **this tree has no `release.ps1` equivalent
+yet** (see "Building", below).
 
-**The `User` set is measured, not compiled from the old help tree.** Its roster
-comes from `BCOMP`'s own tables, and every example was run before it was
-written down. `tools\probes\` holds the programs that produced the numbers and
-`tools\probes\README.md` says which runner takes which.
+**The `User` set is measured, not compiled from the old help tree — same rule
+here, ported from the Windows side rather than re-derived.** Its roster comes
+from `BCOMP`'s own tables. `tools/probes/` holds the programs that produced
+the numbers on the Windows side and `tools/probes/README.md` says which
+runner takes which; **this tree's own measuring tools are Windows's `.ps1`
+scripts (see "Measuring", below) and have not been ported — the probe
+`.b` files are portable SD BASIC, only their PowerShell runners are not.**
 
 **Sets never link to each other, and that is enforced by convention rather than
 by a tool.** Each set is handed out on its own, so a link from one to another
@@ -110,44 +134,39 @@ from the two retired client repositories.
 
 ## Building
 
-```
-tools\release.ps1
-```
-
-That renders whatever changed, refuses if any generated page is older than its
-Markdown, zips the result and prints the SHA256. `-Set User` does another set,
-`-Force` re-renders everything, `-NoZip` stops before the zip.
-
-The two steps it drives can also be run alone:
-
-```
-python tools\mkdoc.py --in GettingStarted\markdown --out GettingStarted\html
-powershell -File tools\mkpdf.ps1 -In GettingStarted\html -Out GettingStarted\pdf
-```
-
-`mkdoc.py` needs **python-markdown** (`pacman -S msys/python-markdown` on the
-MSYS2 python, or `pip install markdown`). `mkpdf.ps1` needs Edge or Chrome,
-which every supported Windows machine already has.
-
-**They are two steps and the second is the one that gets forgotten.** Pages 19
-to 27 of the `User` set were written, rendered to HTML and pushed with **no PDF
-at all**, and nothing said so — `release.ps1` exists precisely so this cannot
-happen, and running the two steps by hand skips its bookkeeping.
-
-**The check is markdown against PDF, not HTML against PDF.** Re-rendering the
-HTML touches every file's mtime, so comparing those two reports the whole set
-as stale and tells you nothing. Only the source answers the question:
+***NO `release.ps1` EQUIVALENT EXISTS ON THIS SIDE YET — A REAL GAP, NOT A
+DELIBERATE DIVERGENCE.*** Windows's `tools\release.ps1` renders whatever
+changed, refuses if any generated page is older than its Markdown, zips the
+result and prints the SHA256; `-Set User` does another set, `-Force`
+re-renders everything, `-NoZip` stops before the zip. Nothing here does that
+yet. Until it does, render by hand:
 
 ```sh
-for m in GettingStarted/markdown/*.md; do
-  p="GettingStarted/pdf/$(basename "$m" .md).pdf"
-  [ -f "$p" ] || echo "MISSING $p"
-  [ "$m" -nt "$p" ] && echo "STALE   $p"
-done
+python3 tools/mkdoc.py --in GettingStarted/markdown --out GettingStarted/html
 ```
 
-Both take one file as well as a directory, so a single changed page costs one
-render rather than forty-three.
+`mkdoc.py` is plain Python (**python-markdown**, `pip install markdown`) and
+needs nothing OS-specific — the same script, unmodified, that Windows runs.
+**The PDF half does — `mkpdf.ps1` drives Edge or Chrome's print-to-PDF over
+PowerShell, and has no Linux port.** A Linux equivalent would drive
+headless Chromium or Firefox the same way (`chromium --headless
+--print-to-pdf=out.pdf in.html`, or a library such as `weasyprint`) — not
+yet written, so this tree currently has `markdown/` and buildable `html/`
+but no `pdf/` output. Until it exists, judge whether the generated pages are
+current by source, not by the PDF-staleness check Windows's own README
+describes next (that check does not apply here without a `pdf/` tree to
+compare against).
+
+**Windows's own hazard still applies to whichever tool eventually renders
+here**: rendering to HTML and stopping there, with nothing checking that a
+PDF was ever produced, is exactly the gap `release.ps1` closed on their
+side by design — build that check in from the start rather than add it on
+after the fact. **Their check compares Markdown against PDF, never HTML
+against PDF** (re-rendering the HTML touches every file's mtime, so that
+comparison reports the whole set stale and says nothing real) — the same
+shape, `for m in .../markdown/*.md; do p=".../pdf/$(basename "$m" .md).pdf"; [
+-f "$p" ] || echo MISSING; [ "$m" -nt "$p" ] && echo STALE; done`, is the
+template to reuse once a `pdf/` tree exists here.
 
 ## Regenerating the syntax cards
 

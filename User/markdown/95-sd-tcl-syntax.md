@@ -11,47 +11,44 @@ folds case, so any of this may be typed in either case.
 
 > **This page is generated, and it is checked for completeness rather
 > than proof-read for it.** The roster is computed from SD's own VOC:
-> the verb records in `newvoc` plus the ones an administrator account
-> adds, which is **147** verbs, and `tools/mktclsyntax.py` refuses to
+> every verb record in `newvoc`, plus the ones only `voc_template`
+> has, which is **144** verbs, and `tools/mktclsyntax.py` refuses to
 > write the page if any of them has no line. The shapes come from the
 > subject documents, where each verb is described in full.
 
-**The tier column is the VOC, not an opinion.** It is read from
-`TIER.OMIT.STANDARD` and `TIER.ADD.ADMINISTRATOR`, the same two lists
-the account-creation code uses, so it cannot drift from what an account
-actually gets. **A verb your account does not have is not refused — the
-name is simply not recognised.**
+**The "who" column is the VOC, not an opinion.** It is computed by
+reading `newvoc` and `voc_template` directly, so it cannot drift from
+what an account actually gets. **A verb your account does not have is
+not refused — the name is simply not recognised.**
 
 | | | |
 |---|---|---|
-| **standard** | 82 verbs | every account has these |
-| **programmer** | 42 more | withheld from a standard account |
-| **administrator** | 23 more | and several need an elevated session as well |
+| **every account** | 129 verbs | `newvoc`, identical for every ordinary account |
+| **SDSYS only** | 15 more | in `voc_template` but not `newvoc` |
 
 ## The verbs
 
-| | syntax | tier |
+| | syntax | who |
 |---|---|---|
-| **`!`** | **`!`** *command* | A |
+| **`!`** | **`!`** *command* |  |
 | **`abort`** | **`abort`** {*message*} |  |
 | **`alias`** | **`alias`** *command* *target* |  |
-| **`analyse.file`** | **`analyse.file`** {**`dict`**} *file* {**`statistics`**} {**`lptr`**} | P |
-| **`analyze.file`** | **`analyze.file`** — the same verb as **`analyse.file`** | P |
-| **`append.sd.path`** | **`append.sd.path`** {**`on`** | **`off`**} | A |
+| **`analyse.file`** | **`analyse.file`** {**`dict`**} *file* {**`statistics`**} {**`lptr`**} |  |
+| **`analyze.file`** | **`analyze.file`** — the same verb as **`analyse.file`** |  |
 | **`autologout`** | **`autologout`** {*minutes*} |  |
-| **`basic`** | **`basic`** {*file*} *record* {*record* …} | P |
+| **`basic`** | **`basic`** {*file*} *record* {*record* …} |  |
 | **`bell`** | **`bell on`** | **`off`** |  |
 | **`break`** | **`break on`** | **`off`** | **`on user`** *n* |  |
-| **`build.index`** | **`build.index`** *file* *field* … | **`all`** | P |
-| **`catalog`** | **`catalog`** {*file* {*call.name*}} {*program*} {**`local`** | **`global`** | **`pcode`**} {**`no.xref`**} | P |
-| **`catalogue`** | **`catalogue`** — the same verb as **`catalog`** | P |
-| **`cd`** | **`cd`** {**`dict`** | **`data`**} *file* {*i-type* …} {**`no.query`**} {**`no.page`**}  ·  **`cd local`**  ·  **`cd all`** | P |
-| **`clean.account`** | **`clean.account`** | A |
+| **`build.index`** | **`build.index`** *file* *field* … | **`all`** |  |
+| **`catalog`** | **`catalog`** {*file* {*call.name*}} {*program*} {**`local`** | **`global`** | **`pcode`**} {**`no.xref`**} |  |
+| **`catalogue`** | **`catalogue`** — the same verb as **`catalog`** |  |
+| **`cd`** | **`cd`** {**`dict`** | **`data`**} *file* {*i-type* …} {**`no.query`**} {**`no.page`**}  ·  **`cd local`**  ·  **`cd all`** |  |
+| **`clean.account`** | **`clean.account`** | S |
 | **`clear.abort`** | **`clear.abort`** |  |
 | **`clear.data`** | **`clear.data`** |  |
-| **`clear.file`** | **`clear.file`** {**`data`** | **`dict`**} *file* | P |
+| **`clear.file`** | **`clear.file`** {**`data`** | **`dict`**} *file* |  |
 | **`clear.input`** | **`clear.input`** |  |
-| **`clear.locks`** | **`clear.locks`** {*n*} | A |
+| **`clear.locks`** | **`clear.locks`** {*n*} | S |
 | **`clear.prompts`** | **`clear.prompts`** |  |
 | **`clear.select`** | **`clear.select`** {*list.no*} |  |
 | **`clear.stack`** | **`clear.stack`** |  |
@@ -60,104 +57,102 @@ name is simply not recognised.**
 | **`clearprompts`** | **`clearprompts`** — the same verb as **`clear.prompts`** |  |
 | **`clearselect`** | **`clearselect`** — the same verb as **`clear.select`** |  |
 | **`clr`** | **`clr`** |  |
-| **`cname`** | **`cname`** *old.file* **`to`** *new.file* | P |
+| **`cname`** | **`cname`** *old.file* **`to`** *new.file* |  |
 | **`como`** | **`como on`** {*record*} | **`off`** | **`pause`** | **`resume`** |  |
-| **`compile.dict`** | **`compile.dict`** — the same verb as **`cd`** | P |
-| **`config`** | **`config`** {**`lptr`** | **`gpl`** | **`contrib`** | *param* *value*} | A |
-| **`configure.file`** | **`configure.file`** {**`dict`**} *voc.name* {*parameters*} | **`default`** | P |
-| **`copy`** | **`copy from`** {**`dict`**} *src* {**`to`** {**`dict`**} *tgt*} {*id* …} {**`(options`**} | P |
+| **`compile.dict`** | **`compile.dict`** — the same verb as **`cd`** |  |
+| **`config`** | **`config`** {**`lptr`** | **`gpl`** | **`contrib`** | *param* *value*} | S |
+| **`configure.file`** | **`configure.file`** {**`dict`**} *voc.name* {*parameters*} | **`default`** |  |
+| **`copy`** | **`copy from`** {**`dict`**} *src* {**`to`** {**`dict`**} *tgt*} {*id* …} {**`(options`**} |  |
 | **`copy.list`** | **`copy.list`** *list* {**`,`***new*} {**`from`** *src*} {**`to`** *tgt*} {*options*} |  |
-| **`copyp`** | **`copyp`** {**`dict`**} *file* *id* … {**`(options`**} | P |
+| **`copyp`** | **`copyp`** {**`dict`**} *file* *id* … {**`(options`**} |  |
 | **`count`** | **`count`** {**`dict`**} *file* {*selection*} |  |
-| **`create.account`** | **`create.account user`** *name* {**`administrator`** | **`programmer`**} <**`ssh`** | **`api`** | **`both`** | **`none`**> {**`no.query`**}  ·  **`create.account group`** *name*  ·  **`create.account other`** *name* *pathname* | A |
-| **`create.file`** | **`create.file`** {**`dict`**} *voc.name* {**`directory`**} {*parameters*} | P |
-| **`create.index`** | **`create.index`** *file* *field* … {**`no.nulls`**} {**`pathname`** *path*} | P |
+| **`create.account`** | **`create.account user`** *name* {**`ssh`** | **`api`** | **`both`** | **`none`**} {**`no.query`**}  ·  **`create.account group`** *name* {**`no.query`**}  ·  **`create.account other`** *name* *pathname* {**`no.query`**} | S |
+| **`create.file`** | **`create.file`** {**`dict`**} *voc.name* {**`directory`**} {*parameters*} |  |
+| **`create.index`** | **`create.index`** *file* *field* … {**`no.nulls`**} {**`pathname`** *path*} |  |
 | **`cs`** | **`cs`** — the same verb as **`clr`** |  |
 | **`ct`** | **`ct`** {**`dict`**} *file* {*id* … | **`*`**} {**`(options`**} |  |
 | **`date`** | **`date`** | **`internal`** | *n* | *date* |  |
 | **`date.format`** | **`date.format on`** | **`off`** | **`display`** |  |
-| **`debug`** | **`debug`** | P |
-| **`delete`** | **`delete`** {**`dict`**} *file* {*id* …} {**`no.query`**} | P |
-| **`delete.account`** | **`delete.account`** *account* | A |
-| **`delete.catalog`** | **`delete.catalog`** *name* … {**`global`** | **`local`**} | P |
-| **`delete.catalogue`** | **`delete.catalogue`** — the same verb as **`delete.catalog`** | P |
-| **`delete.common`** | **`delete.common`** *name* | P |
-| **`delete.file`** | **`delete.file`** {**`dict`** | **`data`**} *voc.name* {**`force`**} {**`no.query`**} | P |
-| **`delete.index`** | **`delete.index`** *file* *field* … | **`all`** | P |
+| **`debug`** | **`debug`** |  |
+| **`delete`** | **`delete`** {**`dict`**} *file* {*id* …} {**`no.query`**} |  |
+| **`delete.account`** | **`delete.account`** *account* | S |
+| **`delete.catalog`** | **`delete.catalog`** *name* … {**`global`** | **`local`**} |  |
+| **`delete.catalogue`** | **`delete.catalogue`** — the same verb as **`delete.catalog`** |  |
+| **`delete.common`** | **`delete.common`** *name* |  |
+| **`delete.file`** | **`delete.file`** {**`dict`** | **`data`**} *voc.name* {**`force`**} {**`no.query`**} |  |
+| **`delete.index`** | **`delete.index`** *file* *field* … | **`all`** |  |
 | **`delete.list`** | **`delete.list`** *list* |  |
 | **`display`** | **`display`** *text* |  |
-| **`dump`** | **`dump`** {**`dict`**} *file* {*id* … | **`*`**} {**`(options`**} | P |
+| **`dump`** | **`dump`** {**`dict`**} *file* {*id* … | **`*`**} {**`(options`**} |  |
 | **`echo`** | **`echo on`** | **`off`** | **`echo`** to toggle |  |
-| **`ed`** | **`ed`** {**`dict`**} *file* {*id* …} | P |
-| **`edit`** | **`edit`** {**`dict`**} *file* *record* | P |
+| **`ed`** | **`ed`** {**`dict`**} *file* {*id* …} |  |
+| **`edit`** | **`edit`** {**`dict`**} *file* *record* |  |
 | **`form.list`** | **`form.list`** {**`dict`**} *file* {*list.no*} |  |
 | **`format`** | **`format`** {*file*} {*record*} {**`case`**} |  |
-| **`fstat`** | **`fstat`** *file* **`on`** | **`off`** | {**`lptr`**}  ·  **`fstat global`** {**`lptr`**}  ·  **`fstat reset`**  ·  **`fstat`** | P |
-| **`generate`** | **`generate`** {**`dict`**} *file* *record* … | P |
+| **`fstat`** | **`fstat`** *file* **`on`** | **`off`** | {**`lptr`**}  ·  **`fstat global`** {**`lptr`**}  ·  **`fstat reset`**  ·  **`fstat`** |  |
+| **`generate`** | **`generate`** {**`dict`**} *file* *record* … |  |
 | **`get.list`** | **`get.list`** *list* {**`to`** *list.no*} |  |
 | **`get.stack`** | **`get.stack`** {*name*} |  |
 | **`go`** | **`go`** *label* |  |
-| **`grant`** | **`grant`** *account* **`to`** *user* | A |
-| **`hsm`** | **`hsm on`** | **`off`** | **`display`** {**`user`** *n*} | P |
+| **`hsm`** | **`hsm on`** | **`off`** | **`display`** {**`user`** *n*} |  |
 | **`hush`** | **`hush on`** | **`off`** | **`hush`** to toggle |  |
 | **`if`** | **`if`** *condition* *command* |  |
 | **`list`** | **`list`** {**`dict`**} *file* {*selection*} {*fields*} {*options*} |  |
 | **`list.common`** | **`list.common`** {**`all`**} |  |
 | **`list.diff`** | **`list.diff`** *list.1* {*list.2* {*tgt*}} {**`count.sup`**} |  |
 | **`list.files`** | **`list.files`** |  |
-| **`list.grants`** | **`list.grants`** *account* | A |
-| **`list.index`** | **`list.index`** *file* {*field* …} | P |
+| **`list.index`** | **`list.index`** *file* {*field* …} |  |
 | **`list.inter`** | **`list.inter`** *list.1* {*list.2* {*tgt*}} {**`count.sup`**} |  |
 | **`list.item`** | **`list.item`** {**`dict`**} *file* {*selection*} |  |
 | **`list.label`** | **`list.label`** {**`dict`**} *file* {*selection*} {*fields*} |  |
-| **`list.locks`** | **`list.locks`** | A |
-| **`list.readu`** | **`list.readu`** {*user.no*} {**`detail`**} {**`wait`**} {**`no.page`**} {**`lptr`** {*n*}} | A |
+| **`list.locks`** | **`list.locks`** | S |
+| **`list.readu`** | **`list.readu`** {*user.no*} {**`detail`**} {**`wait`**} {**`no.page`**} {**`lptr`** {*n*}} | S |
 | **`list.union`** | **`list.union`** *list.1* {*list.2* {*tgt*}} {**`count.sup`**} |  |
 | **`list.vars`** | **`list.vars`** {*pattern*} |  |
-| **`listu`** | **`listu`** {**`no.page`**} {**`lptr`** {*n*}} | A |
-| **`lock`** | **`lock`** *n* {**`no.wait`**} | A |
+| **`listu`** | **`listu`** {**`no.page`**} {**`lptr`** {*n*}} | S |
+| **`lock`** | **`lock`** *n* {**`no.wait`**} | S |
 | **`logmsg`** | **`logmsg`** *text* |  |
-| **`logout`** | **`logout`** | *n* … | **`all`** | P |
+| **`logout`** | **`logout`** | *n* … | **`all`** |  |
 | **`logto`** | **`logto`** *account* |  |
-| **`make.index`** | **`make.index`** *file* *field* … {**`no.nulls`**} {**`pathname`** *path*} | P |
-| **`map`** | **`map`** {**`all`**} {**`lptr`** {*n*}} {**`file`** {*name*}} | P |
+| **`make.index`** | **`make.index`** *file* *field* … {**`no.nulls`**} {**`pathname`** *path*} |  |
+| **`map`** | **`map`** {**`all`**} {**`lptr`** {*n*}} {**`file`** {*name*}} |  |
 | **`merge.list`** | **`merge.list`** *list.no* *rel.op* *list.no* {**`to`** *list.no*} {**`count.sup`**} |  |
 | **`message`** | **`message`** *user.no* {**`immediate`**} {*text*} |  |
-| **`micro`** | **`micro`** {**`dict`**} *file* *record* | P |
-| **`modify.account`** | **`modify.account`** *account* **`standard`** | **`programmer`** | **`administrator`** | **`suspended`**  ·  *account* **`ssh`** | **`api`** | **`both`** | **`none`**  ·  *account* **`sh-on`** | **`sh-off`** | **`os-on`** | **`os-off`**  ·  *account* **`add`** | **`delete`** *user* | A |
-| **`modify.password`** | **`modify.password`** {*account*} | A |
+| **`micro`** | **`micro`** {**`dict`**} *file* *record* |  |
+| **`modify.account`** | **`modify.account`** *account* **`add`** | **`delete`** *user*  ·  *account* **`ssh`** | **`api`** | **`both`** | **`none`**  ·  *account* **`sh-on`** | **`sh-off`** | **`os-on`** | **`os-off`**  ·  *account* **`suspended`** | **`unsuspended`** | S |
+| **`modify.password`** | **`modify.password`** {*account*} |  |
+| **`nano`** | **`nano`** {**`dict`**} *file* *record* |  |
 | **`nselect`** | **`nselect`** *file* {*list.no*} |  |
 | **`off`** | **`off`** |  |
 | **`option`** | **`option`** *name* {**`on`** | **`off`** | **`display`**}  ·  **`option all off`**  ·  **`option`** |  |
 | **`pause`** | **`pause`** {*seconds*} |  |
-| **`pdebug`** | **`pdebug`** {*command*} | P |
-| **`pdump`** | **`pdump`** *n* | P |
-| **`phantom`** | **`phantom`** *command* | P |
+| **`pdebug`** | **`pdebug`** {*command*} |  |
+| **`pdump`** | **`pdump`** *n* |  |
+| **`phantom`** | **`phantom`** *command* |  |
 | **`printer`** | **`printer`** {*unit*} **`query`** | **`at`** *name* | **`file`** *file* *record* | **`width`** *n* | **`lines`** *n* | **`top.margin`** *n* | **`bottom.margin`** *n* | **`left.margin`** *n* | **`keep.open`** | **`close`** | **`reset`** |  |
-| **`pstat`** | **`pstat`** {**`user`** *n*} {**`level`** *n*} {**`no.page`**} {**`lptr`** {*n*}} | P |
+| **`pstat`** | **`pstat`** {**`user`** *n*} {**`level`** *n*} {**`no.page`**} {**`lptr`** {*n*}} |  |
 | **`pterm`** | **`pterm display`** | **`lptr`** | **`break`** … | **`case`** … | **`newline`** … | **`return`** … | **`binary`** … | **`telnet`** … | **`reset`** *string* | **`prompt`** *p* *c* |  |
 | **`qselect`** | **`qselect`** {**`dict`**} *file* {*id* … | **`*`**} {**`(options`**} |  |
 | **`quit`** | **`quit`** — the same verb as **`off`** |  |
-| **`reformat`** | **`reformat`** {**`dict`**} *file* {*selection*} {*fields*} | P |
+| **`reformat`** | **`reformat`** {**`dict`**} *file* {*selection*} {*fields*} |  |
 | **`release`** | **`release`** *file* *id* …  ·  **`release filelock`** *file* |  |
-| **`remote.api`** | **`remote.api`** {**`on`** | **`local`** | **`off`**} | A |
-| **`remote.ssh`** | **`remote.ssh`** {**`on`** | **`off`**} | A |
-| **`rename`** | **`rename`** — the same verb as **`cname`** | P |
+| **`remote.api`** | **`remote.api`** {**`on`** | **`local`** | **`off`**} | S |
+| **`remote.ssh`** | **`remote.ssh`** {**`on`** | **`off`**} | S |
+| **`rename`** | **`rename`** — the same verb as **`cname`** |  |
 | **`report.src`** | **`report.src on`** | **`off`** | **`report.src`** to toggle |  |
 | **`report.style`** | **`report.style`** {*name* | **`off`**} |  |
-| **`revoke`** | **`revoke`** *account* **`from`** *user* | A |
-| **`run`** | **`run`** {*file*} *record* {*arguments*} | P |
+| **`run`** | **`run`** {*file*} *record* {*arguments*} |  |
 | **`save.list`** | **`save.list`** *list* {**`from`** *list.no*} |  |
 | **`save.stack`** | **`save.stack`** {*name*} |  |
 | **`search`** | **`search`** {**`dict`**} *file* {*selection*} |  |
 | **`select`** | **`select`** {**`dict`**} *file* {*selection*} {*list.no*} |  |
 | **`set`** | **`set`** *name* *value* |  |
-| **`set.date`** | **`set.date`** *date* | A |
+| **`set.date`** | **`set.date`** *date* | S |
 | **`set.exit.status`** | **`set.exit.status`** *n* |  |
 | **`set.file`** | **`set.file`** *account* *file* *pointer* |  |
-| **`set.trigger`** | **`set.trigger`** *file* *name* {*modes*} | P |
+| **`set.trigger`** | **`set.trigger`** *file* *name* {*modes*} |  |
 | **`setptr`** | **`setptr`** *unit* | **`default`**`,`*width*`,`*depth*`,`*top*`,`*bottom*`,`*mode* {`,`*options*}  ·  **`setptr display`**  ·  **`setptr`** *unit*`,`**`display`** |  |
-| **`sh`** | **`sh`** *command* | A |
+| **`sh`** | **`sh`** *command* |  |
 | **`show`** | **`show`** {**`dict`**} *file* {*selection*} |  |
 | **`sleep`** | **`sleep`** *n* | *hh*`:`*mm*{`:`*ss*} |  |
 | **`sort`** | **`sort`** {**`dict`**} *file* {*selection*} {*fields*} {*options*} |  |
@@ -167,19 +162,19 @@ name is simply not recognised.**
 | **`sp.open`** | **`sp.open`** |  |
 | **`sp.view`** | **`sp.view`** |  |
 | **`spool`** | **`spool`** *file* *id* … {**`lines`** *n* *m*} {**`lnum`**} {**`lptr`** *n*} |  |
-| **`sreformat`** | **`sreformat`** {**`dict`**} *file* {*selection*} {*fields*} | P |
+| **`sreformat`** | **`sreformat`** {**`dict`**} *file* {*selection*} {*fields*} |  |
 | **`sselect`** | **`sselect`** {**`dict`**} *file* {*selection*} {*list.no*} |  |
-| **`ssh.server`** | **`ssh.server`** {**`install`** | **`remove`**} | A |
 | **`status`** | **`status`** |  |
 | **`stop`** | **`stop`** |  |
 | **`sum`** | **`sum`** {**`dict`**} *file* {*selection*} *field* |  |
 | **`term`** | **`term`** | *width*{`,`*lines*} {*type*} | **`colour`** *bg*{`,`*fg*} | **`default`** | **`display`** |  |
 | **`time`** | **`time`** | **`internal`** |  |
-| **`unlock`** | **`unlock file`** *n* {**`user`** *n*} *id* … | **`all`** | **`filelock`**  ·  **`unlock tasklock`** *n* … | A |
-| **`update.accounts`** | **`update.accounts`** {**`all`**} | A |
+| **`umask`** | **`umask`** {*mask*} |  |
+| **`unlock`** | **`unlock file`** *n* {**`user`** *n*} *id* … | **`all`** | **`filelock`**  ·  **`unlock tasklock`** *n* … | S |
+| **`update.accounts`** | **`update.accounts`** {**`all`**} | S |
 | **`who`** | **`who`** |  |
 | **`who.am.i`** | **`who.am.i`** |  |
 
-**Blank in the tier column means every account has it**; `P` is a
-programmer verb and `A` an administrator one.
+**Blank in the who column means every account has it**; `S` is SDSYS
+alone.
 

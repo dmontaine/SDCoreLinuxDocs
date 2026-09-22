@@ -5,12 +5,15 @@
 # write it if a single verb has no line - the same contract mksyntax.py has for
 # the SD BASIC card.
 #
-# THE ROSTER IS COMPUTED, NEVER TYPED.  143 verbs = the 123 verb records in
-# sdsys/newvoc plus the 20 named in newvoc/TIER.ADD.ADMINISTRATOR, asserted not
-# to overlap.  It was 144 and 21 until encrypt.field left the tier list
-# (PRE_RELEASE 25).  THE ROSTER FOLLOWED ON ITS OWN because it is computed; the
-# shapes file did not, and the "not a verb" refusal below is what that is for.
-# A VOC record is a verb if the first character of field 1 is V,
+# THE ROSTER IS COMPUTED, NEVER TYPED.  RELEASE_1.1 64 (18 Sep 2026) removed
+# the three account tiers and the two lists (newvoc/TIER.OMIT.STANDARD,
+# newvoc/TIER.ADD.ADMINISTRATOR) this script used to read to build them - it
+# crashed outright against a tree that has moved past that model.  What is
+# still true, and still computed rather than typed: every ordinary account's
+# VOC is `newvoc` in full, and SDSYS's own is `voc_template` in full, a
+# superset.  The roster is the union of both directories' verb records, each
+# marked by which one it came from - `voc_template`-only means SDSYS alone
+# has it.  A VOC record is a verb if the first character of field 1 is V,
 # or - for the four records that are a keyword AND a verb, which CPROC
 # re-parses from field 3 - the first character of field 3 is V.  Dispatch comes
 # from field 2, or field 4 for those four.
@@ -23,7 +26,7 @@
 # either the card is wrong or the source comment is - and it is printed rather
 # than acted on, because a script cannot tell which.
 #
-# It also cross-checks the tier of every verb, so the card cannot disagree with
+# It also cross-checks who has each verb, so the card cannot disagree with
 # what the account actually gets.
 #
 import io
@@ -62,39 +65,25 @@ def dispatch_of(r):
 
 # ------------------------------------------------------------------ roster
 
+def verbs_in(directory):
+    found = {}
+    for name in sorted(os.listdir(directory)):
+        p = os.path.join(directory, name)
+        if not os.path.isfile(p):
+            continue
+        r = rec(p)
+        t1, t3 = fld(r, 1)[:1].upper(), fld(r, 3)[:1].upper()
+        if t1 == 'V' or (t1 == 'K' and t3 == 'V'):
+            found[name.lower()] = dispatch_of(r)
+    return found
+
 verbs = {}
-for name in sorted(os.listdir(NEWVOC)):
-    p = os.path.join(NEWVOC, name)
-    if not os.path.isfile(p):
-        continue
-    r = rec(p)
-    t1, t3 = fld(r, 1)[:1].upper(), fld(r, 3)[:1].upper()
-    if t1 == 'V' or (t1 == 'K' and t3 == 'V'):
-        verbs[name.lower()] = dispatch_of(r) + ('standard',)
+for v, dispatch in verbs_in(NEWVOC).items():
+    verbs[v] = dispatch + ('ordinary',)
 
-admin = [l.strip().lower()
-         for l in rec(os.path.join(NEWVOC, 'TIER.ADD.ADMINISTRATOR'))[1:]
-         if l.strip()]
-clash = sorted(set(admin) & set(verbs))
-if clash:
-    sys.exit('newvoc and TIER.ADD.ADMINISTRATOR overlap: %s' % clash)
-
-for v in admin:
-    p = os.path.join(VOCT, v.upper())
-    if not os.path.isfile(p):
-        p = os.path.join(VOCT, v)
-    if os.path.isfile(p):
-        mode, target = dispatch_of(rec(p))
-    else:
-        mode, target = '?', ''
-    verbs[v] = (mode, target, 'administrator')
-
-omit = set(l.strip().lower()
-           for l in rec(os.path.join(NEWVOC, 'TIER.OMIT.STANDARD'))[1:]
-           if l.strip())
-for v in list(verbs):
-    if verbs[v][2] == 'standard' and v in omit:
-        verbs[v] = verbs[v][:2] + ('programmer',)
+for v, dispatch in verbs_in(VOCT).items():
+    if v not in verbs:
+        verbs[v] = dispatch + ('sdsys',)
 
 if len(verbs) < 100:
     sys.exit('REFUSED: roster came out as %d verbs - that is not a roster'
@@ -143,7 +132,7 @@ for name in sorted(os.listdir(GPLBP)):
 KEYWORD = re.compile(r'\b([A-Z][A-Z0-9.]{2,})\b')
 leads = []
 for v in sorted(verbs):
-    mode, target, tier = verbs[v]
+    mode, target, who = verbs[v]
     if mode != 'CA':
         continue
     src = cat.get(target.upper())
@@ -173,9 +162,9 @@ for v in sorted(verbs):
 
 # ------------------------------------------------------------------- write
 
-by_tier = {'standard': 0, 'programmer': 0, 'administrator': 0}
+by_who = {'ordinary': 0, 'sdsys': 0}
 for v in verbs:
-    by_tier[verbs[v][2]] += 1
+    by_who[verbs[v][2]] += 1
 
 out = []
 out.append('Title: SD TCL - Syntax')
@@ -191,44 +180,41 @@ out.append('folds case, so any of this may be typed in either case.')
 out.append('')
 out.append('> **This page is generated, and it is checked for completeness rather')
 out.append('> than proof-read for it.** The roster is computed from SD\'s own VOC:')
-out.append('> the verb records in `newvoc` plus the ones an administrator account')
-out.append('> adds, which is **%d** verbs, and `tools/mktclsyntax.py` refuses to' % len(verbs))
+out.append('> every verb record in `newvoc`, plus the ones only `voc_template`')
+out.append('> has, which is **%d** verbs, and `tools/mktclsyntax.py` refuses to' % len(verbs))
 out.append('> write the page if any of them has no line. The shapes come from the')
 out.append('> subject documents, where each verb is described in full.')
 out.append('')
-out.append('**The tier column is the VOC, not an opinion.** It is read from')
-out.append('`TIER.OMIT.STANDARD` and `TIER.ADD.ADMINISTRATOR`, the same two lists')
-out.append('the account-creation code uses, so it cannot drift from what an account')
-out.append('actually gets. **A verb your account does not have is not refused — the')
-out.append('name is simply not recognised.**')
+out.append('**The "who" column is the VOC, not an opinion.** It is computed by')
+out.append('reading `newvoc` and `voc_template` directly, so it cannot drift from')
+out.append('what an account actually gets. **A verb your account does not have is')
+out.append('not refused — the name is simply not recognised.**')
 out.append('')
 out.append('| | | |')
 out.append('|---|---|---|')
-out.append('| **standard** | %d verbs | every account has these |' % by_tier['standard'])
-out.append('| **programmer** | %d more | withheld from a standard account |' % by_tier['programmer'])
-out.append('| **administrator** | %d more | and several need an elevated session as well |' % by_tier['administrator'])
+out.append('| **every account** | %d verbs | `newvoc`, identical for every ordinary account |' % by_who['ordinary'])
+out.append('| **SDSYS only** | %d more | in `voc_template` but not `newvoc` |' % by_who['sdsys'])
 out.append('')
 out.append('## The verbs')
 out.append('')
-out.append('| | syntax | tier |')
+out.append('| | syntax | who |')
 out.append('|---|---|---|')
 
-TIERMARK = {'standard': '', 'programmer': 'P', 'administrator': 'A'}
+WHOMARK = {'ordinary': '', 'sdsys': 'S'}
 for v in sorted(verbs):
-    out.append('| **`%s`** | %s | %s |' % (v, shapes[v], TIERMARK[verbs[v][2]]))
+    out.append('| **`%s`** | %s | %s |' % (v, shapes[v], WHOMARK[verbs[v][2]]))
 
 out.append('')
-out.append('**Blank in the tier column means every account has it**; `P` is a')
-out.append('programmer verb and `A` an administrator one.')
+out.append('**Blank in the who column means every account has it**; `S` is SDSYS')
+out.append('alone.')
 out.append('')
 
 text = '\n'.join(out) + '\n'
 with io.open(OUT, 'w', encoding='utf-8', newline='') as f:
     f.write(text)
 
-print('roster        : %d verbs  (standard %d, programmer %d, administrator %d)'
-      % (len(verbs), by_tier['standard'], by_tier['programmer'],
-         by_tier['administrator']))
+print('roster        : %d verbs  (every account %d, sdsys only %d)'
+      % (len(verbs), by_who['ordinary'], by_who['sdsys']))
 print('shapes        : %d, every verb covered, nothing left over' % len(shapes))
 print('wrote         : %s  (%d bytes)' % (OUT, len(text)))
 

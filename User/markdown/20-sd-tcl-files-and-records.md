@@ -217,9 +217,8 @@ same data in binary. Options: `hex` for hexadecimal, `binary` for a full-width
 report that is not field-based, `no.query` to skip the prompt when a select list
 is in use, and `lptr` {*n*} to send it to a print unit.
 
-**`ct` is the one verb here a standard account has**; `dump` is withheld. They
-run the same code, and the line between the tiers runs between the two VOC
-records rather than through the program.
+**Every account has both `ct` and `dump`** — they run the same code, reached
+by two separate VOC records rather than one.
 
 ## Triggers
 
@@ -234,18 +233,11 @@ removes it; no argument at all displays it.
 
 ## Who has these verbs
 
-**Almost everything on this page is withheld from a standard account.** That is
-deliberate: these are the verbs that change data in bulk.
-
-| | |
-|---|---|
-| **standard** | `ct` `list.files` `set.file` |
-| **programmer** | `analyse.file` `analyze.file` `clear.file` `cname` `configure.file` `copy` `copyp` `create.file` `delete` `delete.file` `dump` `fstat` `hsm` `rename` `set.trigger` |
-
-A standard account can therefore look at a record and point at a file, and
-cannot create, empty, delete, copy or rename anything. An account that does not
-have a verb does not have the VOC record for it, so the name is not recognised
-at all rather than refused.
+**Every account has all of them now** — there is no longer a withheld set.
+`ct`, `list.files`, `set.file`, `analyse.file`, `analyze.file`, `clear.file`,
+`cname`, `configure.file`, `copy`, `copyp`, `create.file`, `delete`,
+`delete.file`, `dump`, `fstat`, `hsm`, `rename`, `set.trigger` are all in
+every account's VOC.
 
 ## What is not here
 

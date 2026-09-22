@@ -1,7 +1,7 @@
 # mkbookpdf.ps1 - print one assembled book to a single PDF, over DevTools.
 #
-#   powershell -File tools\mkbookpdf.ps1 -In Administrator\book.html `
-#                                        -Out Administrator\pdf\Administrator.pdf
+#   powershell -ExecutionPolicy Bypass -File tools\mkbookpdf.ps1 `
+#                -In Administrator\book.html -Out Administrator\pdf\Administrator.pdf
 #
 # Exit 0 the PDF was written and checked, 1 it was not.
 #

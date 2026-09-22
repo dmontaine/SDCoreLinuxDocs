@@ -157,10 +157,15 @@ for param in roster:
 # refuses a name that is not on the roster, so it cannot drift silently.
 
 DOCUMENTS = {
+ # 22 Sep 26 - LINUX FORK.  APIPORT and NETDIRS are not parameters this
+ # port's config.c accepts at all: whether SD listens for the API is
+ # systemd's sdclient.socket unit, not a start-up config value, and there
+ # is no config-file mechanism here widening an API session's file access
+ # beyond its own account (see 07's own "The API" section).
  'Administrator/markdown/07-sd-admin-configuration.md': """
-   APILOGIN APIPORT CMDSTACK CODEPAGE CREATUSR DEADLOCK DEBUG DUMPDIR ERRLOG
+   APILOGIN CMDSTACK CODEPAGE CREATUSR DEADLOCK DEBUG DUMPDIR ERRLOG
    EXCLREM FDS FILERULE FIXUSERS FLTDIFF FSYNC GDI GRPDIR GRPSIZE INTPREC
-   JNLDIR JNLMODE LPTRHIGH LPTRWIDE MAXCALL MAXIDLEN MUSTLOCK NETDIRS NETFILES
+   JNLDIR JNLMODE LPTRHIGH LPTRWIDE MAXCALL MAXIDLEN MUSTLOCK NETFILES
    NUMFILES NUMLOCKS NUMUSERS OBJECTS OBJMEM PDUMP PORTMAP RECCACHE RINGWAIT
    SAFEDIR SDCLIENT SDSYS SH SH1 SORTMEM SORTMRG SORTWORK SPOOLER STARTUP
    TEMPDIR TERMINFO TXCHAR USRDIR YEARBASE

@@ -12,10 +12,12 @@ here in lower case, which is what this port uses on disk. In the tables,
 *italics* mark something you supply and **bold** marks a word typed as it
 stands; braces mark an optional part.
 
-> **Every record on this page was read from a stock account VOC on SD Core
-> for Windows W1.0-0.** The records were written by `CREATE.ACCOUNT`,
-> which copies them from `voc_template` in the system directory. The counts
-> are what a standard account holds; an administrator account holds more.
+> **Every record on this page was read from a stock account VOC.** The
+> records were written by `CREATE.ACCOUNT`, which copies them from
+> `newvoc` — not `voc_template`, which is SDSYS's own, larger VOC and
+> what the counts below are taken from. Every ordinary account gets the
+> same set; there is no smaller or larger starting VOC to choose between
+> any more.
 
 ## The ten record types
 
@@ -42,30 +44,35 @@ load-bearing and the remaining thirty are not.**
 supported"* rather than being dispatched, because the record itself is
 valid PROC and it is the interpreter that is gone.
 
-### What a stock VOC holds
+### What SDSYS's own VOC holds
 
-Read from `voc_template` in the system directory, a stock account VOC
-carries 426 records:
+Counted directly from `voc_template` in the system directory — SDSYS's own
+VOC, 431 records:
 
 | Type | Count |
 |---|---|
-| `V` | 137 |
+| `V` | 144 |
 | `K` | 248 |
 | `F` | 16 |
 | `R` | 10 |
 | `PA` | 4 |
-| `S` | 2 |
 | `PH` | 2 |
+| `S` | 2 |
 | `Q` | 2 |
 | `X` | 3 |
-| `Verb - Full screen editor` | 2 |
 
-The last row is `edit`, the full-screen editor that was removed on 23 Aug
-2026. Its type field reads `Verb - Full screen editor` rather than `V`,
-which means it is not a verb and cannot be dispatched — but it is still in
-the template, and `EDIT` at the command prompt reports *"Full screen editor
-is no longer supported"* rather than *"verb not found"*. **Being in the VOC
-is not evidence a command works.**
+**An ordinary account's `newvoc` holds 398** — the same shape of table,
+smaller only because it lacks SDSYS's own administration verbs and a few
+system file pointers; it is not a *different kind* of VOC, and every
+ordinary account's copy is identical.
+
+> **`edit` used to be exactly this kind of trap** — a record present in the
+> VOC whose old type field read `Verb - Full screen editor` rather than `V`,
+> so it looked callable and refused at dispatch with *"Full screen editor is
+> no longer supported."* **That is history, not current behaviour**: `edit`
+> is a real `V` record now, reinstated 26 Aug 2026, and works. The lesson
+> stands even though the example does not: **being in the VOC is not
+> evidence a command works** — check the type field, not just the name.
 
 ## The F record — a file
 
@@ -105,9 +112,8 @@ needs:
 
 These are **read-only to a network session**. The account-root gate in
 the file engine allows them on read paths but sets `FV_RDONLY` on the
-file variable, so every write path in the engine refuses them. An
-administrator in `SDSYS` is exempt; an ordinary account cannot write
-these files.
+file variable, so every write path in the engine refuses them. SDSYS is
+exempt; an ordinary account cannot write these files.
 
 ### The $ACC record
 
@@ -140,15 +146,15 @@ target, and the remaining fields carry options.
 | `OS` | *text* | an operating-system command — `sh` and `!`, and nothing else |
 | `CS` | *path* | a locally catalogued function |
 
-Those four rows account for 143 of the 147 verbs an administrator account has.
-The remaining four are the keyword records described above — `break`, `count`,
+Those four rows account for all but four of SDSYS's 144 `V` records. The
+remaining four are the keyword records described above — `break`, `count`,
 `display` and `off` — where field 2 holds a keyword number rather than a
 dispatch type, and it is field 3 that marks the record as a verb.
 
 Field 4 carries dispatch options and **field 5 names a security subroutine**.
 If field 5 is present, that subroutine is called before the verb runs and
-can refuse it. **None of the shipped verbs uses field 5** — the tiering
-in this port is done by giving or withholding the VOC record, not by a
+can refuse it. **None of the shipped verbs uses field 5** — what SDSYS alone
+can do is withheld by giving or withholding the VOC record itself, not by a
 security subroutine — but the mechanism is there for a site that wants a
 verb guarded rather than absent.
 
@@ -169,7 +175,7 @@ the command processor re-parses when the name is typed as a command.
 
 **This matters for counting what an account has.** A tally of VOC
 records whose field 1 begins with `V` misses all four, and `count` is not
-a marginal verb. A standard account has **82** verbs, not 78.
+a marginal verb.
 
 ## The Q record — an indirect pointer
 

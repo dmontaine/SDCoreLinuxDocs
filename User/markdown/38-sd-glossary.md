@@ -11,10 +11,11 @@ VOC, and its own `bp` source file. An account maps to a Windows group
 (`sdu_<name>` for user accounts, `sdg_<name>` for group accounts).
 Entry to an account is membership of its Windows group.
 
-**Administrator** — the highest account tier. An administrator account
-is a member of the Windows `Administrators` group and receives the
-full VOC: 416 records. Administration is gated on elevation, not on a
-password.
+**Administrator** — SDSYS, the one privileged account. There is no
+tier or keyword that makes any other account an administrator; being a
+Windows administrator, elevated or not, grants nothing. SDSYS is
+reached only by signing in to Windows as the `sdsys` account and
+starting `sd` elevated.
 
 **Alternate key index** — a secondary access path to records in a file,
 built from the values in a nominated field. Created with
@@ -157,10 +158,11 @@ TCL commands. Replaces the removed PROC language.
 
 **Phantom** — see Background process.
 
-**Programmer** — the middle account tier. Gets 82 + 42 = 124 verbs:
-everything a standard account has, plus the development set (compile,
+**Programmer** — retired, 18 Sep 2026. Used to name the middle of three
+account tiers. Every account now has the full development set (compile,
 catalogue, edit, file creation, index management, bulk record editing,
-process introspection).
+process introspection) that this tier used to grant — see *Accounts* in
+the *Getting Started* set.
 
 ## Q
 
@@ -197,16 +199,17 @@ with substitution parameters.
 **Session** — one connection to SD, from sign-in to `off`. Each
 session runs as the invoking user's Windows identity.
 
-**Standard** — the lowest account tier. Gets 82 verbs: enough to run
-an application and nothing that edits code or data in bulk. The default
-when no tier keyword is given on `create.account`.
+**Standard** — retired, 18 Sep 2026. Used to name the lowest of three
+account tiers: enough to run an application and nothing that edited code
+or data in bulk. Every account gets the full VOC now — there is no
+reduced starting set to default to.
 
 **Subvalue mark** — the delimiter (char 252) that separates subvalues
 within a multivalue.
 
-**Suspended** — a fourth account tier that denies all entry. Reversible
-with `modify.account <tier>`. Does not touch the VOC or Windows group
-membership.
+**Suspended** — an account state, not a tier, that denies all entry.
+Reversible with `modify.account <name> unsuspended`. Does not touch the
+VOC or Windows group membership.
 
 ## T
 

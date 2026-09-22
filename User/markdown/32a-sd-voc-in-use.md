@@ -55,15 +55,10 @@ update.accounts
 Re-runs `LOGIN`'s `update.voc` paragraph, which copies any changed
 records from the system `NEWVOC` into the account's VOC. **Since 17 Aug
 2026 this is incremental** — it re-copies only the records whose stamp has
-changed, not the whole file. `TIER.OMIT.STANDARD` and
-`TIER.ADD.ADMINISTRATOR` in `NEWVOC` control what each account type
-receives.
-
-**The tier test is the one this record exists for.** `update.accounts`
-on a standard account must not give back the verbs that were withheld
-when the account was created. A standard account starts with fewer verbs
-than an administrator account, and `update.accounts` preserves that
-difference.
+changed, not the whole file. Every ordinary account gets the same `NEWVOC`
+now, so `update.accounts` is only ever bringing an existing account's copy
+up to date after a release changes something — there is no tier list left
+for it to consult.
 
 ### copy — copy records into the VOC
 
@@ -136,24 +131,20 @@ entry actually contains without an editor.
 
 ## The VOC and account creation
 
-`CREATE.ACCOUNT` copies the VOC from `voc_template` in the system
-directory. The template holds 426 records; `NEWVOC` holds 395. The
-difference is that `voc_template` carries the A-verbs — `abort`,
-`alias`, `all`, `after`, `and` and the rest — that are also keywords, and
-`NEWVOC` does not. An account gets the union of the two, less whatever
-its tier omits.
+`CREATE.ACCOUNT` copies the VOC from `NEWVOC` in the system directory —
+**398 records**, counted directly, and identical for every ordinary
+account. SDSYS's own VOC is copied from `voc_template` instead — **431
+records** — which carries the administration verbs `NEWVOC` does not:
+`create.account`, `delete.account`, `modify.account`, `grant`, `revoke`,
+`list.grants`, and the rest of the set the *Administrator* documentation
+covers.
 
-| Tier | What it gets |
-|---|---|
-| **administrator** | everything in `voc_template` plus everything in `NEWVOC`, less `TIER.OMIT.STANDARD` |
-| **standard** | everything in `voc_template` plus everything in `NEWVOC`, less `TIER.OMIT.STANDARD` (42 names) |
-| **programmer** | standard plus the programmer verbs from `TIER.ADD.ADMINISTRATOR` |
-
-**The tier is in the VOC, not in the verb.** A standard account does
-not have `create.file` because the VOC record for it is not there, not
-because a security subroutine refuses it. The name is simply not
-recognised. This is the design: tiering is done by giving or withholding
-the record.
+**What SDSYS alone can do is in the VOC, not in the verb.** An ordinary
+account does not have `create.account` because the VOC record for it is
+not there, not because a security subroutine refuses it. The name is
+simply not recognised. This is the design: what only SDSYS may do is
+withheld by giving or withholding the record, the same mechanism the old
+account tiers used before they were removed.
 
 ## Case on disk
 
@@ -181,11 +172,11 @@ wrote.
 **`menu` records are dispatched but no menu ships.** Type `M` is handled
 and there is no shipped example to look at.
 
-**`EDIT` is in the VOC but cannot run.** Its type field reads
-`Verb - Full screen editor`, which is not `V`, so the command processor
-does not dispatch it. The record is there so that `EDIT` at the prompt
-prints *"Full screen editor is no longer supported"* rather than *"verb
-not found"*.
+**`EDIT` runs.** It was once exactly the kind of VOC entry described
+above — present but undispatchable, its type field reading
+`Verb - Full screen editor` rather than `V`. That was reversed 26 Aug
+2026: it is a real `V` record now, a working full-screen editor. See [SD
+VOC - Structure and Usage](32-sd-voc-structure-and-usage.html#what-sdsyss-own-voc-holds).
 
 ## See also
 

@@ -33,11 +33,8 @@ an ordinary user can no longer do is catalogue a program whose name starts with
 `*`, `!`, `_` or `$` — those characters mean *system-wide*. Name it without
 one.
 
-**To catalogue system-wide you need an elevated session, not just an
-administrator account.** Start SD from an elevated window and `logto sdsys`.
-Entering SDSYS from an ordinary window still gives you administrator rights
-*inside* SD, but **Windows itself now refuses the write** — so use the same
-elevated window you already need in order to recompile the system programs.
+**To catalogue system-wide you need to be SDSYS** — sign in to Windows as
+SDSYS and start `sd` elevated. There is no other route in to try instead.
 
 ## The pcode library
 
@@ -255,7 +252,7 @@ This is a hardening page, so it is worth saying plainly: **tightening your
 PowerShell execution policy does not break SD, and loosening it does not help
 SD.** Set it to whatever your own security policy wants.
 
-SD does a lot of its Windows-side work — `logto sdsys`, `append.sd.path`,
+SD does a lot of its Windows-side work — `create.account`, `append.sd.path`,
 `remote.api`, `remote.ssh` and the editor verbs — by running a small
 PowerShell script that the installer put in `C:\Program Files\SD`. Each one is
 launched with `-ExecutionPolicy Bypass` **on that single command line**, which

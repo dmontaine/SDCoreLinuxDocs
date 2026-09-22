@@ -129,7 +129,7 @@ show it.
 **After a `logto` it grows a third part, and that is the useful one:**
 
 ```
-29 SDSYS from DON
+29 PAYROLL from DON
 ```
 
 **`from DON` is the account you logged in as**, not the one you are in and not
@@ -137,11 +137,11 @@ your Windows account. So the short form means *I am still where I started* and
 the long form means *I have moved* — which makes `who` the quick way to find
 out whether a `logto` actually took effect.
 
-**`logto sdsys` requires an elevated Windows session in this port.** Entering
-`SDSYS` is what confers administrator rights, so it is gated on the operating
-system rather than on an SD password, and the elevation obtained by one `logto`
-is deliberately not carried into the next one. `who` reports the account you are
-in, which is the quick way to confirm a `logto` actually happened.
+**`SDSYS` cannot appear after `from` here, because `logto sdsys` is refused
+outright from any other account.** Administering SD means signing in to
+Windows as the `sdsys` account itself and starting a fresh session, not
+`logto`-ing there from one you already have — see the *Administrator* set's
+*Accounts and Security* chapter.
 
 ## What is not here
 

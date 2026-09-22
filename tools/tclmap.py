@@ -21,14 +21,15 @@
 # is not evidence.  If that is too strict for a real page, widen the page, not
 # this test.
 #
-# THE ROSTER IS COMPUTED, NEVER TYPED.  143 = the 123 verb records in newvoc
-# plus the 20 in newvoc/TIER.ADD.ADMINISTRATOR, which do not overlap.  It was
-# 144 and 21 until encrypt.field left the tier list (PRE_RELEASE 25); the
-# ROSTER followed on its own, because it is computed - this COMMENT did not,
-# and neither did the shapes file or the map below, which is what made both
-# generators refuse.  A VOC
-# record is a verb if the first character of field 1 is V, or - for the four
-# records that are a keyword AND a verb - the first character of field 3.
+# THE ROSTER IS COMPUTED, NEVER TYPED.  RELEASE_1.1 64 (18 Sep 2026) removed
+# the three account tiers and newvoc/TIER.ADD.ADMINISTRATOR with them - this
+# script crashed outright against a tree past that model, the same way
+# mktclsyntax.py did.  The roster is now every verb record in `newvoc`, plus
+# whatever `voc_template` (SDSYS's own, a sibling of `newvoc`) has that
+# `newvoc` does not - computed by reading both directories directly, not by
+# a list.  A VOC record is a verb if the first character of field 1 is V, or
+# - for the four records that are a keyword AND a verb - the first character
+# of field 3.
 #
 # EXITS NON-ZERO on: a verb assigned nowhere, a verb assigned twice, a verb
 # assigned to a page that does not evidence it, an assignment naming a verb
@@ -50,28 +51,24 @@ HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 def field(rec, n):
     return rec[n - 1] if len(rec) >= n else ''
 
-roster = set()
-for name in sorted(os.listdir(NEWVOC)):
-    path = os.path.join(NEWVOC, name)
-    if not os.path.isfile(path):
-        continue
-    with io.open(path, encoding='latin-1', newline='') as f:
-        rec = [l.rstrip('\r\n') for l in f.read().split('\n')]
-    t1 = field(rec, 1)[:1].upper()
-    t3 = field(rec, 3)[:1].upper()
-    if t1 == 'V' or (t1 == 'K' and t3 == 'V'):
-        roster.add(name.lower())
+def verbs_in(directory):
+    found = set()
+    for name in sorted(os.listdir(directory)):
+        path = os.path.join(directory, name)
+        if not os.path.isfile(path):
+            continue
+        with io.open(path, encoding='latin-1', newline='') as f:
+            rec = [l.rstrip('\r\n') for l in f.read().split('\n')]
+        t1 = field(rec, 1)[:1].upper()
+        t3 = field(rec, 3)[:1].upper()
+        if t1 == 'V' or (t1 == 'K' and t3 == 'V'):
+            found.add(name.lower())
+    return found
 
-admin_list = os.path.join(NEWVOC, 'TIER.ADD.ADMINISTRATOR')
-with io.open(admin_list, encoding='latin-1', newline='') as f:
-    admin = [l.strip() for l in f.read().split('\n')[1:] if l.strip()]
-admin = set(v.lower() for v in admin)
+roster = verbs_in(NEWVOC)
+VOCT = os.path.join(os.path.dirname(NEWVOC), 'voc_template')
+roster |= verbs_in(VOCT)
 
-overlap = roster & admin
-if overlap:
-    sys.exit('newvoc and TIER.ADD.ADMINISTRATOR overlap: %s' % sorted(overlap))
-
-roster |= admin
 if len(roster) < 100:
     sys.exit('REFUSED: roster came out as %d verbs - that is not a roster'
              % len(roster))
@@ -116,7 +113,7 @@ DOCS = [
    ed
  """),
  ('User', '26-sd-tcl-edit.md', """
-   edit
+   edit nano
  """),
  ('User', '27-sd-tcl-micro.md', """
    micro
@@ -135,7 +132,7 @@ DOCS = [
    release
  """),
  ('Administrator', '01-accounts-and-security.md', """
-   create.account grant list.grants modify.account modify.password revoke
+   create.account modify.account modify.password umask
  """),
  # THE MAINTENANCE VERBS MOVED TO 01a AND ONLY ONE OF THEM SAID SO.  tclmap
  # reported set.date and passed the other four, because 01 still MENTIONS
@@ -153,8 +150,15 @@ DOCS = [
  ('Administrator', '03-operating-system-access.md', """
    sh !
  """),
+ # 22 Sep 26 - LINUX FORK.  grant/list.grants/revoke, append.sd.path and
+ # ssh.server do not exist on this port (no os.users-style OS-access gate to
+ # wrap, and no SD-managed ssh server/PATH tool - the distribution owns
+ # both).  Their Linux equivalents: usermod -aG folded into modify.account
+ # (01, above), and sshd/PATH left to the distribution and the installer.
+ # remote.api/remote.ssh stay, same verb names, ufw/systemd underneath
+ # instead of the Windows firewall/service - see 05's own page.
  ('Administrator', '05-remote-access-and-the-machine.md', """
-   append.sd.path remote.api remote.ssh ssh.server
+   remote.api remote.ssh
  """),
 ]
 

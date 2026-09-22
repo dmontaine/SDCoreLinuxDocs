@@ -29,9 +29,8 @@ Cleaned $savedlists
 capture that is currently running is left alone and says so: *$COMO not cleaned
 - COMO file active*.
 
-**It needs no elevation.** It is the one verb here an administrator account can
-use from an ordinary session, which is right: it deletes only that account's own
-scratch.
+**It needs nothing beyond being SDSYS** — the same as every other verb on
+this page. It only ever touches the account you are already standing in.
 
 ## Refreshing an account's VOC: `update.accounts`
 
@@ -45,9 +44,10 @@ Copying records from NEWVOC to VOC...
 
 Copies the shipped verb and keyword definitions into an account, adding what is
 missing and leaving that account's own VOC entries alone. It is what brings an
-existing account up to date after SD itself is upgraded, and **it respects the
-account's tier** — a standard account does not collect programmer verbs by
-being refreshed, and a suspended one keeps the tier it was suspended from.
+existing account up to date after SD itself is upgraded — every account gets
+the same `newvoc`, so there is no tier for it to respect any more; a
+suspended account is updated exactly like any other, since suspension
+never touched the VOC to begin with.
 
 With no keyword it updates the account you are standing in and then offers the
 rest, asking each time. **`all` is the unattended form**: it updates every
@@ -255,17 +255,16 @@ the one most people meet.)*
 
 ## Who has these verbs
 
-**All of them are administrator verbs.** A standard or programmer account has
-none of these names at all.
+**All of them are SDSYS's** — `create.account`, `modify.account`,
+`modify.password` for another account, `delete.account`, `clean.account`,
+`update.accounts`, `config`, `grant`, `revoke`, `list.grants`. An ordinary
+account has none of these names at all — this is not a permission it
+lacks, the verbs are simply not in its VOC.
 
-| | |
-|---|---|
-| **needs elevation as well** | `create.account` `modify.account` `modify.password` (for another account) `delete.account` `grant` `revoke` `list.grants` |
-| **the verb is enough** | `clean.account` `update.accounts` `config` |
-
-**`list.grants` needs elevation even though it only reads.** It answers *who
-may enter this account*, which is worth knowing before you have it, and the
-gate is at the top of the program the three grant verbs share.
+**`list.grants` is gated the same way even though it only reads.** It
+answers *who may enter this account*, which is worth knowing before you
+have it, and the gate is at the top of the program the three grant verbs
+share.
 
 ## See also
 

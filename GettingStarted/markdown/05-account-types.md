@@ -1,140 +1,68 @@
-Title: Account types
-Subtitle: Standard, Programmer, Administrator, Suspended and Group — what each one may do, and how to make one.
+Title: Accounts
+Subtitle: Ordinary accounts, SDSYS, Suspended and Group — what each one may do, and how to make one.
 
-OpenQM gives every account the same VOC and leaves privilege to `SYSTEM`
-membership. SD Core does not. **An account is created into one of three tiers,
-and the tier decides what verbs its VOC contains.** There is a fourth tier,
-**suspended**, which is not a capability at all — it denies entry. Group
+**Every ordinary account gets the same VOC.** SD Core used to divide accounts
+into three capability tiers — Standard, Programmer, Administrator — each with
+a different, smaller VOC. **The tiers are gone** (owner's ruling, 18 September
+2026: *"the only privileged account is SDSYS"*). An account you create today
+gets every verb there is, the same set SDSYS has for running applications and
+building them. What it does **not** get is administration — that is not a
+verb an account can be given, it is a separate account.
+
+**Suspended** is a state, not a tier — it denies entry and nothing else. Group
 accounts are a different thing again: a shared place, not a person.
 
-**The tier is no longer fixed at creation.** **`modify.account`** moves an
-account between all four, in either direction, and rebuilds its VOC to match at
-once. See [Changing an account afterwards](#changing-an-account-afterwards).
+## SDSYS is the only administrator
 
-## The three capability tiers at a glance
+**SDSYS is a single Windows account made by the installer, not something
+`create.account` can produce.** Administering SD — creating, deleting or
+granting accounts, changing system-wide state, reaching another account's
+files without a grant — means signing in to *Windows* as SDSYS and running
+`sd`, elevated. Being a Windows administrator grants nothing by itself: the
+account that ran this installer is an ordinary account like any other once
+setup finishes, and **elevating a session does not make it SDSYS**.
 
-| | Standard | Programmer | Administrator |
-|---|---|---|---|
-| Verbs | 81 | 81 + 42 | 81 + 42 + 20 |
-| VOC records on creation | 354 | 396 | 416 |
-| Can run an application | yes | yes | yes |
-| Can compile, catalogue, edit | **no** | yes | yes |
-| Can create or configure files | **no** | yes | yes |
-| Can administer accounts | no | no | yes |
-| Windows `Administrators` | no | no | **yes** |
-| Local console and Remote Desktop | denied | denied | allowed |
+> **This is a full reversal of how SD Core 1.0 worked**, where a Windows
+> administrator's own account was automatically an SD administrator. If you
+> read that in an older document or in W1.0 release notes, it no longer
+> holds. The reasoning is in the *Administrator* set's *Accounts and
+> security* chapter.
 
-**`administrator` implies `programmer`.** You do not need both keywords.
-
-### Standard — 82 verbs
-
-What an application needs and no more: query and list (**`select`**, **`list`**,
-**`get.list`** and family), spool and print, session and environment (**`logto`**,
-**`date`**, **`who`**, **`set`**), screen and message, prompt and input state, and eight
-read-only inspectors — **`search`**, **`list.diff`**, **`list.item`**, **`list.common`**,
-**`list.vars`**, **`report.src`**, **`report.style`**, **`format`**.
-
-Everything an application built on SD invokes, and nothing that edits code or
-data in bulk.
-
-### Programmer — 42 more
-
-The development set: the compilers, the two full-screen editors, the
-cataloguer, the file and index definition verbs, the bulk record editors and
-the process introspection verbs. See [Programmer commands](07-programmer-commands.html) for what each one
-is for.
-
-### The counts are arithmetic, not observation
-
-Installed `NEWVOC` holds 395 names, of which `%t` is a dynamic-file artefact
-and the two tier lists are never copied — so **392 records reach a full VOC**.
-**`create.account`** then adds four of its own (`$command.stack`, `$hold`,
-`$savedlists`, `bp`):
-
-```
-ADMINISTRATOR   392 + 20 + 4 = 416
-PROGRAMMER      392      + 4 = 396
-STANDARD        392 - 42 + 4 = 354
-```
-
-**A standard account's total did not move when `micro` was added**, because
-**`micro`** joined `NEWVOC` and `TIER.OMIT.STANDARD` at once — it is on both sides
-of the subtraction.
-
-If your counts differ, one of the two tier lists differs — which is worth
-reporting.
-
-**The same two numbers are what a tier change reports**, so you can predict
-them: moving between standard and programmer is **42** records either way, and
-between programmer and administrator **20**. A change that reports a different
-number, or zero where it should have moved something, is worth reporting for
-the same reason.
-
-### Administrator — 20 more
-
-Account and grant administration, system-wide state, and the shell escapes. See
-[Administrator commands](06-administrator-commands.html).
-
-> **None of the three is a wall.** An administrator can copy any verb into
-> any account's VOC afterwards. **The reduced VOC is the posture an account
-> starts in, not a boundary anything enforces.** The boundaries that are
-> enforced are the operating system's file permissions, the ssh confinement,
-> and the `os.users` permit list — not the contents of a VOC.
-
-## Suspended — the fourth tier, and the only one that is a wall
-
-**A suspended account cannot be entered.** It is for an account that should
-stop working for a while — somebody on leave, a login being looked into — and
-it is refused at all three ways in:
-
-| | |
-|---|---|
-| ssh, or the console | `Account FRED is suspended` |
-| **`logto`** from another account | `Account FRED is suspended` |
-| the API | `User not allowed in requested account` |
-
-The API wording is deliberately the same one it gives for an account that does
-not exist and for one you are not granted, so the API cannot be used to find
-out which accounts exist or what state they are in.
-
-**It takes nothing away, which is why lifting it is free.** The VOC is left
-exactly as it is, no Windows group membership moves, and the tier it displaced
-is remembered — so bringing the account back puts it exactly where it was, with
-nothing for you to write down. Suspending is not a substitute for deleting: it
-is reversible on purpose.
-
-**An elevated administrator can still `logto` into a suspended account.**
-That is deliberate — looking at a suspended account is the usual reason to have
-one, and anybody elevated could lift the suspension anyway. **What a suspension
-denies is the account's own user.**
-
-> **And a suspended administrator is still a Windows administrator.** SD
-> refuses them; Windows does not. They keep their `Administrators` membership
-> and their `os.users` record, so they can still elevate on the machine and
-> still reach any account they could reach before. **If you are suspending an
-> account to contain somebody rather than to park it, suspend it in Windows
-> too.**
+**SDSYS's Windows sign-in password** is asked for once, during installation,
+in the window that appears after the wizard closes — that is what you type
+at the Windows login screen to reach it at all, and changing it afterward is
+an ordinary Windows administrative action, not an SD verb. SDSYS also has its
+own SD credential (`modify.password`, run from within an SDSYS session,
+changes its own), but that credential secures nothing remote: `remote.api`,
+`remote.ssh` and every other door out of SDSYS are refused outright, on
+purpose — see [Reaching the operating system](06-administrator-commands.html).
 
 ## Creating an account
 
 ```
-create.account user <name> {administrator | programmer}
-                           <ssh | api | both | none> {no.query}
+create.account user <name> {ssh | api | both | none} {no.query}
 
 create.account group <name> {no.query}
 
 create.account other <name> <pathname> {no.query}
 ```
 
-### One of `ssh`, `api`, `both`, `none` is required
+**Creating an account needs an elevated SDSYS session.** Creating a Windows
+account needs an elevated token, and only SDSYS carries the identity that
+makes an elevated session mean anything to SD — see
+[SDSYS is the only administrator](#sdsys-is-the-only-administrator) above.
 
-**There is no default, on purpose.** An account that should only ever be
-reached with **`logto`** says `none` and means it. The old silent behaviour — ssh
-yes, API no — could not tell that apart from somebody who had not thought about
-it.
+### The route keyword is optional now
 
-**An administrator account always gets both and needs no keyword.** Group
-accounts take none of this: they have no Windows account.
+**Say nothing and the account gets `both`** (ssh and the API). Name one to be
+narrower: `ssh` for ssh only, `api` for the API only, `none` for neither —
+an account reached only with `logto`, from inside another session.
+
+**`create.account user … ssh` and `… both` are refused when the machine has no
+ssh server**, with a warning saying why: the account would have no way to
+arrive over ssh. `api` and `none` still work. The test is made against the
+machine when you type the command, so installing an ssh server later makes
+`ssh` start working. See [Installing SD Core](01-installation.html#what-you-are-asked).
 
 ### What creating a user account actually does
 
@@ -143,27 +71,64 @@ accounts take none of this: they have no Windows account.
 | Makes a Windows local account | created disabled, then enabled when the password is set |
 | Creates the group `sdu_<name>` | and writes it to the account record |
 | Joins `sdusers` | which is what grants access to the data tree |
-| Joins `sdsshonly` | **unless** `administrator` — this is what denies the console and Remote Desktop |
-| Joins `Administrators` | **only** with the `administrator` keyword |
-| Writes the tier to `ACCOUNTS` field 5 | so `LOGIN` cannot undo it at the next update |
+| Joins `sdsshonly` | this is what denies the console and Remote Desktop — every ordinary account gets it now; only SDSYS's own Windows account does not |
+| Joins `sdssh` and/or `sdapi` | to match the route keyword — see below |
 | Prompts for a password | in SD, masked; it never goes on a command line |
 
 **A user account cannot be created without a password.** Refusing the prompt
-creates nothing at all. Previously it left an account you could not sign in to.
+creates nothing at all. Previously it left an account you could not sign in
+to.
 
-**Elevation is not optional.** Creating a Windows account needs an elevated
-token, and an ordinary SD session has a filtered one. Account creation works
-from the installer and from an elevated terminal, and not from a normal
-session.
+**`sdssh` and `sdapi` govern the ssh and API doors specifically, separately
+from `sdsshonly`.** An account with route `none` still joins `sdsshonly` like
+every other ordinary account — that has always denied the *Windows* console
+and Remote Desktop, and has nothing to do with ssh — it simply also has
+neither `sdssh` nor `sdapi`, so it has no remote door of any kind and can
+only be reached with `logto`.
 
-**`create.account user … ssh` and `… both` are refused when the machine has no
-ssh server**, with a warning saying why: the account would be denied the
-console and Remote Desktop and have no ssh to arrive on, so it could sign in
-nowhere. `api` and `none` still work. The test is made against the machine when
-you type the command, so installing an ssh server later makes `ssh` start
-working. See [Installing SD Core](01-installation.html#what-you-are-asked).
+### What every account can do
+
+**Every verb, from the moment it is created.** Compile, catalogue, edit,
+define files and indexes, run the bulk record editors, inspect processes —
+none of that is withheld any more. What an account cannot do is administer:
+create, delete, grant, or suspend another account; change system-wide
+configuration; or reach the operating system through `sh` or `OS.EXECUTE`
+unless SDSYS has switched that on for it — see
+[Reaching the operating system](05a-managing-accounts.html#reaching-the-operating-system).
+
+> **None of this is a wall inside SD.** The VOC is the same for every
+> ordinary account; what actually stops one account reaching another's data
+> is the operating system's file permissions, the ssh confinement, and the
+> `os.users` permit list for `sh`/`OS.EXECUTE` — not the contents of a VOC.
+> See the *Administrator* set's *Accounts and security* chapter.
+
+## Suspended — a state, not a tier
+
+**A suspended account cannot be entered.** It is for an account that should
+stop working for a while — somebody on leave, a login being looked into —
+and it is refused at all three ways in:
+
+| | |
+|---|---|
+| ssh, or the console | `Account FRED is suspended` |
+| **`logto`** from another account | `Account FRED is suspended` |
+| the API | `User not allowed in requested account` |
+
+The API wording is deliberately the same one it gives for an account that
+does not exist and for one you are not granted, so the API cannot be used to
+find out which accounts exist or what state they are in.
+
+**It takes nothing away, which is why lifting it is free.** The VOC is left
+exactly as it is and no Windows group membership moves — suspending sets one
+field and unsuspending clears it. Suspending is not a substitute for
+deleting: it is reversible on purpose. See
+[Changing an account afterwards](05a-managing-accounts.html#changing-an-account-afterwards).
+
+**SDSYS can still `logto` into a suspended account.** That is deliberate —
+looking at a suspended account is the usual reason to have one. **What a
+suspension denies is the account's own user.**
 
 ## Continued in
 
-[Managing accounts](05a-managing-accounts.html) — group accounts, sharing an
-account, changing one afterwards, and deleting it.
+[Managing accounts](05a-managing-accounts.html) — group accounts, sharing
+one, changing an account afterwards, and deleting it.

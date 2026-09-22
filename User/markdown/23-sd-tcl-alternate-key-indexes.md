@@ -194,10 +194,9 @@ Deleting the file removes its indexes with it.
 
 ## Who has these verbs
 
-**All five are programmer verbs.** A standard account has none of them, and does
-not need them — an index changes how a query runs, not how it is written, so a
-standard account gets the benefit of every index without being able to create
-or destroy one.
+**Every account has all five now.** An index changes how a query runs, not
+how data is written, so there was never a reason to withhold them even
+under the old model.
 
 ## See also
 

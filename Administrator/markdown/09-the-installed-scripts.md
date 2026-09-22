@@ -82,7 +82,7 @@ If the `MachinePolicy` or `UserPolicy` row says anything other than
 `Bypass` there is fine** — SD's scripts are written on the machine by the
 installer, not downloaded. **A policy of `Restricted` or `AllSigned` will stop
 SD's administrative commands**, and the symptom is the *"running scripts is
-disabled on this system"* message from `logto sdsys`, `append.sd.path`,
+disabled on this system"* message from `create.account`, `append.sd.path`,
 `remote.api`, `remote.ssh` or an editor verb. **That needs your Windows
 administrator to relax the policy.** SD has no way around it, deliberately: a
 program that could defeat Group Policy would be a worse thing to have
@@ -113,8 +113,8 @@ as written; run it from an elevated PowerShell prompt.
 ### Is the installation sound?
 
 ```
-powershell -File "C:\Program Files\SD\check-install.ps1"
-powershell -File "C:\Program Files\SD\check-install.ps1" -Brief
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\check-install.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\check-install.ps1" -Brief
 ```
 
 Exit **0** nothing is wrong, **1** something is. `-Brief` prints one line per
@@ -138,7 +138,7 @@ there so the real run can be done afterwards without writing the command down.
 ### The ssh server would not install
 
 ```
-powershell -File "C:\Program Files\SD\install-ssh.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-ssh.ps1"
 ```
 
 Exit **0** installed and running, **2** installed but Windows needs a restart
@@ -154,8 +154,8 @@ work for minutes in silence. Do not interrupt it.
 ### An editor verb does nothing
 
 ```
-powershell -File "C:\Program Files\SD\install-editors.ps1"
-powershell -File "C:\Program Files\SD\install-editors.ps1" -CheckOnly
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-editors.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-editors.ps1" -CheckOnly
 ```
 
 Exit **0** every editor is present, **2** at least one is missing and could not
@@ -165,8 +165,8 @@ happened last time is in `C:\ProgramData\SD\install-editors.log`.
 ### The SD service
 
 ```
-powershell -File "C:\Program Files\SD\install-service.ps1" -Install
-powershell -File "C:\Program Files\SD\install-service.ps1" -Remove
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-service.ps1" -Install
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\install-service.ps1" -Remove
 ```
 
 Exit **0** done, **1** failed, **2** could not be attempted - not elevated, or
@@ -176,10 +176,10 @@ in the usual place.
 ### Who may reach the API from other computers
 
 ```
-powershell -File "C:\Program Files\SD\api-firewall.ps1" -Show
-powershell -File "C:\Program Files\SD\api-firewall.ps1" -Open
-powershell -File "C:\Program Files\SD\api-firewall.ps1" -Restrict
-powershell -File "C:\Program Files\SD\api-firewall.ps1" -Remove
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Show
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Open
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Restrict
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\api-firewall.ps1" -Remove
 ```
 
 Exit **0** applied, **1** failed, **2** refused. `-Show` changes nothing.
@@ -190,9 +190,9 @@ a port other than 4243. **This script owns its rule** - it created it, and
 ### Who may reach ssh from other computers
 
 ```
-powershell -File "C:\Program Files\SD\ssh-firewall.ps1" -Show
-powershell -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Restrict
-powershell -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Open
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-firewall.ps1" -Show
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Restrict
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-firewall.ps1" -Installed -Open
 ```
 
 Exit **0** applied, **1** failed, **2** refused, or the rule is not there yet.
@@ -205,9 +205,9 @@ Microsoft's and SD must not delete it.
 ### Who may ssh into this machine at all
 
 ```
-powershell -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Check
-powershell -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Installed
-powershell -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Remove
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Check
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Installed
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\allow-ssh-groups.ps1" -Remove
 ```
 
 Exit **0** done or nothing to do, **1** failed, **2** refused.
@@ -226,8 +226,8 @@ the lines it found.
 ### The two remote-route groups
 
 ```
-powershell -File "C:\Program Files\SD\sync-route-groups.ps1" -Check
-powershell -File "C:\Program Files\SD\sync-route-groups.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\sync-route-groups.ps1" -Check
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\sync-route-groups.ps1"
 ```
 
 Exit **0** success, **1** failure; it prints what it did either way. It creates
@@ -238,8 +238,8 @@ what it would do and changes nothing.
 ### Re-stamping the account directories
 
 ```
-powershell -File "C:\Program Files\SD\secure-account-dirs.ps1" -Root "C:\ProgramData\SD\user_accounts" -WhatIf
-powershell -File "C:\Program Files\SD\secure-account-dirs.ps1" -Root "C:\ProgramData\SD\user_accounts"
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\secure-account-dirs.ps1" -Root "C:\ProgramData\SD\user_accounts" -WhatIf
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\secure-account-dirs.ps1" -Root "C:\ProgramData\SD\user_accounts"
 ```
 
 Exit **0** every directory stamped, **1** at least one failed, **2** it could
@@ -253,7 +253,7 @@ each new account itself.
 ### May SD install on this machine?
 
 ```
-powershell -File "C:\Program Files\SD\ssh-preflight.ps1"
+powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\ssh-preflight.ps1"
 ```
 
 Exit **0** clear to install, **1** refuse, **2** could not determine - which is

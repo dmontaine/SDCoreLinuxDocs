@@ -39,13 +39,9 @@ line.
 and the two are usually the same. `sd -a<name>` cannot be used to reach
 somebody else's list: that form is refused unless the account is your own.
 
-**Any account can be given a list, whatever its tier** — standard, programmer
-or administrator. The account type decides nothing here; the administrator's
-list does.
-
-**A standard account cannot write its own paragraph, though.** **`ed`** is not
-in the standard tier, so the paragraph the job runs has to be put there by
-somebody who can edit — see [Account types](05-account-types.html).
+**Any account can be given a list.** Every account has the same VOC now, so
+there is nothing about the account type to consider here; SDSYS's own
+`batch.jobs` record is what decides who may run one.
 
 Both shapes of record are read — one name per line, and a multivalued field 1 —
 so a record written with **`ed`** and a record written by a program agree. A name
@@ -91,11 +87,10 @@ record in that account's VOC, with the commands on the lines after the type:
 **2. Check it runs when you type it**, in that account, before putting it on a
 timer.
 
-**3. Add the name to the account's record in `batch.jobs`**, from an elevated
-session:
+**3. Add the name to the account's record in `batch.jobs`**, signed in to
+Windows as SDSYS, elevated:
 
 ```
-:logto sdsys
 :ed batch.jobs fred
 ```
 

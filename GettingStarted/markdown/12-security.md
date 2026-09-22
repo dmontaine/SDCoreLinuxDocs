@@ -5,6 +5,34 @@ The identity model in SD Core is not OpenQM's and not SD on Linux's. It is
 worth understanding before you test anything else, because several behaviours
 that look like bugs are consequences of it.
 
+## What ships secured, before you change anything
+
+**A fresh install starts closed and stays closed until an administrator
+opens something.** Nothing below is a setting you have to remember to
+apply — it is what `create.account` and the installer already do:
+
+| | |
+|---|---|
+| Every SD account | a standard Windows account with no privileged token — see [Being a Windows administrator gets you nothing](#being-a-windows-administrator-gets-you-nothing) |
+| ssh | `ForceCommand`s straight into `sd`, no shell, no `sh`, no `OS.EXECUTE` — see [ssh access](08-ssh-access.html) |
+| `os.users` | empty for every account `create.account` makes — `sh`, `!`, `OS.EXECUTE` and the two full-screen editors are all refused until SDSYS grants them — see [Administrator commands](06-administrator-commands.html#how-you-grant-it) |
+| The API | off (`APIPORT` unset in `sd.conf`) until an administrator turns it on — see [API access](09-api-access.html) |
+| The console and Remote Desktop | denied to every ordinary account (`sdsshonly`) — see [Accounts](05-account-types.html) |
+
+**The administrator can open any of it up — `os-on`, `sdapi`, `sdssh` — and
+that is a decision for their own environment, not a default to second-guess.**
+Securing the transport and shipping a closed-by-default system is what this
+installer is responsible for; what an administrator does with the accounts
+they create afterward is theirs.
+
+**Further hardening beyond the defaults is available, not built-in.** An
+account can be locked into a single application by removing `basic` and
+`run` from its own VOC (so it can neither compile nor run anything else)
+and disabling its break key (`pterm break off`, so it cannot interrupt out
+to a TCL prompt). Neither is a keyword on `create.account` — both are done
+by hand, per account, when that account's whole purpose is one application
+and nothing else.
+
 ## Signing in asks for no password
 
 **The operating system has already authenticated you. SD asks Windows who you
@@ -12,57 +40,55 @@ are.**
 
 | | |
 |---|---|
-| `sd`, no account named | you land in **the SD account with your own name** |
+| `sd`, no account named, Windows login `sdsys`, elevated | you land in **SDSYS** |
+| `sd`, no account named, any other Windows login | you land in **the SD account with your own name** |
 | no SD account of that name | refused — *Account %1 not in register* (5018) |
 | not in `sdusers` | refused at the door — *not registered for SD use* (5009) |
 | `sd -A<name>` | **refused unless `<name>` is your own account** (10051) |
-| an elevated session | **your own account, like everybody else.** `logto sdsys` afterwards |
-| `logto sdsys` | asks for no password. **The gate is elevation** — a UAC consent prompt if the session is not already elevated, and 10002 with an audited `LOGTO REFUSED` if that fails |
+| `logto sdsys` from any other account | **refused unconditionally**, whether or not the session is elevated — 10002, audited `LOGTO REFUSED account=SDSYS reason=SDSYS is not reachable by LOGTO` |
 
-**There is no SDSYS password.** There is deliberately no second shared secret
-held by every administrator — that is the OpenQM weakness this exists to
-remove.
+**SDSYS is reached one way only: sign in to Windows as the account literally
+named `sdsys`, and run `sd` elevated.** Being a Windows administrator —
+elevated or not — grants nothing by itself, and there is no route from any
+other account into SDSYS once a session has started. See
+[Accounts](05-account-types.html#sdsys-is-the-only-administrator).
+
+> **This reverses how SD Core 1.0 and early 1.1 builds worked**, where any
+> Windows administrator's own account was an SD administrator, and `logto
+> sdsys` from an elevated session was the way in. If you read that in an
+> older document, or remember it from testing before 18 September 2026, it
+> no longer holds.
+
+**SDSYS has its own Windows sign-in password**, set once during installation
+in the window that appears after the wizard closes. It is an ordinary
+Windows password, not something SD stores or checks — see
+[Accounts](05-account-types.html#sdsys-is-the-only-administrator).
 
 **`sd <command>` never asks you to set a password.** It runs and exits, so it
 is not a session anybody is being invited into. In earlier builds of this port
 it walked into a prompt it could never be given input for. See
 [Running SD](03-running-sd.html#the-command-line).
 
-## Being an administrator
+## Being a Windows administrator gets you nothing
 
-**If you can log in to Windows as an administrator, you are an administrator
-of sd.** The person who installs SD is an SD administrator without any further
-step.
+**Being in the `Administrators` group, elevated or not, is not being an SD
+administrator.** The one and only privileged account is SDSYS, reached the
+one way described above. An elevated ordinary account starts `sd` faster —
+no UAC prompt mid-session — but that is the whole of what elevation does for
+it; every SD-level check is unchanged.
 
-Two different questions are asked in two different places, and both are wanted:
-
-| Question | How it is answered | Gates |
-|---|---|---|
-| *Are you an administrator?* | the account's groups in the SAM | `sd -start` — starting the server should not demand elevation of somebody already an administrator |
-| *Are you elevated?* | the process token | **reaching SDSYS**, and every privileged action |
-
-A UAC-filtered token carries `Administrators` as *deny only*, so these give
-different answers for the same person, and conflating them is the easy mistake.
-
-**A third question is asked as well: *where did this session come from?*** Being
-an administrator and being elevated are no longer enough on their own — the
-session also has to have started on this computer. An administrator signing in
-from another machine is refused, over ssh and over the API alike, whichever way
-the first two questions are answered.
-
-**One property to accept consciously.** `Administrators` is machine-wide, so
-anyone in it for an unrelated reason — the machine's own administrator, a
-domain admin, an IT tool's service account — gets SDSYS. Linux sudoers is
-machine-wide too, so this is parity rather than a Windows weakness, but it
-should be a decision rather than a discovery.
+**This is deliberate and total, not a special case for remote sessions.**
+SDSYS itself is refused ssh and the API outright, from this machine or any
+other — see [ssh access](08-ssh-access.html) and
+[API access](09-api-access.html). There is no "administrator, but only
+locally" middle case any more.
 
 ## Taking an account out of use without deleting it
 
 **`modify.account fred suspended`** denies entry at all three ways in — ssh and
 the console, **`logto`**, and the API. It is reversible with nothing to
 remember: the VOC and every Windows group membership are left exactly as they
-are, and the tier it displaced is recorded, so naming a tier brings the account
-back where it was.
+are — suspending sets one field, unsuspending clears it.
 
 **Understand what it is and is not, because the name oversells it.**
 
@@ -72,14 +98,13 @@ back where it was.
 | **It is not** | a Windows control. Nothing is withdrawn there |
 
 So a suspended user's ssh connection is still accepted and SD still starts
-before refusing them, and **a suspended administrator keeps `Administrators`,
-keeps their `os.users` record, and can still elevate on this machine.** An
-elevated session can also still **`logto`** into a suspended account, which is
-deliberate — that is how you look at one.
+before refusing them. **SDSYS can still `logto` into a suspended account**,
+which is deliberate — that is how you look at one.
 
-**If you are Suspending an account to contain somebody rather than to park it,
-disable the Windows account too.** Everything on this page rests on Windows
-identity; a control that does not touch Windows cannot be the whole answer.
+**If you are suspending an account to contain somebody rather than to park
+it, disable the Windows account too.** Everything on this page rests on
+Windows identity; a control that does not touch Windows cannot be the whole
+answer.
 
 ## Understand what the security position rests on
 
@@ -156,7 +181,7 @@ The global catalogue and the pcode library are locked the same way.
 > one you already have, run this once per path from an elevated prompt:
 >
 > ```
-> powershell -File "C:\Program Files\SD\secure-sysdirs.ps1" -Path "C:\ProgramData\SD\sdsys\accounts"
+> powershell -ExecutionPolicy Bypass -File "C:\Program Files\SD\secure-sysdirs.ps1" -Path "C:\ProgramData\SD\sdsys\accounts"
 > ```
 
 ### The credential file

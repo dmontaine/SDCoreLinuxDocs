@@ -180,6 +180,7 @@ itself administrator rights. That was demonstrated, not theorised.
 |---|---|
 | **`scan`** | `scan(`*a* {, *matrix*}`)` — *matrix* is a `dim`med one-dimensional name ***(internal)*** |
 | **`sdext`** | `sdext(`*a*, *b*, *c*`)` ***(internal)*** |
+| **`sdpyobj`** | `sdpyobj(`*a*, *b*, *c*, *d*`)` ***(internal)*** |
 | **`set.modes`** | `set.modes` *mask* ***(restricted)*** |
 | **`set.status`** | `set.status` *n* ***(restricted)*** |
 | **`set.trigger`** | `set.trigger` *file.var*, *mode*, *program* {, *modes*} ***(restricted)*** |

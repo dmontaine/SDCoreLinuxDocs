@@ -94,26 +94,21 @@ lists can be saved. `save.list` writes to a file and is limited only by space.
 The extra terminal names are aliases and variants that share a definition with
 their base name.
 
-## What each account tier gets
+## What an account gets
 
-These are inventories rather than limits, and they are the numbers most often
-misquoted, so they are given here with what they count.
+**There is no longer a tier to give three different answers for.** Every
+ordinary account gets the whole of `newvoc`; SDSYS gets that plus the
+records that exist only in `voc_template`.
 
-| | Verbs | VOC records |
-|---|---|---|
-| Standard | **82** | **355** |
-| Programmer | **124** | **397** |
-| Administrator | **147** | **420** |
+| | VOC records |
+|---|---|
+| An ordinary account (`newvoc`) | **398** |
+| SDSYS (`voc_template`) | **431** |
 
-**The two columns count different things.** A VOC record may be a verb, a
-keyword, a file pointer, a sentence or a paragraph; only some are verbs. A
-reader asking "how many commands can this account type?" wants the first
-column. A tool comparing two accounts with `count voc` sees the second.
-
-Both are computed from the shipped VOC rather than maintained by hand: the
-verb figures come from the same two tier lists the account-creation code reads,
-and the record figures are what `count voc` reports in a freshly created
-account.
+**These are record counts, not verb counts** — a VOC record may be a verb, a
+keyword, a file pointer, a sentence or a paragraph, and only some are verbs.
+Counted directly from the shipped directories (`newvoc`/`voc_template`),
+matching what `count voc` reports in a freshly created account.
 
 ## Configuration
 

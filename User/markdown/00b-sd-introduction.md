@@ -91,7 +91,7 @@ ed customers 1001
 to insert, type your lines, a full stop on its own line to stop
 inserting, then `fi` to file and exit.
 
-A programmer account can also use `edit` (Microsoft Edit, a full-screen
+Every account can also use `edit` (Microsoft Edit, a full-screen
 editor) or `micro` (a full-screen editor with syntax highlighting).
 Both need `OS.EXECUTE` permission — see the administrator documentation.
 
@@ -130,17 +130,16 @@ myprog
 
 ## Becoming an administrator
 
-```
-logto sdsys
-```
+**There is no `logto` route to it.** SDSYS, the one administrator account,
+is reached only by signing in to Windows as the `sdsys` account itself and
+starting `sd` elevated — a fresh session, not a command typed from inside
+one you already have. `logto sdsys` from any other account is refused
+outright, whatever its elevation.
 
-You will get a UAC consent prompt unless the session is already
-elevated. That is the gate — there is no SDSYS password, and there is
-deliberately no second shared secret held by every administrator.
-
-> **IF YOU ARE OVER ssh, THIS MAY NOT WORK.** A UAC prompt has no
-> interactive desktop there. Start an elevated terminal at the machine
-> instead.
+**This needs the console, or a remote desktop or remote-control product
+installed as a service** — something Windows can draw a UAC consent prompt
+on. Over an ordinary ssh session there is no such screen, and in any case
+SDSYS itself has no ssh route to arrive over.
 
 ## What is not in SD Core
 

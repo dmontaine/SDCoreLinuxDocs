@@ -36,10 +36,10 @@ count voc
 418 record(s) counted
 ```
 
-**That number is particular to the account it was run in.** Every account has a
-`voc` and no two need hold the same records — a standard account's is smaller
-than a programmer's, and `SDSYS`'s is different again. The counts on this page
-came from an administrator account.
+**That number is particular to the account it was run in.** Every account has
+a `voc`, and no two need hold the same records — every ordinary account
+starts with the same set as every other, but local additions can differ, and
+`SDSYS`'s is larger to begin with. The counts on this page came from SDSYS.
 
 ## The verbs
 

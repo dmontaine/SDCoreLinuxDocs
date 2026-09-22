@@ -294,11 +294,9 @@ Read out of an account's own VOC:
 | `debugging` | a `K` keyword, 53 | the compiler keyword |
 | `pdebug` | a `V` verb, `CA $PDEBUG` | the phantom debugger |
 
-**`debug` and `pdebug` are not in a standard account.** Both are on the
-installer's `TIER.OMIT.STANDARD` list, so an account created at the standard
-tier has neither verb. `debugging` is a keyword rather than a verb and is
-unaffected — but with no `debug` verb, the `debug` **statement** is the only
-way in on such an account.
+**Every account has `debug` and `pdebug`** — there is no longer a tier that
+would withhold them. `debugging` is a keyword rather than a verb, and always
+was available regardless.
 
 ## What is not here
 

@@ -228,20 +228,13 @@ The debugger itself — the commands it takes once it is attached — is in
 
 ## Who has these verbs
 
-| | |
-|---|---|
-| **standard** | `status` |
-| **programmer** | `phantom` `pstat` `pdebug` `pdump` |
+**Every account has `status`, `phantom`, `pstat`, `pdebug` and `pdump`** —
+there is no withheld set any more.
 
-**The only one every account has is `status`**, and it reports nothing but
-that account's own phantoms. The rest are programmer verbs: making a background
-process, and looking at one.
-
-**There are two gates and they are not the same one.** The tier decides whether
-you have the verb at all; **elevation decides whether it does anything to
-somebody else.** `pstat` will report any session; `pdump` *n* is yours to use on
-your own processes and refuses for another Windows account's without an elevated
-session.
+**`pdump` still has a gate, and it is not about having the verb.** `pdump`
+*n* is yours to use on your own processes; against another Windows
+account's process, it refuses unless the session is SDSYS's. `pstat` reports
+any session, with no such restriction.
 
 ## See also
 

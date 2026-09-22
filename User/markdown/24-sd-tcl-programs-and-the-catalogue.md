@@ -194,19 +194,14 @@ program in a phantom process"*. The debugger itself is covered in
 
 ## Who has these verbs
 
-| | |
-|---|---|
-| **standard** | `format` `list.common` |
-| **programmer** | `basic` `catalog` `catalogue` `cd` `compile.dict` `debug` `delete.catalog` `delete.catalogue` `delete.common` `generate` `map` `run` |
+**Every account has all of them now**: `format`, `list.common`, `basic`,
+`catalog`, `catalogue`, `cd`, `compile.dict`, `debug`, `delete.catalog`,
+`delete.catalogue`, `delete.common`, `generate`, `map`, `run`.
 
-**A standard account can run catalogued programs and cannot make them.** That
-is the whole point of the split: an application is deployed by cataloguing it,
-and the people who use the application need none of the verbs on this page to
-run it.
-
-`format` and `list.common` are the two exceptions, and both are harmless —
-one tidies source the account can already read, the other reports on the
-session's own memory.
+**Running a catalogued program never needed any of these anyway** — a
+catalogued name runs by being typed, with no VOC record of its own — so an
+application deployed this way was always reachable regardless of what
+verbs an account had.
 
 ## See also
 

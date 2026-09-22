@@ -214,7 +214,7 @@ does not for union and intersection.
 
 ## Who has these verbs
 
-**All of them are in a standard account.** Building, saving and combining lists
+**All of them are in every account.** Building, saving and combining lists
 is reading, and nothing on this page changes a record.
 
 ## See also
