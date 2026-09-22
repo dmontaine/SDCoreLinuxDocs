@@ -1,5 +1,5 @@
 Title: System limits
-Subtitle: The sizes, counts and depths compiled into SD Core for Windows, and which of them a site can change.
+Subtitle: The sizes, counts and depths compiled into SD Core for Linux, and which of them a site can change.
 
 Two kinds of number appear on this page and they behave differently.
 
@@ -15,8 +15,9 @@ which parameter controls it.
 > outside the administrator set. Where a page in another set is worth naming,
 > it is named in words.
 
-> Every figure here was read from the sources that define it, or from a running
-> W1.0-0 system, and not from documentation of another product.
+> Every figure here was read from the sources that define it, or counted
+> directly from this tree's own shipped directories, not from documentation
+> of another product or port.
 
 ## Data
 
@@ -55,8 +56,8 @@ Group size is expressed in 1 KB units, so the compiled maximum of 8 is 8 KB.
 | Concurrent sessions | **20** | `NUMUSERS` |
 | Record locks across all sessions | **100** | `NUMLOCKS` |
 | File locks | one per file | compiled |
-| Windows account name | **32** characters | compiled |
-| SD account name | **32** characters | compiled |
+| Linux account name | **32** characters | compiled (`MAX_USERNAME_LEN`) |
+| SD account name | **32** characters | compiled (`MAX_ACCOUNT_NAME_LEN`) |
 
 `NUMUSERS` sizes the user table in shared memory, so it is read once when SD
 starts and cannot be changed in a running system.
@@ -96,27 +97,29 @@ their base name.
 
 ## What an account gets
 
-**There is no longer a tier to give three different answers for.** Every
+**There is no tier to give three different answers for.** Every
 ordinary account gets the whole of `newvoc`; SDSYS gets that plus the
 records that exist only in `voc_template`.
 
 | | VOC records |
 |---|---|
-| An ordinary account (`newvoc`) | **398** |
-| SDSYS (`voc_template`) | **431** |
+| An ordinary account (`newvoc`) | **399** |
+| SDSYS (`voc_template`) | **424** |
 
 **These are record counts, not verb counts** — a VOC record may be a verb, a
 keyword, a file pointer, a sentence or a paragraph, and only some are verbs.
 Counted directly from the shipped directories (`newvoc`/`voc_template`),
-matching what `count voc` reports in a freshly created account.
+matching what `count voc` reports in a freshly created account. (The
+TCL-verb subset specifically — 144, `sh`/`!`/`nano`/`micro`/`umask`
+included — is counted separately in the *User* set's SD TCL syntax card.)
 
 ## Configuration
 
 | | |
 |---|---|
-| Parameters accepted in `sd.conf` | **52** |
-| Parameters the `config` verb displays | **43** |
-| Parameters readable with `config()` | **49** |
+| Parameters accepted in `sd.conf` | **50** |
+| Parameters the `config` verb displays | **42** |
+| Parameters readable with `config()` | **47** |
 | Parameters settable for the current session | **28** |
 | Parameters accepted that do nothing | **6** |
 

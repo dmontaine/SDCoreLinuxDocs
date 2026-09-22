@@ -1,164 +1,144 @@
-Title: Installation and the service
-Subtitle: What the installer puts on the machine, what an upgrade replaces, and how the service behaves.
+Title: Installation and the daemon
+Subtitle: What the installer puts on the machine, what an upgrade replaces, and how the daemon behaves.
 
 This page covers the parts of installation an administrator has to live with
-afterwards: the groups and permissions the installer creates, the service, and
+afterwards: the groups and permissions the installer creates, the daemon, and
 what an upgrade does and does not touch.
 
 > This document is separate so that it can be withheld. It links to nothing
 > outside the administrator set. Where a page in another set is worth naming,
 > it is named in words.
 
-The wizard itself — the pages, the tick boxes and their defaults — is covered
-in the SD Core for Windows release documentation, under *Installing SD Core*,
-and is not repeated here.
+The installer itself — the prompts and their defaults — is covered in the
+GettingStarted set, under *Installing SD Core*, and is not repeated here.
 
 ## Two things to know before the first install
 
-**SD cannot be installed silently.** `/SILENT` and `/VERYSILENT` are refused
-with a message rather than ignored.
+**SD cannot be installed unattended.** `installsdai.sh` asks for
+confirmation, two yes/no questions about remote access, and ends by
+setting three passwords at the terminal — there is no flag to skip any of
+it.
 
-The reason is the password. Installing ends by asking for one, and an
-unattended install has nobody to ask — it would finish with no password on any
-account, and an account without a password cannot be used at all: not at the
-keyboard, not over ssh, and not through the API. A `/NOPASSWORD` escape was
-written and then removed, on the grounds that a switch buying a
-credential-less system is a switch somebody will paste from a forum.
+The reason for the passwords is the same one Windows has: an account
+without one cannot be used through the API at all, and the closing summary
+would otherwise finish silently with a gap nobody noticed.
 
-Remote Desktop is not unattended and is unaffected. The wizard runs and a
-person answers it.
+**The installer refuses to start if SD is already installed.**
+`/usr/local/sdsys/bin/sd` existing is the test; uninstall with
+`deletesdai.sh` first. It also refuses if run as root, or if the calling
+user cannot `sudo` at all — both checked before anything on the machine
+changes.
 
-**The installer refuses to start on a machine with an ssh server it does not
-own.** It changes nothing and tells you what it found. Three cases:
-
-- another ssh server holding port 22
-- an ssh service that is not part of Windows, installed even if it is not
-  running
-- Windows' own ssh server with settings somebody has already changed
-
-The check runs before the wizard is drawn, so a refusal costs nothing. Remove
-the other server, or put the ssh configuration back the way Windows shipped it,
-and run the installer again.
-
-This is why SD can make promises about ssh behaviour at all: it configures the
-server so that SD sessions land inside SD and cannot reach a command prompt,
-and it can only promise that about a server it installed and configured itself.
+**Unlike SD Core for Windows, this installer does not refuse to run
+because of a pre-existing ssh server.** `openssh-server` is installed as
+an ordinary package regardless, and the ssh boundary (below) is applied to
+whatever `sshd_config` it finds, non-fatally: a customised configuration
+gets a warning and the command to apply the boundary by hand, not a
+refusal to install at all.
 
 ## What lands where
 
 | What | Where |
 |---|---|
-| Binaries, and the MSYS2 DLLs beside them | `C:\Program Files\SD\usr\bin\` |
-| The client DLLs, for applications | `C:\Program Files\SD\usr\clients\` |
-| The installed PowerShell scripts | `C:\Program Files\SD\` |
-| The changelog | `C:\Program Files\SD\changelog` |
-| Configuration | `C:\ProgramData\SD\sd.conf` |
-| The SDSYS account | `C:\ProgramData\SD\sdsys\` |
-| User accounts | `C:\ProgramData\SD\user_accounts\` |
-| Group accounts | `C:\ProgramData\SD\group_accounts\` |
-| Shared memory | `C:\ProgramData\SD\shm\` |
+| Binaries | `/usr/local/bin` |
+| The client library, for applications | alongside the server, under `/usr/local/sdsys/bin` |
+| The elevation helper and ssh boundary script | `/usr/local/sbin` |
+| Configuration | `/etc/sd.conf` |
+| The SDSYS account | `/usr/local/sdsys` |
+| User accounts | `/home/sd/user_accounts` |
+| Group accounts | `/home/sd/group_accounts` |
 
 Neither root can be changed. The installer does not ask.
-
-> **Do not move the binaries.** `usr\bin` is load-bearing. Shipping
-> `msys-2.0.dll` beside the executable relocates the POSIX root to the DLL's
-> directory minus two components, so moving them moves SD's idea of the file
-> system.
-
-The client DLLs are the one thing under `Program Files` meant to be copied
-elsewhere. `usr\clients\client64\` holds the 64-bit pair and
-`usr\clients\client32\` the 32-bit pair, for applications that link against
-SD. The 64-bit pair also appears in `usr\bin`, and that copy is the server's
-own — a local client connection resolves `sd.exe` beside the DLL, so only a
-copy sitting next to `sd.exe` can make one.
 
 ## What the installer creates
 
 | | |
 |---|---|
-| `sdusers` group | grants access to the files under `C:\ProgramData\SD` |
-| `sdsshonly` group | carries the deny rights that confine an account to ssh |
-| `sdu_<name>` | one group per account, created by `create.account` |
-| The service | **String Database (SD)**, automatic start |
-| ACLs | inheritance broken on `C:\ProgramData\SD`, access granted narrowly |
+| `sdusers` group | the Linux group every SD account belongs to |
+| `sdsys` user | the one administrator account — a real Linux user, its own home, shell and password |
+| `sdu_<name>` | one supplementary group per account, created by `create.account` |
+| `sd.service`, `sdclient.socket` | the `systemd` units, enabled at boot |
+| the ssh boundary | a fenced block in `/etc/ssh/sshd_config` — see [Remote access and the machine](05-remote-access-and-the-machine.html) |
 
-Group membership is carried in a Windows logon token, which is issued at sign-in.
-An administrator added to `sdusers` while signed in does not have it until
-they sign out and back in, and until then cannot read the data tree at all. The
-symptom looks like a broken install and is not one.
+Group membership takes effect at the next login, the same as any Linux
+service account. An administrator added to `sdusers` while already logged
+in does not have it until they log out and back in, and until then cannot
+read the data tree at all. The symptom looks like a broken install and is
+not one.
 
-## The service
+## The daemon
 
 | | |
 |---|---|
-| Display name | **String Database (SD)** |
-| Service name | `SD` |
-| Start type | automatic — Windows starts it at every boot |
-| Starting | `Start-Service SD`, or `sd -start` |
-| Stopping | `Stop-Service SD`, or `sd -stop` |
+| Unit | `sd.service` (the daemon), `sdclient.socket` (the API listener) |
+| Start type | enabled — `systemd` starts both at every boot |
+| Starting | `systemctl start sd.service`, or `sd -start` |
+| Stopping | `systemctl stop sd.service sdclient.socket`, or `sd -stop` |
 | Created by | the installer |
 | Removed by | the uninstaller |
 
-**Stopping the service ends every session on the machine**, without asking. It
+**Stopping the daemon ends every session on the machine**, without asking. It
 signals every entry in the user table and has no "are users logged in" check,
 so treat it as a machine-wide action rather than an administrative
 convenience.
 
 ### After an unclean shutdown
 
-A shared memory segment left behind by an abrupt stop survives a reboot on
-Windows. SD discards it and starts normally, saying so:
-
-```
-Discarding the shared segment left by the previous boot -
-SD did not shut down cleanly.
-```
+SD's shared state is a System V IPC segment (`shmget`), which **does not
+survive a reboot** — a real difference from SD Core for Windows, where the
+equivalent segment does and needed its own discard-and-restart logic. A
+crash the machine itself rebooted from always leaves a clean slate here.
+What can still happen is the daemon dying while the box stays up (killed,
+or `sd.service` restarted); `sd -start` checks the actual process, not
+merely the segment's presence, and says so rather than reporting a false
+success — see [Running SD](../GettingStarted/03-running-sd.html).
 
 ## Upgrading
 
-Installing a new release over an existing one replaces the shipped files and
-preserves everything the site owns.
+Uninstalling with the database kept, then installing again, replaces the
+shipped files and preserves everything the site owns.
 
 | Replaced | Preserved |
 |---|---|
 | the catalogue and compiled programs | your accounts and their passwords |
 | the BASIC source | the private catalogue |
-| the messages and include records | which Windows users are linked to which SD accounts |
-| the VOC templates and library routines | your print queue and held reports |
-| terminfo, the licence, the contributor list | everything under your own accounts, and `sd.conf` |
+| the messages and include records | your print queue and held reports |
+| the VOC templates and library routines | everything under your own accounts, and `sd.conf` |
+| terminfo, the licence, the contributor list | |
 
-**An upgrade asks nothing.** No tasks page is shown, on the principle that the
-machine already carries the answers and every setting has a verb that changes
-it afterwards — `ssh.server`, `remote.ssh`, `remote.api` and `append.sd.path`,
-covered under *Remote access and the machine* in this set.
+**An upgrade asks nothing** at the two remote-access prompts — no tasks
+page is shown, on the principle that the machine already carries the
+answers and every setting has a verb that changes it afterwards
+(`remote.ssh`, `remote.api` — see *Remote access and the machine*).
 
-### Two steps run for you, and both report
+### Unlike SD Core for Windows, the VOC refresh is a step you run, not one the installer runs for you
 
-**Every account's VOC is refreshed.** The installer runs `update.accounts all`,
-which walks every registered account so that a verb this release adds can be
-typed in accounts that already existed.
+**The installer does not run `update.accounts all`.** Checked directly
+against `installsdai.sh`: there is no such call anywhere in it. After an
+upgrade, log in as `sdsys` and run it yourself — see [Upgrading and
+uninstalling](../GettingStarted/01a-upgrading-and-uninstalling.html). Until
+you do, existing accounts keep working exactly as before, with the
+release's fixes in the catalogue but not reachable by name.
 
-This is newer than it sounds and is worth stating plainly: before W1.0-0 an
-upgrade replaced the shipped files and **no existing account, including SDSYS,
-ever gained a new verb**. A fix that added a VOC record reached only accounts
-created afterwards.
+**The dictionaries are reapplied automatically.** The definitions the
+release ships are added and updated by the install step that writes them
+(`write_install_dicts`), and any you added are left alone. If that step
+cannot run, the installer says so rather than finishing quietly.
 
-**The dictionaries are reapplied.** The definitions the release ships are added
-and updated, and any you added are left alone. If that step cannot run, the
-installer says so at the end rather than finishing quietly, and
-`upgrade-dicts.log` in `C:\ProgramData\SD` records what happened.
-
-Neither step can take anything away. `update.accounts` only ever adds records,
-so an account created before a verb was withdrawn keeps it.
+Neither step can take anything away. `update.accounts` only ever adds
+records, so an account created before a verb was withdrawn keeps it.
 
 ## Uninstalling
 
-Settings ▸ Apps, or `unins000.exe`.
+```sh
+./deletesdai.sh
+```
 
-**The default does not touch your accounts, the database or the
-configuration.** Removing the data is a separate prompt that defaults to
-keeping it.
+**The default does not touch your accounts or your configuration.**
+Removing the database needs an explicit `DELETE` confirmation beyond the
+initial keep/discard prompt — see [Upgrading and
+uninstalling](../GettingStarted/01a-upgrading-and-uninstalling.html).
 
-**The uninstaller does not remove OpenSSH.** It may predate SD or be in use for
-something else. It does restore `sshd_config`, keeping the version SD wrote as
-`sshd_config.before-sd`.
+**The uninstaller does not remove the `openssh-server` package.** It may
+predate SD or be in use for something else. It does remove the ssh
+boundary block it wrote, leaving the rest of `sshd_config` as it was.
