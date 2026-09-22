@@ -1,0 +1,920 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - System and Environment - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="15-sd-basic-sockets.html"><span class="pn-label">&larr; Previous</span>SD Basic - Sockets</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="16a-sd-basic-status-and-the-machine.html"><span class="pn-label">Next &rarr;</span>SD Basic - Status, Encryption and the Machine</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - System and Environment</h1>
+<p class="tp-subtitle">Asking SD about itself, about the machine, and about the session you are in.</p>
+</section>
+
+<main>
+<p>This page covers the enquiries: what time is it, who am I, where is the data,
+what did the last thing that failed say, and what may this account do. Most of
+it is one function, <code>system()</code>, and most of the surprises are about which form
+a path comes back in.</p>
+<p>SD folds case, so a program may be written in either case. Keywords are shown
+here in lower case. In the tables, <em>italics</em> mark something you supply and
+<strong>bold</strong> marks a word typed as it stands; braces mark an optional part.</p>
+<blockquote>
+<p><strong>Values that are particular to one machine — a user number, a computer
+name, a process id — are marked as examples; the shapes are not.</strong> What you
+see back will differ in the value and match in the form.</p>
+</blockquote>
+<h2 id="system">SYSTEM()<a class="headerlink" href="#system" title="Permanent link">#</a></h2>
+<pre><code>system(key)
+</code></pre>
+<h3 id="the-session">The session<a class="headerlink" href="#the-session" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th></th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>7</code></td>
+<td>terminal type</td>
+<td><code>windows</code></td>
+</tr>
+<tr>
+<td><code>9</code></td>
+<td>CPU time used, ms</td>
+<td><code>45</code></td>
+</tr>
+<tr>
+<td><code>12</code></td>
+<td>time, as <code>time()</code></td>
+<td><code>70787</code></td>
+</tr>
+<tr>
+<td><code>18</code></td>
+<td><strong>user number</strong></td>
+<td><code>67</code> (example)</td>
+</tr>
+<tr>
+<td><code>23</code></td>
+<td>break key enabled?</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>24</code></td>
+<td>echo enabled?</td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>25</code></td>
+<td>is this a phantom?</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>26</code></td>
+<td>prompt character</td>
+<td><code>?</code></td>
+</tr>
+<tr>
+<td><code>1000</code></td>
+<td><code>capturing</code> in effect?</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>1001</code></td>
+<td>case inversion on?</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>1029</code></td>
+<td>internal subroutine depth</td>
+<td><code>0</code> at the top, <code>1</code> inside a <code>gosub</code></td>
+</tr>
+<tr>
+<td><code>1030</code></td>
+<td>login time, internal</td>
+<td><code>1851017987</code></td>
+</tr>
+<tr>
+<td><code>1031</code></td>
+<td>operating system process id</td>
+<td><code>605</code> (example)</td>
+</tr>
+<tr>
+<td><code>1050</code></td>
+<td>administrator?</td>
+<td><code>0</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-machine">The machine<a class="headerlink" href="#the-machine" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th></th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>31</code></td>
+<td>licence number</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>42</code></td>
+<td>IP address</td>
+<td><em>empty</em></td>
+</tr>
+<tr>
+<td><code>91</code></td>
+<td><strong>is this Windows?</strong></td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>1006</code></td>
+<td>Windows NT style?</td>
+<td><strong><code>0</code></strong></td>
+</tr>
+<tr>
+<td><code>1009</code></td>
+<td>endian — 0 little</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>1010</code></td>
+<td>platform name</td>
+<td><code>Windows</code></td>
+</tr>
+<tr>
+<td><code>1012</code></td>
+<td>SD version</td>
+<td><code>W1.0-0</code></td>
+</tr>
+<tr>
+<td><code>1013</code> / <code>1014</code></td>
+<td>user limit, without / with the phantom pool</td>
+<td><code>20</code> / <code>20</code></td>
+</tr>
+<tr>
+<td><code>1015</code></td>
+<td>computer name</td>
+<td><code>Gitorli</code> (example)</td>
+</tr>
+<tr>
+<td><code>1017</code></td>
+<td>port number of a tcp connection</td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>1028</code></td>
+<td>system id</td>
+<td><code>1028</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Two of those three answer correctly and one does not.</strong> <code>system(91)</code> reads
+<code>1</code> and <code>system(1010)</code> reads <code>Windows</code>. <strong><code>system(1006)</code>, "Windows NT style?",
+reads <code>0</code></strong> — it is the one to leave alone. <strong>Ask <code>system(91)</code> whether this is
+Windows</strong>; it is the key this port sets deliberately for that purpose.</p>
+<h3 id="paths-and-they-are-not-all-in-the-same-form">Paths, and they are not all in the same form<a class="headerlink" href="#paths-and-they-are-not-all-in-the-same-form" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th></th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>32</code></td>
+<td>the <code>sdsys</code> directory</td>
+<td><code>C:\ProgramData\SD\sdsys</code></td>
+</tr>
+<tr>
+<td><code>38</code></td>
+<td>the temporary directory</td>
+<td><code>/cygdrive/c/WINDOWS/TEMP</code></td>
+</tr>
+<tr>
+<td><code>1011</code></td>
+<td>the configuration file</td>
+<td><code>C:/ProgramData/SD/sd.conf</code></td>
+</tr>
+<tr>
+<td><code>1024</code></td>
+<td>the directory SD was started in</td>
+<td><code>/cygdrive/c/Users/dmont/OneDrive/Documents</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Three different spellings of a Windows PATH come out of one function.</strong> A
+backslash path, a POSIX <code>/cygdrive/</code> path, and a forward-slash path with a
+drive letter. <code>@sdsys</code> agrees with key 32 and <code>@path</code> — the account directory —
+is in the POSIX form.</p>
+<p><strong>A <code>/cygdrive/</code> path handed to a Windows program does not work.</strong> Windows
+reads it as drive-relative and either fails silently or complains that the
+parent directory does not exist. This is not theoretical: it is what stopped
+the full-screen editors working the first time they were built for this port.
+There is a conversion function in the kernel and <strong>an ordinary program cannot
+call it</strong> — see "What is not here". <strong>Take the path from configuration rather
+than from <code>system()</code> if a Windows program is going to see it.</strong></p>
+<h3 id="lists-and-structures">Lists and structures<a class="headerlink" href="#lists-and-structures" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1002</code></td>
+<td>the call stack</td>
+<td>field per level: <code>path</code>, then <code>offset</code> and line pairs — <code>.../BP.OUT/ZZMATH</code> at line 41, then <code>$CPROC</code></td>
+</tr>
+<tr>
+<td><code>1003</code></td>
+<td>open files</td>
+<td>field per file, <code>unit</code> and path. <strong><code>$ipc</code> is always one of them</strong></td>
+</tr>
+<tr>
+<td><code>1025</code></td>
+<td>environment variables</td>
+<td><strong>two fields</strong>: field 1 every name, field 2 every value, value-mark separated</td>
+</tr>
+</tbody>
+</table>
+<p><code>system(1025)</code> returns <strong>2</strong> fields, every name in the first — it is not a
+list of <code>NAME=value</code> pairs.</p>
+<h3 id="time">Time<a class="headerlink" href="#time" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1005</code></td>
+<td>internal time</td>
+<td><code>date() * 86400 + time()</code> — the difference is <strong>0</strong></td>
+</tr>
+<tr>
+<td><code>1020</code></td>
+<td>milliseconds since midnight</td>
+<td><code>9587454</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>system(1020)</code> is the one to time something with: against a lock wait it gives
+252 ms where <code>time()</code> gives 0.</p>
+<h2 id="date-time-and-timedate">DATE, TIME and TIMEDATE<a class="headerlink" href="#date-time-and-timedate" title="Permanent link">#</a></h2>
+<pre><code>date()      time()      timedate()
+</code></pre>
+<p>Taken together at one instant:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>date()</code></td>
+<td><code>21423</code> — days since 31 December 1967</td>
+</tr>
+<tr>
+<td><code>time()</code></td>
+<td><code>70787</code> — seconds since midnight</td>
+</tr>
+<tr>
+<td><code>timedate()</code></td>
+<td><code>19:39:47 26 AUG 2026</code></td>
+</tr>
+<tr>
+<td><code>oconv(date(), 'D4-')</code></td>
+<td><code>08-26-2026</code></td>
+</tr>
+<tr>
+<td><code>oconv(time(), 'MTS')</code></td>
+<td><code>19:39:47</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>@date</code> and <code>@time</code> hold the same numbers, <strong>but they are set once per command</strong>
+rather than read afresh, so in a long loop they do not move while <code>date()</code> and
+<code>time()</code> do.</p>
+<p><code>timedate()</code> returns a formatted string, not a number. Do not do arithmetic on
+it — see
+<a href="06-sd-basic-data-conversion.html">SD Basic - Data Conversion</a> for the
+conversion codes.</p>
+<h2 id="env">ENV()<a class="headerlink" href="#env" title="Permanent link">#</a></h2>
+<pre><code>env(name)
+</code></pre>
+<p><strong><code>env()</code> is case sensitive and a wrong case looks exactly like a missing
+variable.</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>env('PATH')</code></td>
+<td>926 characters</td>
+</tr>
+<tr>
+<td><code>env('path')</code></td>
+<td><strong>0 characters</strong></td>
+</tr>
+<tr>
+<td><code>env('ProgramData')</code></td>
+<td><code>C:\ProgramData</code></td>
+</tr>
+<tr>
+<td><code>env('NOSUCHVAR')</code></td>
+<td>empty</td>
+</tr>
+</tbody>
+</table>
+<p>Windows itself treats environment variable names as case-insensitive
+everywhere else, which is what makes this worth knowing. <code>ProgramData</code> works
+only because that is exactly how Windows spells it. <strong>Get the spelling from
+<code>system(1025)</code> field 1 rather than from memory.</strong></p>
+<h2 id="config">CONFIG()<a class="headerlink" href="#config" title="Permanent link">#</a></h2>
+<pre><code>config(name)
+</code></pre>
+<p>On a stock installation:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config('FILERULE')</code></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>config('GRPSIZE')</code></td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>config('MAXIDLEN')</code></td>
+<td><code>63</code></td>
+</tr>
+<tr>
+<td><code>config('NUMFILES')</code></td>
+<td><code>80</code></td>
+</tr>
+<tr>
+<td><code>config('NUMLOCKS')</code></td>
+<td><code>100</code></td>
+</tr>
+<tr>
+<td><code>config('SORTMEM')</code></td>
+<td><code>4096</code></td>
+</tr>
+<tr>
+<td><code>config('SPOOLER')</code></td>
+<td>empty</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The name is case sensitive and at most eight characters. both failures now
+look the same</strong>, which is the point — a name that is too long is a name that
+does not exist, and a caller cannot tell the two apart:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>config('numlocks')</code> — right name, wrong case</td>
+<td>empty, <code>status()</code> <strong>1004</strong></td>
+</tr>
+<tr>
+<td><code>config('NOSUCHKEY')</code> — <strong>nine</strong> characters</td>
+<td>empty, <code>status()</code> <strong>1004</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Keep every <code>config()</code> name to eight characters and upper case.</strong></p>
+<p>Neither call aborts the caller: a name that is too long comes back empty with
+a status, the same as a name that does not exist.</p>
+<h2 id="sysmsg">SYSMSG()<a class="headerlink" href="#sysmsg" title="Permanent link">#</a></h2>
+<pre><code>sysmsg(number {, substitution ...})
+</code></pre>
+<p>Returns the text of one of SD's own messages, with <code>%s</code> substitutions filled
+in.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sysmsg(2831)</code></td>
+<td><code>Unrecognised statement</code></td>
+</tr>
+<tr>
+<td><code>sysmsg(6711, 'ABC')</code></td>
+<td><code>Unable to find source record ABC</code></td>
+</tr>
+<tr>
+<td><code>sysmsg(2201)</code></td>
+<td><code>Account name '' is not in register</code> — an unfilled substitution comes back empty</td>
+</tr>
+<tr>
+<td><code>sysmsg(99999)</code></td>
+<td><code>[99999] Message not found</code></td>
+</tr>
+<tr>
+<td><code>sysmsg(1)</code></td>
+<td><code>[1] Message not found</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A message number is not a <code>status()</code> code.</strong> They are separate numbering
+schemes that overlap. <code>status()</code> <strong>3006</strong> is <em>record not found</em>; <code>sysmsg(3006)</code>
+is <code>Modes:</code>. Do not render a status code by passing it to <code>sysmsg()</code>.</p>
+<p><code>get.messages()</code> takes <strong>no arguments</strong> and returned <strong>nothing</strong> — zero fields
+— in an ordinary session. It reports messages sent between sessions, and
+nothing had sent any.</p>
+<h2 id="continued-in">Continued in<a class="headerlink" href="#continued-in" title="Permanent link">#</a></h2>
+<p><a href="16a-sd-basic-status-and-the-machine.html">SD Basic - Status, Encryption and the
+Machine</a> — status codes, checksums,
+encryption, umask, the @variables, os.execute and logmsg.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="15-sd-basic-sockets.html"><span class="pn-label">&larr; Previous</span>SD Basic - Sockets</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="16a-sd-basic-status-and-the-machine.html"><span class="pn-label">Next &rarr;</span>SD Basic - Status, Encryption and the Machine</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

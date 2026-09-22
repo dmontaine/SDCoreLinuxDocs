@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD TCL - The Command Stack - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="19-sd-tcl-command-processor.html"><span class="pn-label">&larr; Previous</span>SD TCL - The Command Processor</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="20-sd-tcl-files-and-records.html"><span class="pn-label">Next &rarr;</span>SD TCL - Files and Records</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD TCL - The Command Stack</h1>
+<p class="tp-subtitle">Recalling and re-running commands, the @variables, and the session verbs.</p>
+</section>
+
+<main>
+<p>This page continues <a href="19-sd-tcl-command-processor.html">SD TCL - The Command
+Processor</a>.</p>
+<h2 id="the-command-stack">The command stack<a class="headerlink" href="#the-command-stack" title="Permanent link">#</a></h2>
+<p>Every line you type is kept. The stack is edited with commands beginning with a
+dot, and <code>n</code> below is a stack position — 1 is the most recent.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>.l</code></strong>{<em>n</em>}</td>
+<td>list the last <em>n</em> stack lines. Defaults to 20, or a screenful</td>
+</tr>
+<tr>
+<td><strong><code>.l</code></strong> <em>name</em></td>
+<td>show a VOC record, one numbered line per field</td>
+</tr>
+<tr>
+<td><strong><code>.r</code></strong>{<em>n</em>}</td>
+<td>recall line <em>n</em> to the top of the stack</td>
+</tr>
+<tr>
+<td><strong><code>.r</code></strong> <em>name</em></td>
+<td>load a sentence or paragraph from the VOC into the stack</td>
+</tr>
+<tr>
+<td><strong><code>.s</code></strong> <em>name</em> <em>s</em> <em>e</em></td>
+<td>save stack lines <em>s</em> to <em>e</em> into the VOC as <em>name</em></td>
+</tr>
+<tr>
+<td><strong><code>.a</code></strong>{<em>n</em>} <em>text</em></td>
+<td>append <em>text</em> to line <em>n</em></td>
+</tr>
+<tr>
+<td><strong><code>.i</code></strong>{<em>n</em>} <em>text</em></td>
+<td>insert <em>text</em> as line <em>n</em></td>
+</tr>
+<tr>
+<td><strong><code>.c</code></strong>{<em>n</em>}<code>/</code><em>old</em><code>/</code><em>new</em><code>/</code>{<code>g</code>}</td>
+<td>change <em>old</em> to <em>new</em> in line <em>n</em>; <code>g</code> for every occurrence</td>
+</tr>
+<tr>
+<td><strong><code>.d</code></strong>{<em>n</em>}</td>
+<td>delete line <em>n</em></td>
+</tr>
+<tr>
+<td><strong><code>.d</code></strong> <em>name</em></td>
+<td>delete a sentence or paragraph from the VOC, after asking</td>
+</tr>
+<tr>
+<td><strong><code>.u</code></strong>{<em>n</em>}</td>
+<td>convert line <em>n</em> to upper case</td>
+</tr>
+<tr>
+<td><strong><code>.x</code></strong>{<em>n</em>}</td>
+<td>execute line <em>n</em></td>
+</tr>
+<tr>
+<td><strong><code>.x</code></strong> <em>file</em> <em>id</em></td>
+<td>execute a sentence or paragraph held in any file, not just the VOC</td>
+</tr>
+<tr>
+<td><strong><code>.?</code></strong></td>
+<td>print this list</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>n</code> defaults to 1 everywhere, and the spaces shown are required.</strong> <code>.d2</code>
+deletes the second stack line and <code>.d 2</code> looks for a VOC record called <code>2</code>.</p>
+<p><code>.s</code> and <code>.r</code> together are the whole workflow: type the lines, then save them
+under a name, then recall them later to edit. <strong><code>.s</code> writes a sentence when the
+range is one line and a paragraph when it is more</strong>, so the record type follows
+from what you saved rather than from anything you say.</p>
+<p><code>.x</code> <em>file</em> <em>id</em> is the one that reaches outside the VOC — the file name and the
+record id are each folded as typed, then lower, then upper.</p>
+<p><strong>A dot command that is not one of these is not an error.</strong> It is left alone and
+run as an ordinary command, so a verb whose name begins with a dot still works.</p>
+<blockquote>
+<p><strong><code>.d</code> does not find a lower-case VOC record typed in upper case, and <code>.l</code>
+and <code>.r</code> do.</strong> <code>.l</code> and <code>.r</code> try the name as typed, then lower case, then
+upper case. <code>.d</code> tries only as typed and then upper case. A paragraph saved as
+<code>daily</code> can be listed and recalled by typing <code>DAILY</code> and cannot be deleted by
+typing <code>DAILY</code>. <strong>Type the name in the case you saved it in and all three
+work.</strong></p>
+</blockquote>
+<h3 id="editing-the-line-you-are-on">Editing the line you are on<a class="headerlink" href="#editing-the-line-you-are-on" title="Permanent link">#</a></h3>
+<p><strong>There are two help texts and they are different.</strong> <code>?</code> on its own prints the
+key map below; <code>.?</code> prints the dot-command list above. Neither is the <code>help</code>
+verb, which does not exist — see <em>What is not here</em>.</p>
+<p>The key map is the same whether you reached the line by typing it or by
+recalling it:</p>
+<table>
+<thead>
+<tr>
+<th>Key</th>
+<th></th>
+<th>Also</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Ctrl-A</code></td>
+<td>start of line</td>
+<td>Home</td>
+</tr>
+<tr>
+<td><code>Ctrl-E</code></td>
+<td>end of line</td>
+<td>End</td>
+</tr>
+<tr>
+<td><code>Ctrl-B</code> / <code>Ctrl-F</code></td>
+<td>back / forward one character</td>
+<td>Cursor left / right</td>
+</tr>
+<tr>
+<td><code>Ctrl-P</code> / <code>Ctrl-N</code></td>
+<td>previous / next command</td>
+<td>Cursor up / down</td>
+</tr>
+<tr>
+<td><code>Ctrl-Z</code></td>
+<td>previous command</td>
+<td>Cursor up</td>
+</tr>
+<tr>
+<td><code>Ctrl-R</code></td>
+<td>reverse search</td>
+<td></td>
+</tr>
+<tr>
+<td><code>Ctrl-D</code></td>
+<td>delete character</td>
+<td>Delete</td>
+</tr>
+<tr>
+<td><code>Ctrl-H</code></td>
+<td>backspace</td>
+<td>Backspace</td>
+</tr>
+<tr>
+<td><code>Ctrl-K</code></td>
+<td>kill line</td>
+<td></td>
+</tr>
+<tr>
+<td><code>Ctrl-O</code></td>
+<td>toggle overlay</td>
+<td>Insert</td>
+</tr>
+<tr>
+<td><code>Ctrl-T</code></td>
+<td>transpose characters</td>
+<td></td>
+</tr>
+<tr>
+<td><code>Ctrl-U</code></td>
+<td>upcase all</td>
+<td></td>
+</tr>
+<tr>
+<td><code>Ctrl-G</code></td>
+<td>exit the stack</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p><strong>A line ending in <code>?</code> is put on the stack without being run.</strong> That is the way
+to park a half-written command while you go and look something up.</p>
+<h3 id="saving-the-stack-across-sessions">Saving the stack across sessions<a class="headerlink" href="#saving-the-stack-across-sessions" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>save.stack</code></strong> {<em>name</em>}</td>
+<td>write the stack to a named record</td>
+</tr>
+<tr>
+<td><strong><code>get.stack</code></strong> {<em>name</em>}</td>
+<td>read it back</td>
+</tr>
+<tr>
+<td><strong><code>clear.stack</code></strong></td>
+<td>empty it</td>
+</tr>
+</tbody>
+</table>
+<p>Both prompt for the name if you leave it off.</p>
+<h2 id="-variables">@-variables<a class="headerlink" href="#-variables" title="Permanent link">#</a></h2>
+<p><code>set</code> assigns an @-variable, which is then substituted into later command lines
+wherever its name appears.</p>
+<pre><code>set name value
+set name eval expression
+</code></pre>
+<p>Without <code>eval</code> the value is taken literally. With <code>eval</code> the text is evaluated
+first, and the evaluation handles the four arithmetic operators on numeric
+operands. <code>list.vars</code> shows what is currently set.</p>
+<p>The variables the system sets are readable the same way — <code>@system.return.code</code>
+is the one worth knowing, because most verbs set it and <code>report.src</code> exists to
+show it.</p>
+<h2 id="session-verbs">Session verbs<a class="headerlink" href="#session-verbs" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>who</code></strong></td>
+<td>your user number and the account you are in</td>
+</tr>
+<tr>
+<td><strong><code>who.am.i</code></strong></td>
+<td>the same information at more length</td>
+</tr>
+<tr>
+<td><strong><code>logto</code></strong> <em>account</em></td>
+<td>change account without logging out</td>
+</tr>
+<tr>
+<td><strong><code>off</code></strong> · <strong><code>quit</code></strong></td>
+<td>end the session</td>
+</tr>
+<tr>
+<td><strong><code>option</code></strong> {<em>name</em>} {<strong>on</strong>|<strong>off</strong>|<strong>display</strong>}</td>
+<td>set or show a session option</td>
+</tr>
+<tr>
+<td><strong><code>option all off</code></strong></td>
+<td>turn every session option off at once</td>
+</tr>
+<tr>
+<td><strong><code>alias</code></strong> <em>command</em> <em>target</em></td>
+<td>make <em>command</em> run as <em>target</em></td>
+</tr>
+<tr>
+<td><strong><code>alias</code></strong> <em>command</em></td>
+<td>remove that alias</td>
+</tr>
+<tr>
+<td><strong><code>alias</code></strong></td>
+<td>list the aliases</td>
+</tr>
+<tr>
+<td><strong><code>clear.abort</code></strong></td>
+<td>clear a pending abort condition</td>
+</tr>
+<tr>
+<td><strong><code>set.exit.status</code></strong> <em>n</em></td>
+<td>set the numeric status SD exits with</td>
+</tr>
+<tr>
+<td><strong><code>report.src</code></strong> {<strong>on</strong>|<strong>off</strong>}</td>
+<td>show <code>@system.return.code</code> after each command</td>
+</tr>
+</tbody>
+</table>
+<p><code>who</code> answers with your user number and the account you are in:</p>
+<pre><code>39 DON
+</code></pre>
+<p><strong>After a <code>logto</code> it grows a third part, and that is the useful one:</strong></p>
+<pre><code>29 SDSYS from DON
+</code></pre>
+<p><strong><code>from DON</code> is the account you logged in as</strong>, not the one you are in and not
+your Windows account. So the short form means <em>I am still where I started</em> and
+the long form means <em>I have moved</em> — which makes <code>who</code> the quick way to find
+out whether a <code>logto</code> actually took effect.</p>
+<p><strong><code>logto sdsys</code> requires an elevated Windows session in this port.</strong> Entering
+<code>SDSYS</code> is what confers administrator rights, so it is gated on the operating
+system rather than on an SD password, and the elevation obtained by one <code>logto</code>
+is deliberately not carried into the next one. <code>who</code> reports the account you are
+in, which is the quick way to confirm a <code>logto</code> actually happened.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p><strong>There is no online help and <code>help</code> is not a verb.</strong> The command processor
+still has internal verb 14 reserved for it and the routine is an empty stub —
+its body is commented out and it returns immediately. <strong>No VOC record points at
+it</strong>, in any account type, so the name is not even recognised. The F1 key at the
+command prompt reaches the same empty routine and therefore does nothing. <strong>This
+documentation is the help system.</strong></p>
+<p><strong><code>umask</code> is implemented and unreachable.</strong> Internal verb 35 is a working
+routine that reports or sets the file-creation mask, and <strong>no VOC record points
+at it either</strong>. It cannot be typed. <code>umask()</code> from SD BASIC still works — see
+<a href="16-sd-basic-system-and-environment.html">SD Basic - System and Environment</a>.</p>
+<p><strong>PROC is removed.</strong> So are <code>sed</code> and <code>update.record</code>. A <code>PQ</code>-type VOC record
+is <strong>refused by name</strong> rather than being reported as a bad dispatch code,
+because the record itself is valid PROC and it is the interpreter that is gone.
+Nothing that ships is type <code>PQ</code>, so this can only be met in a VOC record
+somebody wrote.</p>
+<p><strong><code>menu</code> records are dispatched but no menu ships.</strong> Type <code>M</code> is handled and
+there is no shipped example to look at.</p>
+<h2 id="who-has-these-verbs">Who has these verbs<a class="headerlink" href="#who-has-these-verbs" title="Permanent link">#</a></h2>
+<p>Everything on this page is in a <strong>standard</strong> account except the last two, which
+are administrator-only:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>standard</strong></td>
+<td><code>abort</code> <code>alias</code> <code>clear.abort</code> <code>clear.stack</code> <code>display</code> <code>get.stack</code> <code>go</code> <code>if</code> <code>list.vars</code> <code>logto</code> <code>off</code> <code>option</code> <code>pause</code> <code>quit</code> <code>report.src</code> <code>save.stack</code> <code>set</code> <code>set.exit.status</code> <code>stop</code> <code>who</code> <code>who.am.i</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Everything on this page is in a standard account.</strong> An account that does not
+have a verb does not have the VOC record for it — the name is simply not
+recognised rather than refused.</p>
+<p><strong>The two <code>OS</code> verbs are the exception and are not documented here.</strong> <code>sh</code> and
+<code>!</code> reach the Windows shell, are administrator-tier, and are gated a second time
+by a list of who may use them. They are in the <strong>administrator documentation</strong>,
+under <em>Operating System Access</em>, which is a separate set.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="20-sd-tcl-files-and-records.html">SD TCL - Files and Records</a> ·
+<a href="02-sd-basic-program-control.html">SD Basic - Program Control</a> ·
+<a href="16-sd-basic-system-and-environment.html">SD Basic - System and Environment</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="19-sd-tcl-command-processor.html"><span class="pn-label">&larr; Previous</span>SD TCL - The Command Processor</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="20-sd-tcl-files-and-records.html"><span class="pn-label">Next &rarr;</span>SD TCL - Files and Records</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

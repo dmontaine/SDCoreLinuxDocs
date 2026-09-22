@@ -1,0 +1,847 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - Dynamic Arrays - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="04a-sd-basic-string-matching.html"><span class="pn-label">&larr; Previous</span>SD Basic - String Matching and Replacing</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="05a-sd-basic-array-operations.html"><span class="pn-label">Next &rarr;</span>SD Basic - Operating on Whole Arrays</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - Dynamic Arrays</h1>
+<p class="tp-subtitle">Fields, values and subvalues - reading, changing and searching the structure that holds every SD record.</p>
+</section>
+
+<main>
+<p>A dynamic array is a string with structure in it. Three mark characters divide
+it into <strong>fields</strong>, <strong>values</strong> and <strong>subvalues</strong>, and every record SD reads or
+writes is one. This page covers the statements and functions that work on that
+structure.</p>
+<p>The functions that treat the same string as plain text are in
+<a href="04-sd-basic-string-functions.html">SD Basic - String Functions</a>; the two pages overlap where a function is used
+both ways, and each says so.</p>
+<p>SD folds case, so a program may be written in either case. Keywords are shown
+here in lower case. In the tables, <em>italics</em> mark something you supply and
+<strong>bold</strong> marks a word typed as it stands; braces mark an optional part.</p>
+<blockquote>
+<p><strong>In the examples below, <code>^</code> stands for a field mark, <code>|</code> for a value mark
+and <code>\</code> for a subvalue mark.</strong></p>
+</blockquote>
+<h2 id="the-marks">The marks<a class="headerlink" href="#the-marks" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Name</th>
+<th>Constant</th>
+<th>Code</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>^</td>
+<td>field mark</td>
+<td><code>@fm</code></td>
+<td>254</td>
+</tr>
+<tr>
+<td>|</td>
+<td>value mark</td>
+<td><code>@vm</code></td>
+<td>253</td>
+</tr>
+<tr>
+<td>\</td>
+<td>subvalue mark</td>
+<td><code>@sm</code></td>
+<td>252</td>
+</tr>
+</tbody>
+</table>
+<p>They nest: a field contains values, a value contains subvalues. There is a
+fourth, <code>@tm</code> (text mark, 251), used by <code>fmt()</code> and by some conversions, and
+<code>@im</code> (item mark, 255), which SD uses internally.</p>
+<pre><code>a = 'f1' : @fm : 'v1' : @vm : 'v2' : @fm : 'f3'
+</code></pre>
+<p>gives <code>f1^v1|v2^f3</code> — three fields, the second of which holds two values.</p>
+<p><strong>The marks are ordinary characters and they are counted.</strong>
+<code>len(a)</code> is <code>11</code> for the array above — eight data characters and three marks.
+Everything in <a href="04-sd-basic-string-functions.html">SD Basic - String Functions</a> sees them.</p>
+<pre><code>dcount(string, delimiter)
+</code></pre>
+<p>counts the pieces a delimiter divides a string into. On the array
+above, <code>dcount(a, @fm)</code> is <code>3</code> and <code>dcount(a&lt;2&gt;, @vm)</code> is <code>2</code>.</p>
+<blockquote>
+<p><strong><code>dcount()</code> of an empty string is <code>0</code>, not <code>1</code>.</strong> That is what makes
+<code>for i = 1 to dcount(rec, @fm)</code> correct — an empty record does nothing.</p>
+</blockquote>
+<h2 id="reading-a-piece">Reading a piece<a class="headerlink" href="#reading-a-piece" title="Permanent link">#</a></h2>
+<pre><code>array&lt;field {, value {, subvalue}}&gt;
+extract(array, field {, value {, subvalue}})
+</code></pre>
+<p>The angle-bracket form and <code>extract()</code> are the same operation.</p>
+<table>
+<thead>
+<tr>
+<th>Expression on <code>f1^v1\|v2^f3</code></th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>a&lt;2&gt;</code></td>
+<td><code>v1\|v2</code> — the whole field, marks and all</td>
+</tr>
+<tr>
+<td><code>a&lt;2,2&gt;</code></td>
+<td><code>v2</code></td>
+</tr>
+<tr>
+<td><code>a&lt;2,1,1&gt;</code></td>
+<td><code>v1</code></td>
+</tr>
+<tr>
+<td><code>extract(a, 2, 1)</code></td>
+<td><code>v1</code></td>
+</tr>
+<tr>
+<td><code>a&lt;9&gt;</code></td>
+<td><em>empty</em></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reading past the end is not an error.</strong> <code>a&lt;9&gt;</code> on a three-field array
+returns the null string, exactly as a genuinely empty field would. <strong>There is
+no way to tell "field 9 is empty" from "there is no field 9"</strong> — use
+<code>dcount()</code> if the difference matters.</p>
+<p>Asking for a value of a field that has none returns the whole field: <code>a&lt;1,1&gt;</code>
+is <code>f1</code>.</p>
+<h2 id="changing-a-piece">Changing a piece<a class="headerlink" href="#changing-a-piece" title="Permanent link">#</a></h2>
+<pre><code>array&lt;field {, value {, subvalue}}&gt; = expression
+replace(array, field, value, subvalue, expression)
+insert(array, field, value, subvalue, expression)
+delete(array, field {, value {, subvalue}})
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Expression on <code>f1^v1\|v2^f3</code></th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>b&lt;2,2&gt; = 'NEW'</code></td>
+<td><code>f1^v1\|NEW^f3</code></td>
+</tr>
+<tr>
+<td><code>replace(a, 2, 2, 0, 'R')</code></td>
+<td><code>f1^v1\|R^f3</code></td>
+</tr>
+<tr>
+<td><code>insert(a, 2, 2, 0, 'I')</code></td>
+<td><code>f1^v1\|I\|v2^f3</code> — pushes the rest along</td>
+</tr>
+<tr>
+<td><code>delete(a, 2, 1)</code></td>
+<td><code>f1^v2^f3</code> — removes one value</td>
+</tr>
+<tr>
+<td><code>delete(a, 2)</code></td>
+<td><code>f1^f3</code> — removes the whole field</td>
+</tr>
+</tbody>
+</table>
+<p>The assignment form is what almost all code uses. <code>replace()</code> and <code>insert()</code>
+exist for when you need the result as an expression rather than assigned back.</p>
+<blockquote>
+<p><strong><code>replace()</code> and <code>insert()</code> count their arguments greedily, and the short
+forms need a semicolon.</strong> <code>replace(a, 2, 2, 'R')</code> <strong>does not compile</strong> — the
+parser takes <code>2</code> as the value, <code>'R'</code> as the subvalue, and then demands the
+replacement string it never got. Either give all five arguments, or separate
+the final one with a semicolon.</p>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>replace(a, 2, 2, 0, 'R')</code></td>
+<td><code>f1^v1\|R^f3</code></td>
+</tr>
+<tr>
+<td><code>replace(a, 2; 'S')</code></td>
+<td><code>f1^S^f3</code> — replaces the whole field</td>
+</tr>
+<tr>
+<td><code>replace(a, 2, 2; 'T')</code></td>
+<td><code>f1^v1\|T^f3</code></td>
+</tr>
+<tr>
+<td><code>replace(a, 2, 2, 'R')</code></td>
+<td><strong>compile error</strong></td>
+</tr>
+</tbody>
+</table>
+</blockquote>
+<h3 id="appending">Appending<a class="headerlink" href="#appending" title="Permanent link">#</a></h3>
+<p>A subscript of <code>-1</code> appends:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>b&lt;-1&gt; = 'APP'</code></td>
+<td><code>f1^v1\|v2^f3^APP</code> — a new field at the end</td>
+</tr>
+<tr>
+<td><code>b&lt;2,-1&gt; = 'AV'</code></td>
+<td><code>f1^v1\|v2\|AV^f3</code> — a new value in field 2</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Writing past the end pads with empty fields rather than failing.</strong>
+<code>insert(a, 9, 0, 0, 'FAR')</code> on a three-field array gives
+<code>f1^v1|v2^f3^^^^^^FAR</code> — five empty fields appear to fill the gap. A loop with
+an off-by-one index therefore grows the record silently instead of raising
+anything.</p>
+<h3 id="the-statement-forms">The statement forms<a class="headerlink" href="#the-statement-forms" title="Permanent link">#</a></h3>
+<pre><code>del array&lt;field {, value {, subvalue}}&gt;
+ins string before array&lt;field {, value {, subvalue}}&gt;
+</code></pre>
+<p><code>del</code> and <code>ins</code> change the variable in place. <code>del b&lt;2&gt;</code> gives
+<code>f1^f3</code>, and <code>ins 'X' before b&lt;2&gt;</code> gives <code>f1^X^v1|v2^f3</code>.</p>
+<h2 id="searching">Searching<a class="headerlink" href="#searching" title="Permanent link">#</a></h2>
+<h3 id="locate"><code>locate</code><a class="headerlink" href="#locate" title="Permanent link">#</a></h3>
+<pre><code>locate expression in array&lt;field {, value {, subvalue}}&gt; {by order} setting variable
+   then statements
+else statements
+
+locate(expression, array, field {, value {, subvalue}})
+</code></pre>
+<p><code>locate</code> finds a whole element and reports its position. When it does not find
+one, <code>setting</code> receives <strong>the position where it would be inserted</strong> to keep the
+order — which is what makes it the standard way to add to a sorted list.</p>
+<p><strong>The number of subscripts chooses the level searched. this is the thing
+people get wrong.</strong> With <code>vals</code> holding <code>apple|cherry|damson</code> as
+three values in one field:</p>
+<table>
+<thead>
+<tr>
+<th>Statement</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>locate 'cherry' in vals&lt;1&gt; setting p</code></td>
+<td><strong>miss</strong>, insert at 2</td>
+</tr>
+<tr>
+<td><code>locate 'cherry' in vals&lt;1,1&gt; setting p</code></td>
+<td><strong>found at 2</strong></td>
+</tr>
+</tbody>
+</table>
+<p><code>array&lt;f&gt;</code> searches the <strong>fields</strong>, starting at field <em>f</em>. <code>array&lt;f,v&gt;</code>
+searches the <strong>values of field f</strong>, starting at value <em>v</em>. <code>array&lt;f,v,s&gt;</code>
+searches subvalues. So a single subscript on an array of values finds nothing,
+silently, and reports an insertion point — which looks like a working search
+right up until the data has two fields.</p>
+<p><strong>The statement form requires the angle brackets.</strong> <code>locate 'x' in vals setting
+p</code> does not compile: <em>"Field reference not found where expected"</em>.</p>
+<p>The starting subscript really does start there. With
+<code>vals&lt;1,2&gt;</code>, <code>locate 'apple'</code> — which is value 1 — <strong>misses</strong>, and reports an
+insertion point of 4.</p>
+<p>The function form takes the position as arguments instead, and returns the
+position or zero:</p>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>locate('cherry', vals, 1)</code></td>
+<td><code>0</code> — searched fields</td>
+</tr>
+<tr>
+<td><code>locate('cherry', vals, 1, 1)</code></td>
+<td><code>2</code> — searched values</td>
+</tr>
+<tr>
+<td><code>locate('zebra', vals, 1, 1)</code></td>
+<td><code>0</code></td>
+</tr>
+</tbody>
+</table>
+<h3 id="order-codes">Order codes<a class="headerlink" href="#order-codes" title="Permanent link">#</a></h3>
+<p>Without <code>by</code>, <code>locate</code> scans the whole list and the insertion point is the end.
+With <code>by</code>, it assumes the list is already sorted that way, stops as soon as it
+passes the place the value would go, and reports that place.</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Order</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>al</strong></td>
+<td>ascending, left-justified — ordinary text order</td>
+</tr>
+<tr>
+<td><strong>ar</strong></td>
+<td>ascending, right-justified — numbers compare as numbers</td>
+</tr>
+<tr>
+<td><strong>dl</strong></td>
+<td>descending, left-justified</td>
+</tr>
+<tr>
+<td><strong>dr</strong></td>
+<td>descending, right-justified</td>
+</tr>
+</tbody>
+</table>
+<p>For <code>apple|cherry|damson</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Search</th>
+<th>Insert at</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>'aardvark' by 'al'</code></td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>'banana' by 'al'</code></td>
+<td><code>2</code></td>
+</tr>
+<tr>
+<td><code>'zebra' by 'al'</code></td>
+<td><code>4</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>And the justification is not a detail.</strong> For the values <code>2</code>, <code>10</code>,
+<code>30</code>, looking for <code>9</code>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Insert at</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>by 'al'</code></td>
+<td><strong>4</strong> — as text, <code>9</code> sorts after <code>30</code></td>
+</tr>
+<tr>
+<td><code>by 'ar'</code></td>
+<td><strong>2</strong> — as numbers, between <code>2</code> and <code>10</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Use <code>ar</code> for anything numeric.</strong> <code>al</code> on numbers produces a list that looks
+sorted in short test data and comes apart at ten items.</p>
+<p><code>by</code> on a list that is <em>not</em> actually sorted that way stops early and reports a
+miss for a value that is present.</p>
+<h3 id="find-and-findstr"><code>find</code> and <code>findstr</code><a class="headerlink" href="#find-and-findstr" title="Permanent link">#</a></h3>
+<pre><code>find string in array {, occurrence} setting field {, value {, subvalue}}
+findstr string in array {, occurrence} setting field {, value {, subvalue}}
+</code></pre>
+<p><code>find</code> matches a <strong>whole element</strong>; <code>findstr</code> matches <strong>any element containing
+the string</strong>. Both report the position as separate field, value and subvalue
+numbers rather than one index.</p>
+<p>For <code>p^q|r</code>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>find 'r' in d setting f, v, s</code></td>
+<td>field 2, value 2, subvalue 1</td>
+</tr>
+<tr>
+<td><code>findstr 'q' in d setting f, v</code></td>
+<td>field 2, value 1</td>
+</tr>
+</tbody>
+</table>
+<h2 id="continued-in">Continued in<a class="headerlink" href="#continued-in" title="Permanent link">#</a></h2>
+<p><a href="05a-sd-basic-array-operations.html">SD Basic - Operating on Whole Arrays</a> —
+walking an array, mark levels, the s functions, logical functions, sorting and
+mark mapping.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="04a-sd-basic-string-matching.html"><span class="pn-label">&larr; Previous</span>SD Basic - String Matching and Replacing</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="05a-sd-basic-array-operations.html"><span class="pn-label">Next &rarr;</span>SD Basic - Operating on Whole Arrays</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD TCL - Printing and Spooling - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="27-sd-tcl-micro.html"><span class="pn-label">&larr; Previous</span>SD TCL - The micro Screen Editor</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="29-sd-tcl-the-terminal-and-the-session.html"><span class="pn-label">Next &rarr;</span>SD TCL - The Terminal and the Session</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD TCL - Printing and Spooling</h1>
+<p class="tp-subtitle">Print units at the command prompt, keeping a job open, and capturing a session instead of printing it.</p>
+</section>
+
+<main>
+<p>Printing is set up at the prompt and used from a program. <strong>This page is the
+prompt half</strong>: the verbs that point a print unit somewhere, hold it open, and
+capture what a session displays. The statements a program uses — <code>print on</code>,
+<code>heading</code>, <code>printer file</code> — are in
+<a href="13-sd-basic-printing.html">SD Basic - Printing</a>, and nothing here repeats them.</p>
+<p>SD folds case, so a command may be typed in either case. Commands are shown here
+in lower case. In the tables, <em>italics</em> mark something you supply and <strong>bold</strong>
+something you type as it stands.</p>
+<h2 id="print-units-and-where-they-point">Print units, and where they point<a class="headerlink" href="#print-units-and-where-they-point" title="Permanent link">#</a></h2>
+<p><strong>Unit 0 is the terminal.</strong> Every other unit is somewhere you have sent it.
+<strong><code>setptr</code></strong> is how you look and how you set:</p>
+<pre><code>:setptr display
+Unit Width Depth Tmgn Bmgn Mode Options
+   0    80    66    0    0    1 
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Column</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Unit</strong></td>
+<td>the print unit number a program names in <code>print on n</code></td>
+</tr>
+<tr>
+<td><strong>Width</strong>, <strong>Depth</strong></td>
+<td>the page, in characters and lines</td>
+</tr>
+<tr>
+<td><strong>Tmgn</strong>, <strong>Bmgn</strong></td>
+<td>top and bottom margins, in lines</td>
+</tr>
+<tr>
+<td><strong>Mode</strong></td>
+<td>what the unit does with the output</td>
+</tr>
+<tr>
+<td><strong>Options</strong></td>
+<td>everything else that has been set on the unit</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The depth is 66 and the terminal is not 66 lines.</strong> Unit 0's page is a
+printed page, not your screen — it is the size a report is paginated to when it
+goes to a printer. The screen's own size is <strong><code>term</code></strong>, which is a different
+setting on a different page:
+<a href="29-sd-tcl-the-terminal-and-the-session.html">SD TCL - The Terminal and the Session</a>.</p>
+<h2 id="setting-a-unit">Setting a unit<a class="headerlink" href="#setting-a-unit" title="Permanent link">#</a></h2>
+<pre><code>setptr unit, width, depth, top.margin, bottom.margin, mode {, options}
+setptr default, width, depth, top.margin, bottom.margin, mode {, options}
+setptr display
+setptr unit, display
+</code></pre>
+<p>The positional arguments are all optional — <code>setptr 1,,,,,3</code> sets only the mode
+of unit 1 — and <strong><code>nodefault</code></strong> keeps the values you did not name rather than
+resetting them.</p>
+<blockquote>
+<p><strong><code>setptr</code> asks before it changes a unit, and <code>brief</code> is how you stop it.</strong>
+That confirmation is a prompt, so a <code>setptr</code> inside a phantom, a script or an
+API session <strong>hangs waiting for an answer nobody is there to give</strong>. Give it
+<code>brief</code> in anything that is not a person at a keyboard.</p>
+</blockquote>
+<p>The options are many and most are printer-specific. The ones worth knowing at
+the prompt:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>as</code></strong> <em>name</em>, <strong><code>as pathname</code></strong> <em>path</em></td>
+<td>the name or path a mode 3 unit writes to</td>
+</tr>
+<tr>
+<td><strong><code>at</code></strong> <em>printer</em></td>
+<td>the Windows printer to send to</td>
+</tr>
+<tr>
+<td><strong><code>brief</code></strong></td>
+<td>suppress the confirmation prompt</td>
+</tr>
+<tr>
+<td><strong><code>keep.open</code></strong></td>
+<td>hold the unit open between jobs — see below</td>
+</tr>
+<tr>
+<td><strong><code>copies</code></strong> <em>n</em>, <strong><code>landscape</code></strong>, <strong><code>portrait</code></strong>, <strong><code>duplex</code></strong></td>
+<td>passed to the Windows spooler</td>
+</tr>
+<tr>
+<td><strong><code>newline cr</code></strong> | <strong><code>lf</code></strong> | <strong><code>crlf</code></strong></td>
+<td>the line ending written</td>
+</tr>
+<tr>
+<td><strong><code>nfmt</code></strong></td>
+<td>send the data with no formatting at all</td>
+</tr>
+<tr>
+<td><strong><code>style</code></strong> <em>name</em></td>
+<td>apply a report style</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>paper.size</code>, <code>cpi</code>, <code>pcl</code>, <code>symbol.set</code>, <code>weight</code> and <code>overlay</code></strong> are the
+printer-formatting set and behave as they always did.</p>
+<h2 id="the-same-settings-in-keywords-printer">The same settings in keywords: <code>printer</code><a class="headerlink" href="#the-same-settings-in-keywords-printer" title="Permanent link">#</a></h2>
+<pre><code>printer {unit} query                    report one unit
+printer {unit} at printer.name          send it to a Windows printer
+printer {unit} file file.name record    send it to a record
+printer {unit} width n | lines n        the page
+printer {unit} top.margin n | bottom.margin n | left.margin n
+printer {unit} keep.open | close
+printer {unit} reset                    back to the defaults
+</code></pre>
+<p><strong><code>printer</code> does the same job as <code>setptr</code> and does not ask first.</strong> That is
+the reason to know it exists: <code>setptr</code> confirms before it changes a unit unless
+you remember <code>brief</code>, and <code>printer</code> has no confirmation at all. <strong>It is the form
+to use from a phantom, a script or an API session.</strong></p>
+<p>More than one keyword may be given, in any order. The unit number comes before
+the keywords and <strong>defaults to 0</strong>, the terminal.</p>
+<p><strong><code>query</code> is the per-unit report</strong>, and it names things <code>setptr display</code>'s
+columns do not:</p>
+<pre><code>:printer query
+PRINT UNIT 0
+   Page width     : 80
+   Lines per page : 66
+   Top margin     : 0
+   Bottom margin  : 0
+   Left margin    : 0
+   Mode           : 1
+   Printer        : (Default)
+</code></pre>
+<pre><code>:printer 1 query
+PRINT UNIT 1
+   Page width     : 80
+   Lines per page : 66
+   Top margin     : 0
+   Bottom margin  : 0
+   Left margin    : 0
+   Mode           : 3
+   Target         : $hold P1
+</code></pre>
+<p><strong>The last line names the destination, and its wording tells you whether one has
+been set:</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Printer        : (Default)</code></td>
+<td>mode 1, no printer named — the Windows default</td>
+</tr>
+<tr>
+<td><code>Printer        :</code><em>name</em></td>
+<td>mode 1, that Windows printer</td>
+</tr>
+<tr>
+<td><code>Target         : $hold P</code><em>n</em></td>
+<td>mode 3, nothing named — the unit's own hold record</td>
+</tr>
+<tr>
+<td><code>Pathname       :</code><em>path</em></td>
+<td>mode 3, that destination</td>
+</tr>
+</tbody>
+</table>
+<p><code>setptr display</code> shows none of this; it is a table of numbers.</p>
+<p>Setting and putting back in one session — the two <code>query</code> reports are cut to
+the lines that moved:</p>
+<pre><code>:printer 1 width 132 lines 60
+:printer 1 query
+   Page width     : 132
+   Lines per page : 60
+:printer 1 reset
+:printer 1 query
+   Page width     : 80
+   Lines per page : 66
+</code></pre>
+<p><strong>Nothing is printed on the way through</strong> — the settings are the report, and
+<code>query</code> is how you see them. <code>reset</code> puts width, depth and all three margins
+back to their defaults <strong>and clears the destination as well</strong>: the printer name
+on unit 0, the file and record on any other unit. <em>(Unit 1 above had no
+destination set either side of the reset, so its last line reads <code>Target</code> both
+times — that is the wording for "nothing named", not evidence that <code>reset</code> left
+it alone.)</em></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Invalid print unit number</em></td>
+<td><code>printer</code> with nothing after it, or a unit outside the range</td>
+</tr>
+<tr>
+<td><em>Unexpected token (%1)</em></td>
+<td>a keyword it does not know</td>
+</tr>
+<tr>
+<td><em>Printer name not recognised</em></td>
+<td><code>at</code> with a name Windows does not have</td>
+</tr>
+</tbody>
+</table>
+<h2 id="holding-a-unit-open">Holding a unit open<a class="headerlink" href="#holding-a-unit-open" title="Permanent link">#</a></h2>
+<pre><code>sp.open
+sp.close
+</code></pre>
+<p>By default a unit finishes its job and releases when the program closes it, so
+two reports become two print jobs. <strong><code>sp.open</code></strong> sets the keep-open flag so they
+become one; <strong><code>sp.close</code></strong> clears it again. The flag shows up in <code>setptr</code>'s
+Options column, which is the way to check it took:</p>
+<pre><code>:setptr display
+   0    80    66    0    0    1 
+:sp.open
+:setptr display
+   0    80    66    0    0    1 KEEP.OPEN
+:sp.close
+:setptr display
+   0    80    66    0    0    1 
+</code></pre>
+<p><strong>Neither verb prints anything.</strong> The Options column is the only report you get,
+and it is worth looking at — a keep-open flag left set is why a report
+occasionally arrives stapled to the one before it.</p>
+<h2 id="printing-records">Printing records<a class="headerlink" href="#printing-records" title="Permanent link">#</a></h2>
+<pre><code>spool file.name record.id... {lines n m} {lnum} {lptr n}
+</code></pre>
+<p><strong>With no ids it prints select list 0</strong>, so the usual shape is a <code>select</code>
+followed by a <code>spool</code>. With no file name at all it refuses rather than guessing:</p>
+<pre><code>:spool
+File name required
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>lines</code></strong> <em>n</em> <em>m</em></td>
+<td>print only lines <em>n</em> to <em>m</em> of each record</td>
+</tr>
+<tr>
+<td><strong><code>lnum</code></strong></td>
+<td>number the lines</td>
+</tr>
+<tr>
+<td><strong><code>lptr</code></strong> <em>n</em></td>
+<td>send to print unit <em>n</em> rather than the default</td>
+</tr>
+</tbody>
+</table>
+<h2 id="looking-at-what-is-queued">Looking at what is queued<a class="headerlink" href="#looking-at-what-is-queued" title="Permanent link">#</a></h2>
+<p><strong><code>sp.view</code></strong> shows the records in <code>$hold</code> and offers to print them.</p>
+<p><strong>It is a full-screen form and cannot be driven down a pipe.</strong> It asks for a
+printer number, then whether to print, then a confirmation — three prompts, so a
+script that runs it stops and waits. Like the screen editors, it wants a person
+at a terminal. Everything on this page except <code>sp.view</code> can be scripted.</p>
+<p><code>$hold</code> is an ordinary directory file in the account, so a script that needs to
+work with held reports can read it with <code>select</code>, <code>list</code> and <code>spool</code> instead.</p>
+<h2 id="capturing-a-session-instead-of-printing-it">Capturing a session instead of printing it<a class="headerlink" href="#capturing-a-session-instead-of-printing-it" title="Permanent link">#</a></h2>
+<pre><code>como on record.name
+como off
+</code></pre>
+<p><strong><code>como</code> writes everything the session displays into a record</strong> in the <code>$como</code>
+file, which it creates in the account the first time you use it. End to end:</p>
+<pre><code>:como on zzcomo
+COMO file activated to zzcomo
+:who
+11 DON
+:date
+Thursday, 27 August 2026  01:13pm
+:como off
+COMO file deactivated
+</code></pre>
+<p>and the record afterwards:</p>
+<pre><code>:ct $como zzcomo
+$como zzcomo
+1: COMO file activated to zzcomo
+2: 
+3: 11 DON
+4: 
+5: Thursday, 27 August 2026  01:13pm
+6: 
+</code></pre>
+<p><strong>It captures the prompts and the echoes, not just the output.</strong> The record is
+a transcript of the session, which is what makes it useful for showing somebody
+what you did — and it means a COMO of a long run is larger than the output
+alone. <strong><code>como off</code> is captured too</strong>, as the last thing before the file closes.</p>
+<p>To capture one command rather than a whole session, <code>execute ... capturing</code> in a
+program is the better tool — see
+<a href="02-sd-basic-program-control.html">SD Basic - Program Control</a>.</p>
+<h2 id="report-styles">Report styles<a class="headerlink" href="#report-styles" title="Permanent link">#</a></h2>
+<pre><code>report.style
+report.style name
+report.style off
+</code></pre>
+<p>A report style is a stored set of print settings applied by name. With no
+argument the verb says what the default is:</p>
+<pre><code>:report.style
+No default report style has been set
+</code></pre>
+<p>which is what a fresh account reports. <strong><code>off</code></strong> clears it again.</p>
+<h2 id="printing-on-this-port">Printing on this port<a class="headerlink" href="#printing-on-this-port" title="Permanent link">#</a></h2>
+<p><strong>A named printer is a Windows printer</strong>, and printing goes to the Windows
+spooler rather than to a POSIX print command. There is no <code>lp</code> and no PostScript
+pipeline. The consequences for a report that assumed either are set out in
+<a href="13-sd-basic-printing.html#printing-on-this-port">SD Basic - Printing</a>, and they
+apply the same way to a unit set up with <code>setptr</code>.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="13-sd-basic-printing.html">SD Basic - Printing</a> ·
+<a href="29-sd-tcl-the-terminal-and-the-session.html">SD TCL - The Terminal and the Session</a> ·
+<a href="21-sd-tcl-query-processor.html">SD TCL - The Query Processor</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="27-sd-tcl-micro.html"><span class="pn-label">&larr; Previous</span>SD TCL - The micro Screen Editor</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="29-sd-tcl-the-terminal-and-the-session.html"><span class="pn-label">Next &rarr;</span>SD TCL - The Terminal and the Session</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

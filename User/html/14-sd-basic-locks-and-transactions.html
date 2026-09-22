@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - Locks and Transactions - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="13-sd-basic-printing.html"><span class="pn-label">&larr; Previous</span>SD Basic - Printing</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="15-sd-basic-sockets.html"><span class="pn-label">Next &rarr;</span>SD Basic - Sockets</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - Locks and Transactions</h1>
+<p class="tp-subtitle">Keeping two sessions out of each other&#x27;s way, and making several writes all-or-nothing.</p>
+</section>
+
+<main>
+<p>Everything on this page exists because more than one session can be running at
+once. A single-user program never needs any of it; the moment a second person
+runs the same program, all of it matters.</p>
+<p><a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> introduces <code>readu</code>
+and the <code>locked</code> clause. This page is the whole picture: what each lock code
+means, what the other session sees, what waits and for how long, and what a
+transaction does to all of it.</p>
+<p>SD folds case, so a program may be written in either case. Keywords are shown
+here in lower case. In the tables, <em>italics</em> mark something you supply and
+<strong>bold</strong> marks a word typed as it stands; braces mark an optional part.</p>
+<h2 id="the-three-kinds-of-lock">The three kinds of lock<a class="headerlink" href="#the-three-kinds-of-lock" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>record lock</strong></td>
+<td>one record of one file. <code>readu</code>, <code>readl</code>, <code>recordlocku</code>, <code>recordlockl</code></td>
+</tr>
+<tr>
+<td><strong>file lock</strong></td>
+<td>every record of one file, including ones that do not exist yet. <code>filelock</code></td>
+</tr>
+<tr>
+<td><strong>task lock</strong></td>
+<td>one of 64 numbered semaphores that mean whatever you decide. <code>lock</code>, <code>unlock</code></td>
+</tr>
+</tbody>
+</table>
+<p>All three belong to the <strong>session</strong>, not to the program, and all three are
+released when the session ends.</p>
+<h2 id="record-locks">Record locks<a class="headerlink" href="#record-locks" title="Permanent link">#</a></h2>
+<pre><code>readu variable from file.variable, record.id {locked ...} then ... else ...
+readl variable from file.variable, record.id {locked ...} then ... else ...
+recordlocku file.variable, record.id {locked ...}
+recordlockl file.variable, record.id {locked ...}
+release {file.variable {, record.id}}
+</code></pre>
+<p><code>readu</code> takes an <strong>update</strong> lock, <code>readl</code> a <strong>shared read</strong> lock.
+<code>recordlocku</code> and <code>recordlockl</code> take the same two locks without reading the
+record — useful when you are about to create one.</p>
+<p><code>release</code> with a file variable and a record id gives back one lock, with just a
+file variable every lock on that file, and with <strong>no arguments at all</strong> every
+lock the session holds.</p>
+<p><strong>A <code>write</code> outside a transaction releases the lock; inside one it keeps
+it.</strong> On the same record in the same program:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>recordlocked()</code> after</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>readu</code> then <code>write</code>, no transaction</td>
+<td><strong>0</strong> — the lock is gone</td>
+</tr>
+<tr>
+<td><code>readu</code> then <code>write</code>, inside a transaction</td>
+<td><strong>2</strong> — still held</td>
+</tr>
+</tbody>
+</table>
+<p>That is the single most useful fact about the two. Outside a transaction the
+read-modify-write cycle ends when you write. Inside one, it ends when the
+transaction does.</p>
+<h2 id="recordlocked-what-every-return-value-means">RECORDLOCKED() — what every return value means<a class="headerlink" href="#recordlocked-what-every-return-value-means" title="Permanent link">#</a></h2>
+<pre><code>recordlocked(file.variable, record.id)
+</code></pre>
+<p>Every one of the seven codes below was produced deliberately, three of them by
+a second session holding the lock:</p>
+<table>
+<thead>
+<tr>
+<th>Code</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>-3</strong></td>
+<td>another session holds a <strong>file lock</strong> on this file</td>
+</tr>
+<tr>
+<td><strong>-2</strong></td>
+<td>another session holds an <strong>update</strong> lock on this record</td>
+</tr>
+<tr>
+<td><strong>-1</strong></td>
+<td>another session holds a <strong>read</strong> lock on this record</td>
+</tr>
+<tr>
+<td><strong>0</strong></td>
+<td>nobody holds a lock on it</td>
+</tr>
+<tr>
+<td><strong>1</strong></td>
+<td><strong>this</strong> session holds a read lock</td>
+</tr>
+<tr>
+<td><strong>2</strong></td>
+<td><strong>this</strong> session holds an update lock</td>
+</tr>
+<tr>
+<td><strong>3</strong></td>
+<td><strong>this</strong> session holds a file lock</td>
+</tr>
+</tbody>
+</table>
+<p><strong>And <code>status()</code> after it is the other session's user number.</strong> This is not
+written down anywhere else and it is the only way to find out <em>who</em> is holding
+the record. With the holder running as user 73 and the asker as user 74:</p>
+<pre><code>if recordlocked(f, id) &lt; 0 then
+   crt 'Record ' : id : ' is held by user ' : status()
+end
+</code></pre>
+<p><code>status()</code> read <strong>73</strong> after <code>recordlocked()</code>, after a refused <code>readu</code>, after a
+refused <code>readl</code>, after a refused <code>filelock</code> and after a refused <code>lock</code> — the
+same number every time. A positive code is your own lock and needs no enquiry.</p>
+<p><strong>A negative code is a snapshot, not a promise.</strong> The other session may release
+between your test and your read. <code>recordlocked()</code> is for reporting; the
+<code>locked</code> clause is for deciding.</p>
+<h2 id="the-locked-clause-and-what-happens-without-one">The <code>locked</code> clause, and what happens without one<a class="headerlink" href="#the-locked-clause-and-what-happens-without-one" title="Permanent link">#</a></h2>
+<pre><code>readu rec from f, id locked
+   crt 'Someone else is editing that record.'
+   return
+end then
+   ...
+end else
+   ...
+end
+</code></pre>
+<p><strong>Without a <code>locked</code> clause, a conflicting read waits — and it really does
+wait.</strong> Across two sessions, the second session's plain <code>readu</code> against a
+record the first is holding <strong>blocks for 252 ms</strong> and returns the instant the
+holder releases it, with <code>recordlocked()</code> then reading <code>2</code>. It does
+not fail, it does not time out, and there is no message. SD retries every 250
+milliseconds, which is where that figure comes from.</p>
+<p>A program without a <code>locked</code> clause is a program that can sit silently for as
+long as somebody else keeps a record open. <strong>Any interactive read-for-update
+should have one.</strong></p>
+<p>With one session holding an update lock on <code>R1</code>:</p>
+<table>
+<thead>
+<tr>
+<th>the second session tried</th>
+<th>result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>readu ... 'R1' locked</code></td>
+<td>the <strong><code>locked</code></strong> branch, <code>status()</code> 73</td>
+</tr>
+<tr>
+<td><code>readl ... 'R1' locked</code></td>
+<td>the <strong><code>locked</code></strong> branch, <code>status()</code> 73</td>
+</tr>
+<tr>
+<td><code>readu ... 'R2' locked</code></td>
+<td>succeeded — a different record is unaffected</td>
+</tr>
+<tr>
+<td>plain <code>readu ... 'R1'</code></td>
+<td>waited 252 ms, then got the lock</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A read lock is not a free pass.</strong> <code>readl</code> is refused against another
+session's update lock, and <code>readu</code> is refused against another session's read
+lock. Two <code>readl</code> locks on the same record <strong>do</strong> coexist: both sessions hold
+one at once and each sees its own as <code>1</code>. When the second releases its own,
+<code>recordlocked()</code> goes back to <strong>-1</strong> — the first session's lock is still
+there. The code reports the lock that matters to you, not a count.</p>
+<h2 id="file-locks">File locks<a class="headerlink" href="#file-locks" title="Permanent link">#</a></h2>
+<pre><code>filelock file.variable {locked ...} {on error ...}
+fileunlock file.variable
+</code></pre>
+<p><strong><code>filelock</code> has no <code>then</code> or <code>else</code> clause, so success is invisible.</strong> It
+takes only <code>locked</code> and <code>on error</code>. If you need to know whether you got it, set
+a flag in the <code>locked</code> branch, or ask <code>recordlocked()</code> — a <code>3</code> means the file
+lock is yours:</p>
+<pre><code>blocked = @false
+filelock f locked
+   blocked = @true
+end
+if not(blocked) then
+   ...
+   fileunlock f
+end
+</code></pre>
+<p><strong>Forgetting the <code>fileunlock</code> deadlocks other sessions</strong>, including the one that
+is waiting to tell you it has finished. A rendezvous record written into a file
+you have locked is a rendezvous that never happens.</p>
+<p>With one session holding a file lock:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>recordlocked(f, 'R1')</code> from the other session</td>
+<td><strong>-3</strong>, <code>status()</code> the owner</td>
+</tr>
+<tr>
+<td><code>recordlocked(f, 'R2')</code></td>
+<td><strong>-3</strong> as well — <strong>every</strong> record, not the one you locked</td>
+</tr>
+<tr>
+<td><code>readu ... locked</code> on any record</td>
+<td>the <strong><code>locked</code></strong> branch</td>
+</tr>
+<tr>
+<td>a plain <code>read</code></td>
+<td><strong>succeeded</strong> — <code>[beta]</code> came back normally</td>
+</tr>
+<tr>
+<td>one record already locked by somebody else</td>
+<td><code>filelock</code> took the <strong><code>locked</code></strong> branch</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A file lock stops locking, not reading.</strong> That surprises people. Other
+sessions can still read every record in the file while you hold it; what they
+cannot do is take a lock, and therefore cannot write.</p>
+<h2 id="task-locks">Task locks<a class="headerlink" href="#task-locks" title="Permanent link">#</a></h2>
+<pre><code>lock n then ... else ...
+unlock n
+</code></pre>
+<p>There are <strong>64</strong> of them, numbered 0 to 63, and SD attaches no meaning to any
+of them. They are for serialising something that is not a record — a nightly
+report, a printer, an external file.</p>
+<p><strong>A <code>lock</code> with no <code>else</code> clause retries for ever.</strong> The compiler generates
+one for you, and what it generates is <code>sleep 1</code> followed by a jump back to the
+<code>lock</code> — so a bare <code>lock 7</code> in a program whose lock somebody else holds is an
+infinite loop with a one second period and no output. Write the <code>else</code>.</p>
+<p>With one session holding task lock 7:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>lock 7</code> in the other session</td>
+<td>the <strong><code>else</code></strong> branch, <code>status()</code> <strong>73</strong> — the holder's user number</td>
+</tr>
+<tr>
+<td><code>lock 8</code></td>
+<td>the <strong><code>then</code></strong> branch, <code>status()</code> 0</td>
+</tr>
+</tbody>
+</table>
+<p>So the <code>else</code> branch tells you who has it, exactly as the record lock enquiry
+does.</p>
+<p><strong>Taking a lock you already hold succeeds, and a task lock is not a counter</strong> —
+one <code>unlock</code> releases it however many times you locked it. The ownership test
+is <em>"unowned or mine"</em>, and <code>unlock</code> clears the slot outright.</p>
+<p><code>testlock()</code> would answer <em>"who owns lock n"</em> without taking it, and
+<strong>it is not available to an ordinary program</strong> — see "What is not here"
+below.</p>
+<h2 id="transactions">Transactions<a class="headerlink" href="#transactions" title="Permanent link">#</a></h2>
+<pre><code>begin transaction
+   ...
+   commit
+   ...
+   rollback
+end transaction
+</code></pre>
+<p>or, the same thing in the other spelling:</p>
+<pre><code>transaction start
+   ...
+transaction commit
+transaction abort
+</code></pre>
+<p>Everything written between the start and the <code>commit</code> lands together or not at
+all.</p>
+<p><strong>Inside a transaction you must already hold the lock on every record you
+write or delete.</strong> This is the rule that catches everybody, and the error
+message names the wrong thing entirely:</p>
+<pre><code>Error 3023 (o/s 0) writing record (Possible full disk?)
+</code></pre>
+<p><strong>The disk is not full. 3023 is <em>"attempt to write/delete record with no
+lock"</em>.</strong> The same <code>write</code> that succeeds outside a transaction fails with 3023
+inside one, and succeeds inside one if a <code>recordlocku</code> comes first.
+Outside a transaction no lock is needed, which is why the same line works in
+testing and fails in production the first time somebody wraps it.</p>
+<p>So the shape of a transaction is:</p>
+<pre><code>begin transaction
+   recordlocku f, id
+   write rec to f, id
+   commit
+end transaction
+</code></pre>
+<p><code>on error</code> catches it if you would rather test than abort:</p>
+<pre><code>write rec to f, id on error
+   crt 'write refused, status ' : status()   ;* 3023 = no lock held
+end
+</code></pre>
+<h3 id="what-each-ending-does">What each ending does<a class="headerlink" href="#what-each-ending-does" title="Permanent link">#</a></h3>
+<p>One transaction per row, each on its own record:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>the write</th>
+<th>locks</th>
+<th><code>system(1008)</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>commit</code> then <code>end transaction</code></td>
+<td><strong>lands</strong></td>
+<td>released</td>
+<td><strong>+1</strong></td>
+</tr>
+<tr>
+<td><code>rollback</code></td>
+<td>discarded</td>
+<td>released</td>
+<td>0</td>
+</tr>
+<tr>
+<td><strong><code>end transaction</code> with neither</strong></td>
+<td><strong>discarded, silently</strong></td>
+<td>released</td>
+<td>0</td>
+</tr>
+<tr>
+<td><code>transaction commit</code></td>
+<td><strong>lands</strong></td>
+<td>released</td>
+<td><strong>+1</strong></td>
+</tr>
+<tr>
+<td><code>transaction abort</code></td>
+<td>discarded</td>
+<td>released</td>
+<td>0</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Falling out of the bottom of a transaction throws the work away.</strong> There is
+no implicit commit. A <code>return</code>, a <code>goto</code> or simply reaching <code>end transaction</code>
+without having executed a <code>commit</code> discards every write since the start, and
+nothing is printed. The record still reads whatever it held before.</p>
+<p>Inside the transaction your own reads see your own uncommitted writes — a
+program reads back its own new value before the commit, and a rolled-back
+<code>delete</code> makes the record read <code>else</code> inside the transaction and reappear
+afterwards.</p>
+<h3 id="system1007-and-system1008">SYSTEM(1007) and SYSTEM(1008)<a class="headerlink" href="#system1007-and-system1008" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>system(1007)</code></td>
+<td>the transaction number, or <strong>0</strong> when not in a transaction</td>
+</tr>
+<tr>
+<td><code>system(1008)</code></td>
+<td>the transaction level</td>
+</tr>
+</tbody>
+</table>
+<p><code>system(1007)</code> is reliable: it is a fresh number for each transaction and reads
+0 the moment one ends, either way.</p>
+<p><strong><code>system(1008)</code> is not, and it is a defect.</strong> The level is incremented when a
+transaction starts and decremented only on the paths that end in a rollback, so
+<strong>every committed transaction leaves the count one too high for the rest of the
+session.</strong> In a run of four unnested transactions the first reports level 1
+and the fourth reports level 2. <strong>Do not test <code>system(1008)</code> to
+find out whether you are in a transaction — test <code>system(1007)</code>.</strong> This is
+upstream's, not this port's: <code>sdb64</code> carries the identical code.</p>
+<h3 id="do-not-nest-transactions">Do not nest transactions<a class="headerlink" href="#do-not-nest-transactions" title="Permanent link">#</a></h3>
+<p><strong>A <code>commit</code> inside a Nested transaction abandons the outer one, and the outer
+write is lost.</strong> With an outer transaction writing <code>R2</code> and an inner one
+writing <code>R3</code>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>the inner record <code>R3</code></td>
+<td><code>inner</code> — landed</td>
+</tr>
+<tr>
+<td>the outer record <code>R2</code></td>
+<td><strong><code>base</code> — the write vanished</strong></td>
+</tr>
+<tr>
+<td><code>system(1007)</code> after the inner <code>commit</code></td>
+<td><strong>0</strong> — the session is no longer in any transaction</td>
+</tr>
+</tbody>
+</table>
+<p>Nothing is reported. The compiler generates <code>commit</code> as a jump past the
+<code>end transaction</code>, so the bookkeeping that would restore the outer transaction
+never runs, and the outer <code>commit</code> then commits an empty cache. <strong>Keep
+transactions flat</strong>, and note that this includes a subroutine that starts its
+own transaction while the caller is in one.</p>
+<p><code>set.trigger</code> attaches a program that runs on every write or delete. A trigger
+runs inside the caller's transaction, so it is bound by the same locking rule.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p><strong><code>testlock()</code> and <code>getlocks()</code> are internal-only and an ordinary program
+cannot call them.</strong> They are in the compiler's internal intrinsic list, which
+only a program compiled with <code>$internal</code> in an administrator's <code>SDSYS</code> session
+may reach.</p>
+<p><strong>And the compiler does not say so.</strong> <code>v = testlock(5)</code> in an ordinary account
+produces, at the <strong>last line of the program</strong>:</p>
+<pre><code>41: Matrix TESTLOCK is not referenced in a DIM statement
+WARNING: TESTLOCK is not assigned a value
+</code></pre>
+<p>An unknown function name is read as a matrix reference, so the complaint is
+about a <code>dim</code> statement you never wrote, reported nowhere near the line that
+caused it. If a function you are sure exists produces that message, it exists
+and you are not allowed to call it.</p>
+<p>The same applies to <code>getlocks()</code>, which would list every lock in the system.
+<strong>From an ordinary program the only enquiry available is <code>recordlocked()</code></strong>, and
+it answers about one record at a time.</p>
+<p><code>release.lock</code> is a restricted statement for the same reason and gives
+<em>"Unrecognised statement"</em>.</p>
+<p><strong>Deadlock detection exists</strong> in the C, and takes the <code>locked</code> branch when it
+fires. It was not provoked: two sessions each waiting on the other's record is
+a state this set has not deliberately created.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> ·
+<a href="16-sd-basic-system-and-environment.html">SD Basic - System and Environment</a> ·
+<a href="02-sd-basic-program-control.html">SD Basic - Program Control</a> ·
+<a href="17-sd-basic-debugging.html">SD Basic - Debugging</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="13-sd-basic-printing.html"><span class="pn-label">&larr; Previous</span>SD Basic - Printing</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="15-sd-basic-sockets.html"><span class="pn-label">Next &rarr;</span>SD Basic - Sockets</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

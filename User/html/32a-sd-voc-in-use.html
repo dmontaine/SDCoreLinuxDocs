@@ -1,0 +1,660 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD VOC - Using and Managing the VOC - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="32-sd-voc-structure-and-usage.html"><span class="pn-label">&larr; Previous</span>SD VOC - Structure and Usage</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="33-sd-dicts-structure.html"><span class="pn-label">Next &rarr;</span>SD Dictionaries - Structure</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD VOC - Using and Managing the VOC</h1>
+<p class="tp-subtitle">How the command processor reads the VOC, the verbs that manage it, and what account creation puts there.</p>
+</section>
+
+<main>
+<p>This page continues <a href="32-sd-voc-structure-and-usage.html">SD VOC - Structure and
+Usage</a>.</p>
+<h2 id="how-the-command-processor-uses-the-voc">How the command processor uses the VOC<a class="headerlink" href="#how-the-command-processor-uses-the-voc" title="Permanent link">#</a></h2>
+<p>The command processor is a BASIC program, <code>$CPROC</code>, and it runs a loop:
+show any waiting messages, print the prompt, read a line, dispatch it,
+repeat. The first word of the line is looked up in the account's <code>voc</code>
+file.</p>
+<h3 id="name-resolution">Name resolution<a class="headerlink" href="#name-resolution" title="Permanent link">#</a></h3>
+<p>A name is tried <strong>as typed, then lower case, then upper case</strong>. This is
+the change that lets a lower-case <code>voc</code>, <code>bp</code> and <code>newvoc</code> on disk
+coexist with code and habits that still type names in upper case.</p>
+<p><strong>Account names are the deliberate exception.</strong> They are still folded
+upward, which is what makes signing in case-insensitive.</p>
+<h3 id="if-the-voc-has-nothing-the-catalogue-is-tried">If the VOC has nothing, the catalogue is tried<a class="headerlink" href="#if-the-voc-has-nothing-the-catalogue-is-tried" title="Permanent link">#</a></h3>
+<p>A name that is not in the VOC is looked for in the <strong>private catalogue</strong>
+of the account and then in the <strong>global catalogue</strong>, <code>gcat</code>. A hit is
+treated exactly as though the VOC had held <code>V</code> / <code>CA</code> / <em>name</em>. This is
+why a program you have catalogued can be run by typing its name with no
+VOC record of its own.</p>
+<p>If neither has it, the command is refused by name.</p>
+<h2 id="verbs-that-manage-the-voc">Verbs that manage the VOC<a class="headerlink" href="#verbs-that-manage-the-voc" title="Permanent link">#</a></h2>
+<h3 id="setfile-write-a-q-pointer">set.file — write a Q-pointer<a class="headerlink" href="#setfile-write-a-q-pointer" title="Permanent link">#</a></h3>
+<pre><code>set.file account file.name pointer.name
+</code></pre>
+<p>Writes a Q-pointer into the VOC — field 1 <code>Q</code>, field 2 the account name,
+field 3 the file name. After it, <em>pointer.name</em> is usable wherever a file
+name is, and the data stays where it is.</p>
+<p><strong>The account must be in the accounts register.</strong> The name is folded to
+upper case before the register is read. If it is not there you get
+<em>Account name '...' is not in register</em> and nothing is written.</p>
+<h3 id="updateaccounts-refresh-from-newvoc">update.accounts — refresh from NEWVOC<a class="headerlink" href="#updateaccounts-refresh-from-newvoc" title="Permanent link">#</a></h3>
+<pre><code>update.accounts
+</code></pre>
+<p>Re-runs <code>LOGIN</code>'s <code>update.voc</code> paragraph, which copies any changed
+records from the system <code>NEWVOC</code> into the account's VOC. <strong>Since 17 Aug
+2026 this is incremental</strong> — it re-copies only the records whose stamp has
+changed, not the whole file. <code>TIER.OMIT.STANDARD</code> and
+<code>TIER.ADD.ADMINISTRATOR</code> in <code>NEWVOC</code> control what each account type
+receives.</p>
+<p><strong>The tier test is the one this record exists for.</strong> <code>update.accounts</code>
+on a standard account must not give back the verbs that were withheld
+when the account was created. A standard account starts with fewer verbs
+than an administrator account, and <code>update.accounts</code> preserves that
+difference.</p>
+<h3 id="copy-copy-records-into-the-voc">copy — copy records into the VOC<a class="headerlink" href="#copy-copy-records-into-the-voc" title="Permanent link">#</a></h3>
+<pre><code>copy from voc messages,myname
+copy from src.file to dict tgt.file record.id
+</code></pre>
+<p><code>copy</code> can write into the VOC the way it writes into any file. The
+<code>from voc</code> form copies a VOC record under a new name, which is how an
+alias is made without <code>alias</code>.</p>
+<h3 id="delete-remove-a-voc-record">delete — remove a VOC record<a class="headerlink" href="#delete-remove-a-voc-record" title="Permanent link">#</a></h3>
+<pre><code>delete voc name
+</code></pre>
+<p>Removes the record. <strong><code>.d</code> <em>name</em> at the command prompt asks first</strong>;
+<code>delete voc name</code> does not.</p>
+<h3 id="s-and-r-save-and-recall">.s and .r — save and recall<a class="headerlink" href="#s-and-r-save-and-recall" title="Permanent link">#</a></h3>
+<pre><code>.s name s e
+.r name
+</code></pre>
+<p><code>.s</code> writes stack lines <em>s</em> to <em>e</em> into the VOC as <em>name</em> — a sentence
+when the range is one line, a paragraph when it is more. <code>.r</code> loads a
+sentence or paragraph from the VOC into the stack. <strong>The record type
+follows from what you saved</strong> rather than from anything you say.</p>
+<h3 id="the-list-family">The LIST family<a class="headerlink" href="#the-list-family" title="Permanent link">#</a></h3>
+<p>Ten verbs list VOC entries by type. They are all R-records into
+<code>SD.VOCLIB</code>:</p>
+<table>
+<thead>
+<tr>
+<th>Verb</th>
+<th>Lists</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>listf</code></td>
+<td>all files (F-records)</td>
+</tr>
+<tr>
+<td><code>listfl</code></td>
+<td>local files only</td>
+</tr>
+<tr>
+<td><code>listfr</code></td>
+<td>remote files only</td>
+</tr>
+<tr>
+<td><code>listk</code></td>
+<td>all keywords (K-records)</td>
+</tr>
+<tr>
+<td><code>listpa</code></td>
+<td>all paragraphs (PA-records)</td>
+</tr>
+<tr>
+<td><code>listph</code></td>
+<td>all phrases (PH-records)</td>
+</tr>
+<tr>
+<td><code>listq</code></td>
+<td>all Q-pointers</td>
+</tr>
+<tr>
+<td><code>listr</code></td>
+<td>all remote references (R-records)</td>
+</tr>
+<tr>
+<td><code>lists</code></td>
+<td>all sentences (S-records)</td>
+</tr>
+<tr>
+<td><code>listv</code></td>
+<td>all verbs (V-records)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="count-count-the-records">count — count the records<a class="headerlink" href="#count-count-the-records" title="Permanent link">#</a></h3>
+<pre><code>count voc
+count voc with v = &quot;V&quot;
+</code></pre>
+<p><code>count</code> over the VOC gives the total record count. With a selection
+clause it counts by type or by any other field.</p>
+<h3 id="ct-display-a-record">ct — display a record<a class="headerlink" href="#ct-display-a-record" title="Permanent link">#</a></h3>
+<pre><code>ct voc name
+</code></pre>
+<p>Displays the record field by field. This is the way to see what a VOC
+entry actually contains without an editor.</p>
+<h2 id="the-voc-and-account-creation">The VOC and account creation<a class="headerlink" href="#the-voc-and-account-creation" title="Permanent link">#</a></h2>
+<p><code>CREATE.ACCOUNT</code> copies the VOC from <code>voc_template</code> in the system
+directory. The template holds 426 records; <code>NEWVOC</code> holds 395. The
+difference is that <code>voc_template</code> carries the A-verbs — <code>abort</code>,
+<code>alias</code>, <code>all</code>, <code>after</code>, <code>and</code> and the rest — that are also keywords, and
+<code>NEWVOC</code> does not. An account gets the union of the two, less whatever
+its tier omits.</p>
+<table>
+<thead>
+<tr>
+<th>Tier</th>
+<th>What it gets</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>administrator</strong></td>
+<td>everything in <code>voc_template</code> plus everything in <code>NEWVOC</code>, less <code>TIER.OMIT.STANDARD</code></td>
+</tr>
+<tr>
+<td><strong>standard</strong></td>
+<td>everything in <code>voc_template</code> plus everything in <code>NEWVOC</code>, less <code>TIER.OMIT.STANDARD</code> (42 names)</td>
+</tr>
+<tr>
+<td><strong>programmer</strong></td>
+<td>standard plus the programmer verbs from <code>TIER.ADD.ADMINISTRATOR</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The tier is in the VOC, not in the verb.</strong> A standard account does
+not have <code>create.file</code> because the VOC record for it is not there, not
+because a security subroutine refuses it. The name is simply not
+recognised. This is the design: tiering is done by giving or withholding
+the record.</p>
+<h2 id="case-on-disk">Case on disk<a class="headerlink" href="#case-on-disk" title="Permanent link">#</a></h2>
+<p>Since 18 Aug 2026 the VOC ids are stored in lower case — <code>list</code>,
+<code>create.account</code> and so on. This changes nothing about what you type —
+SD tries a name as typed, then lower, then upper. What it changes is what
+SD prints back: <code>CT VOC LIST</code> answers <code>VOC list</code>.</p>
+<p>The file-pointer entries — <code>bp</code>, <code>bp.out</code>, <code>gpl.bp</code>, <code>gpl.bp.out</code> — moved
+to lower case on 19 Aug 2026. <code>VOC</code>, <code>NEWVOC</code>, <code>ACCOUNTS</code>, <code>MESSAGES</code>,
+<code>SYSCOM</code> and <code>QFILE</code> are still upper case on disk and are next.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p><strong>There is no verb that edits the VOC directly.</strong> <code>ED</code> edits any file,
+and <code>ED VOC</code><em>name</em> is how you edit a VOC record by hand. But there is no
+verb whose purpose is to create or modify VOC entries — <code>set.file</code> writes
+one kind, <code>.s</code> writes two, and everything else is done with <code>ED</code> or with
+<code>copy from voc</code>.</p>
+<p><strong><code>PROC</code> is removed.</strong> A <code>PQ</code>-type record is refused by name. Nothing
+that ships is type <code>PQ</code>, so this can only be met in a VOC record somebody
+wrote.</p>
+<p><strong><code>menu</code> records are dispatched but no menu ships.</strong> Type <code>M</code> is handled
+and there is no shipped example to look at.</p>
+<p><strong><code>EDIT</code> is in the VOC but cannot run.</strong> Its type field reads
+<code>Verb - Full screen editor</code>, which is not <code>V</code>, so the command processor
+does not dispatch it. The record is there so that <code>EDIT</code> at the prompt
+prints <em>"Full screen editor is no longer supported"</em> rather than <em>"verb
+not found"</em>.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="19-sd-tcl-command-processor.html">SD TCL - The Command Processor</a> ·
+<a href="20-sd-tcl-files-and-records.html">SD TCL - Files and Records</a> ·
+<a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> ·
+<a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="32-sd-voc-structure-and-usage.html"><span class="pn-label">&larr; Previous</span>SD VOC - Structure and Usage</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="33-sd-dicts-structure.html"><span class="pn-label">Next &rarr;</span>SD Dictionaries - Structure</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

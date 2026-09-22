@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - Data Conversion - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="05a-sd-basic-array-operations.html"><span class="pn-label">&larr; Previous</span>SD Basic - Operating on Whole Arrays</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="07-sd-basic-file-handling.html"><span class="pn-label">Next &rarr;</span>SD Basic - File Handling</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - Data Conversion</h1>
+<p class="tp-subtitle">Dates, times, numbers and text between the form SD stores and the form people read.</p>
+</section>
+
+<main>
+<p>SD stores a date as a day number and a time as a second count. Neither is
+readable, and neither is what a user types. <code>iconv()</code> turns what a person wrote
+into what SD stores; <code>oconv()</code> turns it back. <code>fmt()</code> lays a value out in a
+fixed width. This page covers all three, and the character-level conversions
+beside them.</p>
+<p>SD folds case, so a program may be written in either case. Keywords and
+conversion codes are shown here in lower case; <strong>the codes themselves are not
+case sensitive</strong>. In the tables, <em>italics</em> mark something you supply.</p>
+<h2 id="the-two-directions">The two directions<a class="headerlink" href="#the-two-directions" title="Permanent link">#</a></h2>
+<pre><code>iconv(expression, conversion)
+oconv(expression, conversion)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>iconv()</code></td>
+<td><strong>in</strong> — external form to internal. Use it on input</td>
+</tr>
+<tr>
+<td><code>oconv()</code></td>
+<td><strong>out</strong> — internal to external. Use it on output</td>
+</tr>
+</tbody>
+</table>
+<p><code>iconvs()</code> and <code>oconvs()</code> do the same to every element of a dynamic array.</p>
+<p><strong>A failed <code>iconv()</code> returns the null string and sets <code>status()</code>.</strong>
+<code>iconv('nonsense', 'D')</code> returns empty and <code>status()</code> afterwards is <strong>1</strong>.</p>
+<pre><code>d = iconv(typed.date, 'D')
+if status() then
+   print 'That is not a date.'
+end
+</code></pre>
+<p><strong>This is the validation idiom, and the return value alone is not enough</strong> — a
+user who typed nothing also gets an empty result, so testing the result cannot
+tell an empty input from a bad one. <code>status()</code> can.</p>
+<h2 id="dates">Dates<a class="headerlink" href="#dates" title="Permanent link">#</a></h2>
+<pre><code>iconv(text, 'D')
+oconv(daynumber, 'D{n}{separator}{format}')
+</code></pre>
+<p><strong>Day zero is 31 December 1967.</strong> <code>oconv(0, 'D4/')</code> is
+<code>12/31/1967</code>. Dates before that are negative. <code>26 AUG 2026</code> is day <strong>21423</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Conversion</th>
+<th>Result for day 21423</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>oconv(d, 'D')</code></td>
+<td><code>26 AUG 2026</code></td>
+</tr>
+<tr>
+<td><code>oconv(d, 'D2/')</code></td>
+<td><code>08/26/26</code></td>
+</tr>
+<tr>
+<td><code>oconv(d, 'D4-')</code></td>
+<td><code>08-26-2026</code></td>
+</tr>
+<tr>
+<td><code>oconv(d, 'DMA')</code></td>
+<td><code>AUGUST</code></td>
+</tr>
+<tr>
+<td><code>oconv(d, 'DW')</code></td>
+<td><code>3</code> — day of the week</td>
+</tr>
+<tr>
+<td><code>oconv(d, 'DWA')</code></td>
+<td><code>WEDNESDAY</code></td>
+</tr>
+<tr>
+<td><code>oconv(d, 'DQ')</code></td>
+<td><code>3</code> — quarter</td>
+</tr>
+<tr>
+<td><code>oconv(d, 'DY')</code></td>
+<td><code>2026</code></td>
+</tr>
+</tbody>
+</table>
+<p>The digit after <code>D</code> is how many digits of year to show; the character after
+that is the separator.</p>
+<blockquote>
+<p><strong>The default order is month, day, year.</strong> <code>D2/</code> gives
+<code>08/26/26</code> for the 26th of August. <strong><code>E</code> puts it in day-month-year order</strong>:
+<code>D2/E</code> gives <code>26/08/26</code> and <code>D4/E</code> gives <code>26/08/2026</code>. A site that
+expects day-first must say <code>E</code> on <strong>every</strong> conversion; a report that mixes
+the two is a formatting bug that reads as a data bug.</p>
+</blockquote>
+<p><code>iconv()</code> accepts a wide range of typed forms — <code>26 AUG 2026</code>, <code>08/26/2026</code>,
+<code>26-8-26</code> — and resolves a two-digit year against a sliding window. <strong>Always
+check <code>status()</code></strong>: <code>13/13/26</code> is not a date and will come back empty.</p>
+<h2 id="times">Times<a class="headerlink" href="#times" title="Permanent link">#</a></h2>
+<pre><code>iconv(text, 'MT')
+oconv(seconds, 'MT{H}{S}')
+</code></pre>
+<p>A time is the number of seconds since midnight. <code>14:30:05</code> is
+<strong>52205</strong>.</p>
+<table>
+<thead>
+<tr>
+<th>Conversion</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>oconv(t, 'MT')</code></td>
+<td><code>14:30</code></td>
+</tr>
+<tr>
+<td><code>oconv(t, 'MTS')</code></td>
+<td><code>14:30:05</code></td>
+</tr>
+<tr>
+<td><code>oconv(t, 'MTH')</code></td>
+<td><code>02:30pm</code></td>
+</tr>
+<tr>
+<td><code>oconv(t, 'MTHS')</code></td>
+<td><code>02:30:05pm</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>s</code> adds seconds, <code>h</code> switches to a 12-hour clock. <code>date()</code> and <code>time()</code> give
+today's day number and the current second count; <code>timedate()</code> gives both,
+already formatted.</p>
+<h2 id="numbers">Numbers<a class="headerlink" href="#numbers" title="Permanent link">#</a></h2>
+<h3 id="scaling-and-separators">Scaling and separators<a class="headerlink" href="#scaling-and-separators" title="Permanent link">#</a></h3>
+<pre><code>oconv(number, 'MD{n}{separator}')
+</code></pre>
+<p><code>md</code><em>n</em> moves the decimal point <em>n</em> places <strong>left</strong>, so the stored value is an
+integer and the displayed one has decimals.</p>
+<table>
+<thead>
+<tr>
+<th>Conversion</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>oconv(1234567, 'MD2')</code></td>
+<td><code>12345.67</code></td>
+</tr>
+<tr>
+<td><code>oconv(1234567, 'MD2,')</code></td>
+<td><code>12,345.67</code></td>
+</tr>
+<tr>
+<td><code>oconv(1234567, 'MD0,')</code></td>
+<td><code>1,234,567</code></td>
+</tr>
+<tr>
+<td><code>oconv(-42, 'MD2')</code></td>
+<td><code>-0.42</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>MD2</code> divides by 100 — it does not round to two places.</strong>
+<code>oconv(-42, 'MD2')</code> is <code>-0.42</code>, not <code>-42.00</code>. It is for money held as whole
+pence or cents. <strong>To show two decimals of a value that is already scaled, use
+<code>fmt()</code></strong> with a <code>2</code> after the justification.</p>
+</blockquote>
+<h3 id="other-bases">Other bases<a class="headerlink" href="#other-bases" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Conversion</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>oconv(255, 'MX')</code></td>
+<td><code>FF</code></td>
+</tr>
+<tr>
+<td><code>iconv('FF', 'MX')</code></td>
+<td><code>255</code></td>
+</tr>
+<tr>
+<td><code>oconv(5, 'MB')</code></td>
+<td><code>101</code></td>
+</tr>
+<tr>
+<td><code>oconv(8, 'MO')</code></td>
+<td><code>10</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>mx</code> hexadecimal, <code>mb</code> binary, <code>mo</code> octal. <code>xtd()</code> and <code>dtx()</code> do the same for
+hex without going through <code>oconv()</code> — see <em>Characters and codes</em> below.</p>
+<h3 id="selecting-characters">Selecting characters<a class="headerlink" href="#selecting-characters" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Conversion</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>oconv('abc', 'MCU')</code></td>
+<td><code>ABC</code></td>
+</tr>
+<tr>
+<td><code>oconv('ABC', 'MCL')</code></td>
+<td><code>abc</code></td>
+</tr>
+<tr>
+<td><code>oconv('hello world', 'MCT')</code></td>
+<td><code>Hello World</code></td>
+</tr>
+<tr>
+<td><code>oconv('a1b2', 'MCN')</code></td>
+<td><code>12</code> — digits only</td>
+</tr>
+<tr>
+<td><code>oconv('a1b2', 'MCA')</code></td>
+<td><code>ab</code> — letters only</td>
+</tr>
+</tbody>
+</table>
+<p><code>mcn</code> and <code>mca</code> <strong>discard</strong> everything else rather than replacing it, which
+makes them a quick way to strip formatting out of a typed reference.</p>
+<h2 id="laying-a-value-out-fmt">Laying a value out: <code>fmt()</code><a class="headerlink" href="#laying-a-value-out-fmt" title="Permanent link">#</a></h2>
+<pre><code>fmt(expression, specification)
+fmts(array, specification)
+</code></pre>
+<p>The specification is a width, a justification, and optional extras.</p>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fmt('ab', '10L')</code></td>
+<td><code>ab␣␣␣␣␣␣␣␣</code> — left, padded to 10</td>
+</tr>
+<tr>
+<td><code>fmt('ab', '10R')</code></td>
+<td><code>␣␣␣␣␣␣␣␣ab</code> — right</td>
+</tr>
+<tr>
+<td><code>fmt('ab', '10*R')</code></td>
+<td><code>******ab</code> — padded with <code>*</code></td>
+</tr>
+<tr>
+<td><code>fmt(1234.5, '12R2')</code></td>
+<td><code>␣␣␣␣␣1234.50</code> — two decimals, right</td>
+</tr>
+</tbody>
+</table>
+<p>The character before the justification letter is the fill character; a digit
+after it is the number of decimal places.</p>
+<blockquote>
+<p><strong>A value longer than the width is wrapped, not truncated.</strong>
+<code>fmt('abcdefgh', '4L')</code> returns <code>abcd</code> and <code>efgh</code> separated by a <strong>text
+mark</strong>, not <code>abcd</code>. A field written straight to a screen or a file therefore
+gains a stray character rather than being cut short. <strong>To truncate, take a
+substring first</strong> — <code>fmt(s[1,4], '4L')</code>.</p>
+</blockquote>
+<h3 id="the-format-qualifier">The format qualifier<a class="headerlink" href="#the-format-qualifier" title="Permanent link">#</a></h3>
+<p>The same thing can be written by placing the specification <strong>straight after the
+value, with nothing between them</strong>:</p>
+<pre><code>print total '10r2'
+</code></pre>
+<p>With <code>t</code> holding <code>1234.5</code>, <code>t '10R2'</code> gives <code>␣␣␣1234.50</code>. <strong>There is
+no <code>fmt</code> keyword in this form</strong> — writing <code>t fmt '10R2'</code> compiles <code>fmt</code> as a
+variable name and aborts at run time with <em>"Unassigned variable FMT"</em>. The
+qualifier is recognised by juxtaposition alone, which is why it is allowed only
+where an expression cannot be followed by something else.</p>
+<h2 id="characters-and-codes">Characters and codes<a class="headerlink" href="#characters-and-codes" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Call</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>char(65)</code></td>
+<td><code>A</code></td>
+</tr>
+<tr>
+<td><code>seq('A')</code></td>
+<td><code>65</code></td>
+</tr>
+<tr>
+<td><code>seq('')</code></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>xtd('FF')</code></td>
+<td><code>255</code></td>
+</tr>
+<tr>
+<td><code>dtx(255)</code></td>
+<td><code>ff</code></td>
+</tr>
+<tr>
+<td><code>dtx(255, 4)</code></td>
+<td><code>00ff</code></td>
+</tr>
+</tbody>
+</table>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>char()</code></td>
+<td>the character with the given code</td>
+</tr>
+<tr>
+<td><code>seq()</code></td>
+<td>the code of the first character. <strong><code>seq('')</code> is <code>0</code></strong>, the same as <code>seq(char(0))</code></td>
+</tr>
+<tr>
+<td><code>xtd()</code></td>
+<td>hexadecimal text to a number</td>
+</tr>
+<tr>
+<td><code>dtx()</code></td>
+<td>a number to hexadecimal text, <strong>in lower case</strong>, optionally zero-padded to a width</td>
+</tr>
+<tr>
+<td><code>ascii()</code> · <code>ebcdic()</code></td>
+<td>translate a string between the two character sets</td>
+</tr>
+</tbody>
+</table>
+<p><code>ascii(char(193))</code> is <code>A</code> — EBCDIC 193 is the letter A.</p>
+<p><strong><code>char()</code> is how you write a mark character or a control code as a constant</strong>,
+and <code>equate</code> is the place to put it:</p>
+<pre><code>equate esc to char(27)
+equate fm to char(254)
+</code></pre>
+<h2 id="splitting-a-delimited-string">Splitting a delimited string<a class="headerlink" href="#splitting-a-delimited-string" title="Permanent link">#</a></h2>
+<pre><code>dparse string, delimiter, var1, var2, ...
+</code></pre>
+<p>Splits <em>string</em> on <em>delimiter</em> and assigns the pieces to the named variables in
+order. It is the fixed-shape alternative to a <code>remove</code> loop: use it when you
+know how many pieces there are and want them in named variables rather than an
+array.</p>
+<p>Missing pieces leave their variables empty; extra pieces are discarded.</p>
+<p><code>dparse.csv</code> does the same for a CSV line, honouring quoting — see
+<a href="11-sd-basic-csv-files.html">SD Basic - CSV Files</a>.</p>
+<h2 id="dictionary-conversions">Dictionary conversions<a class="headerlink" href="#dictionary-conversions" title="Permanent link">#</a></h2>
+<pre><code>itype(dictionary.record)
+</code></pre>
+<p>Evaluates a dictionary item — an I-type expression — against the record
+currently being processed, and returns what it computes. It is how a program
+uses the same derived field a query would, instead of duplicating the formula.</p>
+<p><code>trans()</code>, <code>rtrans()</code> and <code>xlate()</code> fetch a field from another file and can
+apply that file's own conversion; they are covered in
+<a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> because they open a file to do it.</p>
+<h2 id="national-settings">National settings<a class="headerlink" href="#national-settings" title="Permanent link">#</a></h2>
+<pre><code>getnls(key)
+setnls key, value
+</code></pre>
+<p>Report and set the national-language settings — currency symbol, thousands and
+decimal separators, date order. <strong><code>setnls</code> changes them for the session</strong>, so a
+program that alters them and then aborts leaves the session changed. Read the
+old value, set the new, and restore it on the way out.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p>Nothing in the conversion group has been removed from this port.</p>
+<p><code>fmt()</code>, <code>char()</code>, <code>seq()</code>, <code>ascii()</code>, <code>ebcdic()</code> and the <code>convert</code> statement
+are also mentioned in <a href="04-sd-basic-string-functions.html">SD Basic - String Functions</a>, where they are used on
+text rather than for conversion. <code>precision</code>, which decides how many decimal
+places a floating-point number shows when it becomes a string, is in
+<a href="03-sd-basic-math-functions.html">SD Basic - Math Functions</a>.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="04-sd-basic-string-functions.html">SD Basic - String Functions</a> · <a href="03-sd-basic-math-functions.html">SD Basic - Math Functions</a> ·
+<a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> · <a href="11-sd-basic-csv-files.html">SD Basic - CSV Files</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="05a-sd-basic-array-operations.html"><span class="pn-label">&larr; Previous</span>SD Basic - Operating on Whole Arrays</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="07-sd-basic-file-handling.html"><span class="pn-label">Next &rarr;</span>SD Basic - File Handling</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Account Maintenance - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="01-accounts-and-security.html"><span class="pn-label">&larr; Previous</span>Accounts and Security</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="02-sessions-and-locks.html"><span class="pn-label">Next &rarr;</span>Sessions and Locks</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">Account Maintenance</h1>
+<p class="tp-subtitle">Emptying scratch files, refreshing a VOC, keeping local versions of records, configuration, the system date, and deleting an account.</p>
+</section>
+
+<main>
+<p>This page continues <a href="01-accounts-and-security.html">Accounts and Security</a>.</p>
+<h2 id="emptying-an-accounts-scratch-files-cleanaccount">Emptying an account's scratch files: <code>clean.account</code><a class="headerlink" href="#emptying-an-accounts-scratch-files-cleanaccount" title="Permanent link">#</a></h2>
+<pre><code>clean.account
+</code></pre>
+<p>Empties three things in the account you are standing in, and takes no
+arguments — <strong>there is no way to clean an account you are not in</strong>:</p>
+<pre><code>:clean.account
+Cleaned $COMO
+Cleaned $hold
+Cleaned $savedlists
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>$COMO</code></strong></td>
+<td>captured session transcripts, including every phantom's</td>
+</tr>
+<tr>
+<td><strong><code>$hold</code></strong></td>
+<td>reports sent to the hold file instead of a printer</td>
+</tr>
+<tr>
+<td><strong><code>$savedlists</code></strong></td>
+<td>saved select lists</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Nothing else is touched</strong> — no data file, no program, no dictionary. A como
+capture that is currently running is left alone and says so: <em>$COMO not cleaned
+- COMO file active</em>.</p>
+<p><strong>It needs no elevation.</strong> It is the one verb here an administrator account can
+use from an ordinary session, which is right: it deletes only that account's own
+scratch.</p>
+<h2 id="refreshing-an-accounts-voc-updateaccounts">Refreshing an account's VOC: <code>update.accounts</code><a class="headerlink" href="#refreshing-an-accounts-voc-updateaccounts" title="Permanent link">#</a></h2>
+<pre><code>update.accounts {all}
+</code></pre>
+<pre><code>Copying records from NEWVOC to VOC...
+</code></pre>
+<p>Copies the shipped verb and keyword definitions into an account, adding what is
+missing and leaving that account's own VOC entries alone. It is what brings an
+existing account up to date after SD itself is upgraded, and <strong>it respects the
+account's tier</strong> — a standard account does not collect programmer verbs by
+being refreshed, and a suspended one keeps the tier it was suspended from.</p>
+<p>With no keyword it updates the account you are standing in and then offers the
+rest, asking each time. <strong><code>all</code> is the unattended form</strong>: it updates every
+registered account without asking.</p>
+<p>You will not normally type <code>all</code> yourself. The installer runs it during an
+upgrade, so a release that adds a VOC record reaches every existing account
+without anybody visiting them. Before that existed, an upgrade replaced the
+shipped files and no account gained a new verb.</p>
+<p><code>all</code> is an explicit keyword rather than something inferred from how SD was
+started. The test for an internal session exists and would have worked, but it
+would have decided a rewrite of every account's VOC from a property nobody
+typing the verb can see.</p>
+<p>A second word that is not <code>all</code> is refused by name rather than ignored:</p>
+<pre><code>:update.accounts everything
+UPDATE.ACCOUNTS does not take everything
+</code></pre>
+<p>Quietly ignoring it would run the interactive form while the caller believed
+they had asked for the other one.</p>
+<h3 id="it-never-takes-anything-away">It never takes anything away<a class="headerlink" href="#it-never-takes-anything-away" title="Permanent link">#</a></h3>
+<p><code>update.accounts</code> only ever adds. A record removed from an account stays
+removed. To keep an edit of your own, mark the record — see below.</p>
+<h2 id="keeping-your-own-version-of-a-voc-record-locked">Keeping your own version of a VOC record: <code>[locked]</code><a class="headerlink" href="#keeping-your-own-version-of-a-voc-record-locked" title="Permanent link">#</a></h2>
+<p>This has no equivalent in OpenQM or in SD on Linux. Nothing you know from
+another MultiValue system will tell you it exists.</p>
+<p>A site that has customised one of SD's own VOC records marks it by putting
+<code>[locked]</code> in <strong>field 1, after the type code</strong>. <code>update.accounts</code> then leaves
+that record alone.</p>
+<pre><code>V[locked]
+CA
+$MYVERSION
+</code></pre>
+<h3 id="after-the-type-code-not-at-the-front">After the type code, not at the front<a class="headerlink" href="#after-the-type-code-not-at-the-front" title="Permanent link">#</a></h3>
+<p>The first character of field 1 <strong>is</strong> the type, so <code>[locked]V</code> would be read as
+a record of type <code>[</code>. Two characters are the type for a <code>P</code> record, and those
+are the only two-character types SD uses: <code>PA</code> for a paragraph and <code>PH</code> for a
+phrase.</p>
+<pre><code>PA[locked]
+</code></pre>
+<p>Anywhere later in field 1 works — the test searches the field rather than
+matching a fixed position. Case does not matter: both sides are upper-cased
+before comparison, so <code>[LOCKED]</code> and <code>[Locked]</code> are the same marker. A lock
+that failed open because somebody typed it in capitals would be worse than no
+lock at all, because the record it was meant to protect would be replaced
+silently.</p>
+<h3 id="a-verb-is-not-protected-by-it">A verb is not protected by it<a class="headerlink" href="#a-verb-is-not-protected-by-it" title="Permanent link">#</a></h3>
+<p><strong><code>[locked]</code> is honoured on every kind of VOC record except a verb.</strong> A verb
+marked <code>[locked]</code> is updated anyway, and the account is told which ones:</p>
+<pre><code>2 verb(s) marked [locked] were updated anyway: MYLIST MYREPORT
+</code></pre>
+<p>A verb is what SD runs. A locked one would go on naming the program, or the
+internal routine number, that this release replaced — and the internal case
+fails in the worst way available, because field 3 of an internal verb record is
+a <em>number</em>, so a reassignment sends the verb to a different function with no
+sign that anything is wrong.</p>
+<p><strong>The way to get a verb that behaves differently is to add your own</strong>, under a
+name SD does not ship, modelled on the system one. <code>update.accounts</code> walks the
+records SD ships, so a verb of your own is never visited and needs no marker.</p>
+<h3 id="you-are-told-what-was-withheld">You are told what was withheld<a class="headerlink" href="#you-are-told-what-was-withheld" title="Permanent link">#</a></h3>
+<pre><code>3 VOC record(s) were left alone because they are marked [locked]: WINDOWS ...
+</code></pre>
+<p>The message names each record, and says plainly that any correction this
+release made to them has not been applied here.</p>
+<p><strong>That is the cost, and it belongs to the site rather than to SD.</strong> A locked
+record keeps the version the account already had, so a defect fixed in that
+record stays unfixed in this account. Remove the marker from field 1 and run
+<code>update.accounts</code> again to take the new version.</p>
+<h2 id="reading-and-setting-configuration-config">Reading and setting configuration: <code>config</code><a class="headerlink" href="#reading-and-setting-configuration-config" title="Permanent link">#</a></h2>
+<pre><code>config                     report every setting
+config lptr                the same, to the default printer
+config param value         set one
+config gpl                 display the licence
+config contrib             display the contributors
+</code></pre>
+<pre><code>:config
+Virtual Machine Version Number W1.0-0
+APILOGIN  1
+APIPORT   4243
+CMDSTACK  99
+DEADLOCK  0
+DUMPDIR
+ERRLOG    50 kb
+...
+NUMFILES  80
+NUMLOCKS  100
+NUMUSERS  20
+...
+SH        C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -NoLogo
+SORTWORK  /cygdrive/c/WINDOWS/TEMP
+TEMPDIR   /cygdrive/c/WINDOWS/TEMP
+YEARBASE  1930
+</code></pre>
+<p><em>(Forty-odd lines; cut here.)</em> <strong>Reading needs nothing</strong> — any account with the
+verb can do it, and it is the quickest answer to <em>how many users, how many
+locks, how many open files is this machine set up for</em>.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>New parameter value required</em></td>
+<td><code>config numlocks</code> with nothing after it. <strong>The report form is <code>config</code> alone</strong>; naming one parameter means <em>set it</em></td>
+</tr>
+<tr>
+<td><em>Not a recognised private configuration parameter name</em></td>
+<td>the name is not one that can be set per-session</td>
+</tr>
+<tr>
+<td><em>Invalid value for this parameter</em></td>
+<td>it is, and the value is not</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>config param value</code> sets a private, session-local value and not the
+machine's.</strong> The machine's settings live in SD's configuration file and are
+read when SD starts. This form overrides one for the session you are in, which
+is the right tool for trying a value before writing it down and the wrong one
+for changing an installation.</p>
+<p><strong><code>config gpl</code> and <code>config contrib</code> read a record inside SD</strong> rather than
+running a pager over a file, so they work in any account and need no
+operating-system access.</p>
+<h2 id="setting-the-machines-date-setdate">Setting the machine's date: <code>set.date</code><a class="headerlink" href="#setting-the-machines-date-setdate" title="Permanent link">#</a></h2>
+<pre><code>set.date date
+</code></pre>
+<p>Sets the <strong>machine's</strong> date, not a session preference — it changes the clock the
+whole installation reads. The argument goes through SD's <code>D</code> conversion, so
+anything <code>iconv(…, 'D')</code> accepts will do, and anything it does not is refused:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Date required</em></td>
+<td><code>set.date</code> with nothing after it</td>
+</tr>
+<tr>
+<td><em>Invalid date format</em></td>
+<td>the argument is not a date SD can read</td>
+</tr>
+</tbody>
+</table>
+<p><strong>There is no confirmation and no undo.</strong> It is described here from source
+rather than shown running, because demonstrating it would move the clock of
+whatever machine it ran on. <strong>On Windows, changing the system date is itself a
+privileged operation</strong>, so a session that has the verb may
+still be refused by the operating system underneath it.</p>
+<p><strong>Moving a live machine's date backwards is not a neutral act</strong>: file
+timestamps, licence expiry, scheduled tasks and anything that reasons about
+elapsed time all read it. Treat it as a maintenance operation on a quiet system.</p>
+<h2 id="deleting-an-account-deleteaccount">Deleting an account: <code>delete.account</code><a class="headerlink" href="#deleting-an-account-deleteaccount" title="Permanent link">#</a></h2>
+<pre><code>delete.account account.name
+</code></pre>
+<p>Removes the account directory, its Windows group, its entry in the accounts
+register, and — for a user account SD itself created — the Windows account and
+its profile. <strong>One confirmation covers all of it</strong>, and the wording is decided
+before the question is asked, so it never offers to remove a Windows account it
+is not going to.</p>
+<p><strong>It will not delete a Windows account SD did not create.</strong> The account is
+left in place and it says so.</p>
+<p><strong>Three refusals come before the confirmation</strong>, so none of them can be reached
+by accident:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Cannot delete SDSYS account</em></td>
+<td><code>delete.account sdsys</code></td>
+</tr>
+<tr>
+<td><em>Cannot delete own account</em></td>
+<td>the account you are standing in</td>
+</tr>
+<tr>
+<td><em>Account not registered in ACCOUNTS file</em></td>
+<td>the name is not one of SD's</td>
+</tr>
+</tbody>
+</table>
+<p><em>(Those three wordings are the verb's own; they are not shown as a transcript
+here because reaching them takes an elevated session, and an unelevated one is
+refused by the privilege gate first — which is itself the fourth refusal, and
+the one most people meet.)</em></p>
+<blockquote>
+<p><strong>The confirmation is unconditional and no keyword suppresses it.</strong> There
+is no <code>no.query</code> on this verb. <strong>Never send <code>delete.account</code> down a pipe</strong> —
+the prompt will eat the commands that follow it as its answers, and the
+session will then wait for ever.</p>
+</blockquote>
+<h2 id="who-has-these-verbs">Who has these verbs<a class="headerlink" href="#who-has-these-verbs" title="Permanent link">#</a></h2>
+<p><strong>All of them are administrator verbs.</strong> A standard or programmer account has
+none of these names at all.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>needs elevation as well</strong></td>
+<td><code>create.account</code> <code>modify.account</code> <code>modify.password</code> (for another account) <code>delete.account</code> <code>grant</code> <code>revoke</code> <code>list.grants</code></td>
+</tr>
+<tr>
+<td><strong>the verb is enough</strong></td>
+<td><code>clean.account</code> <code>update.accounts</code> <code>config</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>list.grants</code> needs elevation even though it only reads.</strong> It answers <em>who
+may enter this account</em>, which is worth knowing before you have it, and the
+gate is at the top of the program the three grant verbs share.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="02-sessions-and-locks.html">Sessions and Locks</a> ·
+<a href="03-operating-system-access.html">Operating System Access</a>.</p>
+<p><strong>In the user documentation</strong>, which does not repeat any of this: <em>SD TCL - The
+Command Processor</em> for how a verb is dispatched and what a VOC record holds, and
+<em>SD Basic - System and Environment</em> for what a program can read about its own
+session. Those pages are in a different set and are deliberately not linked from
+here — see the note at the top.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="01-accounts-and-security.html"><span class="pn-label">&larr; Previous</span>Accounts and Security</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="02-sessions-and-locks.html"><span class="pn-label">Next &rarr;</span>Sessions and Locks</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

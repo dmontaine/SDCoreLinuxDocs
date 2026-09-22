@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Dictionaries - Using and Creating - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="33-sd-dicts-structure.html"><span class="pn-label">&larr; Previous</span>SD Dictionaries - Structure</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="34-sd-dicts-conversions.html"><span class="pn-label">Next &rarr;</span>SD Dictionaries - Conversions and Formatting</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Dictionaries - Using and Creating</h1>
+<p class="tp-subtitle">How the query processor reads a dictionary, the system dictionaries, and creating one.</p>
+</section>
+
+<main>
+<p>This page continues <a href="33-sd-dicts-structure.html">SD Dictionaries - Structure</a>.</p>
+<h2 id="how-the-query-processor-uses-the-dictionary">How the query processor uses the dictionary<a class="headerlink" href="#how-the-query-processor-uses-the-dictionary" title="Permanent link">#</a></h2>
+<p>When a query command runs — <code>LIST STOCK DESCRIPTION QTY</code> — the query
+processor opens the dictionary of <code>STOCK</code> and looks up each name the
+command mentions.</p>
+<h3 id="name-resolution-in-the-dictionary">Name resolution in the dictionary<a class="headerlink" href="#name-resolution-in-the-dictionary" title="Permanent link">#</a></h3>
+<p>A name is looked up <strong>as typed, then lower case, then upper case</strong>, the
+same resolution the VOC uses. If the dictionary has no record by that
+name, the query reports <em>"field name not found"</em> and stops.</p>
+<p>If the name is not in the file's own dictionary, SD looks in the account
+VOC for a phrase of the same name — a <code>PH</code> record that expands to one or
+more dictionary field names. This is how saved selection clauses work:
+<code>list stock with qty &gt; 100</code> can use a phrase <code>high.qty</code> holding
+<code>WITH QTY &gt; 100</code> that is stored in the VOC, not the dictionary.</p>
+<h3 id="what-the-query-processor-reads">What the query processor reads<a class="headerlink" href="#what-the-query-processor-reads" title="Permanent link">#</a></h3>
+<p>For each field name in the command, the query processor reads the
+dictionary record and extracts:</p>
+<ol>
+<li><strong>The field number</strong> (field 2 for D, A and S; the expression for I
+   and C) — where to get the data.</li>
+<li><strong>The conversion code</strong> (field 3) — how to transform it for display.</li>
+<li><strong>The display name</strong> (field 4) — what to head the column.</li>
+<li><strong>The format</strong> (field 5) — how wide and how justified.</li>
+<li><strong>The S/M flag</strong> (field 6) — whether to expect multiple values.</li>
+<li><strong>The association</strong> (field 7) — which fields to print side by side.</li>
+</ol>
+<p>For an I-type, it compiles the expression (if the stamp has changed),
+executes it for each record, and uses the result as the field value.</p>
+<h3 id="the-default-format">The default format<a class="headerlink" href="#the-default-format" title="Permanent link">#</a></h3>
+<p>If field 5 is empty, the query processor picks a default — ten
+characters, left-justified for strings, right-justified for numbers. The
+column heading defaults to the field name in upper case.</p>
+<h2 id="the-system-dictionaries">The system dictionaries<a class="headerlink" href="#the-system-dictionaries" title="Permanent link">#</a></h2>
+<p>Three dictionaries ship in <code>@SDSYS</code> and are pointed at by every
+account's VOC:</p>
+<table>
+<thead>
+<tr>
+<th>VOC id</th>
+<th>Dictionary of</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>voc</code></td>
+<td>the VOC itself (<code>@SDSYS/voc.dic</code>)</td>
+</tr>
+<tr>
+<td><code>dict.dic</code></td>
+<td>the dictionary file (<code>@SDSYS/dict.dic</code>)</td>
+</tr>
+<tr>
+<td><code>newvoc</code></td>
+<td>the NEWVOC template</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>voc.dic</code> dictionary is what <code>dict voc</code> reads. It has records for
+<code>@ID</code>, <code>F1</code> through <code>F5</code>, <code>TYPE</code>, <code>FTYPE</code>, <code>DESC</code>, <code>DATA.NAME</code>,
+<code>DICT.NAME</code>, <code>NAME</code>, <code>PROCESSOR</code>, <code>DISPATCH</code> and <code>IS.REMOTE</code> — the
+fields a VOC record has. Several of these are I-types that compute their
+display from other fields, which is why <code>dict voc</code> shows a type column
+that reads <code>V</code>, <code>K</code>, <code>F</code> and so on rather than the raw field 1.</p>
+<h2 id="creating-and-editing-dictionaries">Creating and editing dictionaries<a class="headerlink" href="#creating-and-editing-dictionaries" title="Permanent link">#</a></h2>
+<h3 id="ed-the-editor">ED — the editor<a class="headerlink" href="#ed-the-editor" title="Permanent link">#</a></h3>
+<p><code>ED DICT</code> <em>file.name</em> <em>field.name</em> is the way to create or modify a
+dictionary record by hand. The editor writes the record when you file
+it, and if it is an I-type, the stamp in field 15 is cleared so the next
+query recompiles it.</p>
+<h3 id="createfile-the-dictionary-is-created-with-the-file">CREATE.FILE — the dictionary is created with the file<a class="headerlink" href="#createfile-the-dictionary-is-created-with-the-file" title="Permanent link">#</a></h3>
+<p>When <code>CREATE.FILE</code> creates a data file, it creates the dictionary with
+it. The dictionary starts empty — no field records — and you add them
+with <code>ED</code> or by copying from another file's dictionary.</p>
+<h3 id="copy-copy-dictionary-records">copy — copy dictionary records<a class="headerlink" href="#copy-copy-dictionary-records" title="Permanent link">#</a></h3>
+<pre><code>copy from dict src.file to dict tgt.file field.name
+</code></pre>
+<p><code>copy</code> can copy dictionary records between files, which is the way to
+clone a field definition from one file's dictionary to another.</p>
+<h3 id="generate-create-include-files-from-dictionaries">GENERATE — create include files from dictionaries<a class="headerlink" href="#generate-create-include-files-from-dictionaries" title="Permanent link">#</a></h3>
+<p><code>GENERATE</code> reads a dictionary and writes a BASIC include file (<code>.H</code>)
+that defines field numbers as constants. This is how a program avoids
+hard-coding field numbers: <code>$INCLUDE file.H</code> brings in <code>F1</code>, <code>F2</code> and
+the rest, and if a field number changes, the include file is regenerated
+and every program that includes it picks up the change on recompile.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p><strong>There is no verb that lists dictionary records by type.</strong> <code>DICT</code>
+<em>file.name</em> displays the records, and <code>LIST DICT</code> <em>file.name</em> runs the
+query processor over them, but there is no <code>listd</code> or <code>listdict</code> verb.
+<code>ED DICT</code> <em>file</em> <em>name</em> edits one record; <code>DICT</code> <em>file</em> displays
+several.</p>
+<p><strong><code>L</code>-types are not in a stock dictionary.</strong> Type <code>L</code> is handled by
+the query processor and there is no shipped example. It exists for
+applications that need cross-file joins in a query.</p>
+<p><strong>The <code>C</code> type is rare.</strong> Stock dictionaries use <code>D</code> for direct fields
+and <code>I</code> for computed ones. <code>C</code> exists for compatibility and is
+functionally a subset of <code>I</code> — use <code>I</code> for new computed fields.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="34-sd-dicts-conversions.html">SD Dictionaries - Conversions and Formatting</a> ·
+<a href="32-sd-voc-structure-and-usage.html">SD VOC - Structure and Usage</a> ·
+<a href="21-sd-tcl-query-processor.html">SD TCL - The Query Processor</a> ·
+<a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> ·
+<a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="33-sd-dicts-structure.html"><span class="pn-label">&larr; Previous</span>SD Dictionaries - Structure</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="34-sd-dicts-conversions.html"><span class="pn-label">Next &rarr;</span>SD Dictionaries - Conversions and Formatting</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

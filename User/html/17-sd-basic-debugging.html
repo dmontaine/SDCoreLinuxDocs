@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - Debugging - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="16a-sd-basic-status-and-the-machine.html"><span class="pn-label">&larr; Previous</span>SD Basic - Status, Encryption and the Machine</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="18-sd-basic-modern-program-structure.html"><span class="pn-label">Next &rarr;</span>SD Basic - Modern Program Structure</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - Debugging</h1>
+<p class="tp-subtitle">Stopping a program where you want it, and looking at what it thinks is true.</p>
+</section>
+
+<main>
+<p>SD has a real source-level debugger. It stops on a line, shows you the source,
+prints any variable with its type, changes one, sets breakpoints, watches a
+variable for change, and shows the call stack. It is worth ten minutes of
+learning and it replaces most of the <code>crt</code> statements people leave behind.</p>
+<p>SD folds case, so a program may be written in either case. Keywords are shown
+here in lower case. In the tables, <em>italics</em> mark something you supply and
+<strong>bold</strong> marks a word typed as it stands; braces mark an optional part.</p>
+<blockquote>
+<p><strong>The transcripts below are the debugger's own output, reproduced exactly as
+it prints them</strong> — including the <code>help</code> screen. What you see on your own
+screen should match character for character.</p>
+</blockquote>
+<h2 id="nothing-works-until-you-compile-with-debugging">Nothing works until you compile with DEBUGGING<a class="headerlink" href="#nothing-works-until-you-compile-with-debugging" title="Permanent link">#</a></h2>
+<pre><code>basic bp MYPROG debugging
+</code></pre>
+<p><strong>The <code>debugging</code> keyword is what makes every other thing on this page
+possible.</strong> Without it the compiler emits no per-line debug information, and
+the debugger has nothing to stop on. It shows in three ways:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a <code>debug</code> statement in a program compiled <strong>without</strong> it</td>
+<td><em>"WARNING: DEBUG statement ignored - Not compiling in debug mode"</em>, <strong>0 errors</strong>, and the program <strong>ran straight through</strong></td>
+</tr>
+<tr>
+<td>the same program started with the <code>debug</code> <strong>verb</strong></td>
+<td>ran straight through — no prompt, no message</td>
+</tr>
+<tr>
+<td>the same source compiled <strong>with</strong> <code>debugging</code></td>
+<td>stopped, and the prompt appeared</td>
+</tr>
+</tbody>
+</table>
+<p>The warning is a warning, not an error: the program compiles and runs. <strong>A
+<code>debug</code> statement in production code is therefore harmless but useless</strong>, and
+the tell that you forgot the keyword is that nothing happens.</p>
+<p><strong>Recompile without <code>debugging</code> when you are finished.</strong> The extra information
+is per line, and the debugger becomes reachable by anyone who can run the
+program.</p>
+<h2 id="two-ways-in">Two ways in<a class="headerlink" href="#two-ways-in" title="Permanent link">#</a></h2>
+<pre><code>debug bp MYPROG          ;* the verb: stop on the FIRST line
+</code></pre>
+<p>The verb stops before line 1 has run:</p>
+<pre><code>:DEBUG BP ZZDBG
+ 1:       crt 'ZZDBG.START'
+
+&gt;
+</code></pre>
+<pre><code>      debug                ;* the statement: stop where you put it
+</code></pre>
+<p>The statement stops on the <strong>next</strong> line, the one that has not run yet:</p>
+<pre><code>ZZDBG.START
+ 4:       n = n + 1
+
+&gt;
+</code></pre>
+<p>Use the verb when you want the whole program, and the statement when you want a
+particular place — inside an <code>if</code> that is only true for one record, for
+example. The statement is the only way to stop on a condition, because there is
+no conditional breakpoint.</p>
+<p><code>&gt;</code> is the prompt. <code>pdebug</code> is the same debugger for a phantom; the <code>debug</code>
+verb refuses a phantom outright with <em>"Cannot debug program in a phantom
+process"</em>.</p>
+<h2 id="the-commands-as-this-port-prints-them">The commands, as this port prints them<a class="headerlink" href="#the-commands-as-this-port-prints-them" title="Permanent link">#</a></h2>
+<p>Typing <code>help</code> at the <code>&gt;</code> prompt gives:</p>
+<pre><code>BRK n           Set breakpoint on line n
+CLR {n}         Clear all or specific breakpoint
+DUMP var path   Dump variable to given pathname
+HELP            Display this screen
+ABORT or Quit   Abort program
+EXit            Exit subroutine
+EP              Exit program
+Goto n          Goto line n
+Run {n}         Free run or to line n
+SRC {n}         Display line n, current line if n omitted
+SRC {m,n}       Display n lines starting at line n.
+STACK           Display call stack
+Step .n         Step n debug elements
+Step n          Step n lines
+STOP            Stop program
+Watch var       Watch for changes to named variable
+UnWatch         Cancel Watch action
+</code></pre>
+<p><strong>The capital letters are the abbreviation</strong> — <code>S</code> for <code>Step</code>, <code>R</code> for <code>Run</code>,
+<code>G</code> for <code>Goto</code>, <code>W</code> for <code>Watch</code>, <code>UW</code> for <code>UnWatch</code>, <code>EX</code> for <code>EXit</code>, <code>Q</code> for
+<code>Quit</code>. <code>?</code> is a synonym for <code>/</code> below, not for <code>help</code>.</p>
+<h2 id="looking-at-a-variable">Looking at a variable<a class="headerlink" href="#looking-at-a-variable" title="Permanent link">#</a></h2>
+<pre><code>/name
+</code></pre>
+<p>A slash and the name, on three kinds of variable:</p>
+<pre><code>&gt;/N
+Integer: 41
+
+&gt;/K
+String (9 bytes): &quot;some text&quot;
+
+&gt;/ARR(1)
+String (5 bytes): &quot;first&quot;
+</code></pre>
+<p><strong>The type is part of the answer, and it is often the answer.</strong> <code>Integer: 41</code>
+and <code>String (2 bytes): "41"</code> are different bugs, and so are <code>Integer: 1</code> and
+<code>Float: 1.500000</code>. The rest of the shapes:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>a variable that has not been assigned yet</td>
+<td><code>Unassigned</code> — <strong>not</strong> an empty string</td>
+</tr>
+<tr>
+<td>a name the program never mentions</td>
+<td><code>Variable not defined</code></td>
+</tr>
+<tr>
+<td>a floating point variable</td>
+<td><code>Float: 1.500000</code></td>
+</tr>
+</tbody>
+</table>
+<p>The difference between the first two matters: <code>Unassigned</code> means the variable
+is yours and has no value yet, and <em>"Variable not defined"</em> means you have
+mistyped the name.</p>
+<p>A matrix element takes its subscripts: <code>/ARR(1)</code> for one dimension,
+<code>/ARR(2,3)</code> for two. <code>/</code> on its own repeats the last variable you looked at,
+printing the same answer again.</p>
+<pre><code>set name = value
+</code></pre>
+<p>changes it. <code>SET N = 100</code> then <code>/N</code> gives <code>Integer: 100</code>, and the program
+carries on with the new value.</p>
+<p><code>dump var path</code> writes a variable to an operating system file, which is the way
+to look at something too long for the screen.</p>
+<h2 id="stepping-and-running">Stepping and running<a class="headerlink" href="#stepping-and-running" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>s</code></td>
+<td>one line — the debugger prints the next one, <code>5:  crt 'ZZDBG.N=' : n</code></td>
+</tr>
+<tr>
+<td><code>s</code><em>n</em></td>
+<td><em>n</em> lines — <code>s 3</code> from line 4 lands on line <strong>7</strong></td>
+</tr>
+<tr>
+<td><code>s .</code><em>n</em></td>
+<td><em>n</em> debug elements — finer than a line</td>
+</tr>
+<tr>
+<td><code>r</code></td>
+<td>run on</td>
+</tr>
+<tr>
+<td><code>r</code><em>n</em></td>
+<td>run on until line <em>n</em></td>
+</tr>
+<tr>
+<td><code>g</code><em>n</em></td>
+<td>jump to line <em>n</em> <strong>without running the lines in between</strong></td>
+</tr>
+<tr>
+<td><code>ex</code></td>
+<td>run to the end of this subroutine</td>
+</tr>
+<tr>
+<td><code>ep</code></td>
+<td>run to the end of this program</td>
+</tr>
+<tr>
+<td><code>stop</code></td>
+<td>stop the program</td>
+</tr>
+<tr>
+<td><code>q</code></td>
+<td>abort — prints <code>ABORT : Debugging terminated</code></td>
+</tr>
+</tbody>
+</table>
+<p>An <code>s</code> in the middle of an assignment sequence:</p>
+<pre><code>&gt;/N
+Integer: 41
+
+&gt;S
+ 5:       m = n * 2
+
+&gt;/N
+Integer: 42
+</code></pre>
+<p>— the step executed line 4, <code>N</code> moved from 41 to 42, and the debugger is now
+sitting on line 5.</p>
+<h2 id="breakpoints">Breakpoints<a class="headerlink" href="#breakpoints" title="Permanent link">#</a></h2>
+<pre><code>brk 9        set one on line 9
+clr 9        clear that one
+clr          clear all of them
+</code></pre>
+<p><code>brk 9</code> then <code>r</code>:</p>
+<pre><code>&gt;BRK 9
+
+&gt;R
+ 9:       crt 'ZZDBG.N=' : n : ' M=' : m : ' K=' : k
+</code></pre>
+<p><code>src</code> shows you the line numbers to aim at. <code>src 1,4</code>:</p>
+<pre><code>&gt;SRC 1,4
+ 1:       crt 'ZZDBG.START'
+ 2:       n = 41
+ 3:       debug
+ 4:       n = n + 1
+</code></pre>
+<p>Breakpoints are on a <strong>line number in the source</strong>, so the source record has to
+still match the compiled object. The debugger checks the modification time and
+refuses with <em>"Unable to find source record"</em> if the source has moved on;
+recompile rather than trying to work around it.</p>
+<p><strong>There is no conditional breakpoint.</strong> Put a <code>debug</code> statement inside the <code>if</code>
+instead, and recompile.</p>
+<h2 id="watching-a-variable">Watching a variable<a class="headerlink" href="#watching-a-variable" title="Permanent link">#</a></h2>
+<pre><code>w m          stop when M changes
+uw           stop watching
+</code></pre>
+<p><strong>A watch is the one thing that finds "who is setting this".</strong> A watch set at
+line 4, then <code>r</code>:</p>
+<pre><code>&gt;W M
+
+&gt;R
+ 6:       k = 'some text'
+Watched variable M has changed
+Integer: 84
+</code></pre>
+<p>It ran on, and stopped <strong>after</strong> the line that changed <code>M</code>, telling you what it
+changed to. That is the whole answer to the commonest hard bug in a long
+program.</p>
+<p>There is <strong>one</strong> watch at a time; <code>w</code> on another variable replaces it.</p>
+<h2 id="the-call-stack">The call stack<a class="headerlink" href="#the-call-stack" title="Permanent link">#</a></h2>
+<pre><code>stack
+</code></pre>
+<p>From inside a program run from the command prompt:</p>
+<pre><code>&gt;STACK
+1: /cygdrive/c/ProgramData/SD/user_accounts/don/BP.OUT/ZZDBG @ 9
+Command processor
+</code></pre>
+<p>The object path and the line, then whatever called it. From a program a
+program can ask the same question without the debugger:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>system(1002)</code></td>
+<td>the call stack as a dynamic array — one field per level</td>
+</tr>
+<tr>
+<td><code>system(1029)</code></td>
+<td>internal subroutine depth — <code>0</code> at the top, <code>1</code> inside a <code>gosub</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="it-is-a-line-mode-debugger-here-and-that-is-not-a-limitation-of-your-terminal">It is a line-mode debugger here, and that is not a limitation of your terminal<a class="headerlink" href="#it-is-a-line-mode-debugger-here-and-that-is-not-a-limitation-of-your-terminal" title="Permanent link">#</a></h2>
+<p><strong>On this port the debugger never draws a full screen.</strong> Its own test is
+<code>terminfo('sreg')</code>, and <code>sreg</code> — <em>save screen region</em> — is a capability of SD's
+own client terminals, not of a console. In a session on the shipped <code>windows</code>
+terminal type:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>terminfo('sreg')</code></td>
+<td><strong>0 characters</strong></td>
+</tr>
+<tr>
+<td><code>terminfo('cup')</code></td>
+<td>16 characters</td>
+</tr>
+<tr>
+<td><code>terminfo('clear')</code></td>
+<td>6 characters</td>
+</tr>
+</tbody>
+</table>
+<p>So cursor addressing is there and the region capability is not, and the
+debugger takes its line-oriented path. <strong>Nothing is lost</strong> — every command
+works, as the transcripts on this page show — and there is a real gain: because
+it is line-oriented it can be <strong>driven from a script</strong>. A whole debugging
+session can be fed down a pipe.</p>
+<p><code>@tty</code> reads empty in a piped session, and the debugger works there anyway.</p>
+<h2 id="who-has-it">Who has it<a class="headerlink" href="#who-has-it" title="Permanent link">#</a></h2>
+<p>Read out of an account's own VOC:</p>
+<table>
+<thead>
+<tr>
+<th>VOC entry</th>
+<th>record</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>debug</code></td>
+<td>a <code>V</code> verb, <code>IN</code>, internal command 29</td>
+<td>run a program in debug mode</td>
+</tr>
+<tr>
+<td><code>debugging</code></td>
+<td>a <code>K</code> keyword, 53</td>
+<td>the compiler keyword</td>
+</tr>
+<tr>
+<td><code>pdebug</code></td>
+<td>a <code>V</code> verb, <code>CA $PDEBUG</code></td>
+<td>the phantom debugger</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>debug</code> and <code>pdebug</code> are not in a standard account.</strong> Both are on the
+installer's <code>TIER.OMIT.STANDARD</code> list, so an account created at the standard
+tier has neither verb. <code>debugging</code> is a keyword rather than a verb and is
+unaffected — but with no <code>debug</code> verb, the <code>debug</code> <strong>statement</strong> is the only
+way in on such an account.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p><strong><code>trace</code> is gone.</strong> It was removed from the compiler in July 2024. In an
+ordinary account it is <em>"Unrecognised statement"</em>.</p>
+<p><strong>The programmatic debug statements are restricted.</strong> <code>debug.on</code>,
+<code>debug.off</code>, <code>debug.set</code>, <code>breakpoint</code> and <code>watch</code> are internal-only, and all
+five are <em>"Unrecognised statement"</em> in an ordinary account. They are
+what the debugger itself is built from. <strong><code>debug</code> — the plain statement — is
+not restricted</strong>, and it is the one you want.</p>
+<p><code>debug.info()</code> is internal-only for the same reason.</p>
+<p><strong>No conditional breakpoints, no data breakpoints beyond the single watch, and
+no remote attach.</strong> The debugger runs in the session that runs the program.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="16-sd-basic-system-and-environment.html">SD Basic - System and Environment</a> ·
+<a href="01-sd-basic-program-structure.html">SD Basic - Program Structure</a> ·
+<a href="02-sd-basic-program-control.html">SD Basic - Program Control</a> ·
+<a href="14-sd-basic-locks-and-transactions.html">SD Basic - Locks and Transactions</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="16a-sd-basic-status-and-the-machine.html"><span class="pn-label">&larr; Previous</span>SD Basic - Status, Encryption and the Machine</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="18-sd-basic-modern-program-structure.html"><span class="pn-label">Next &rarr;</span>SD Basic - Modern Program Structure</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

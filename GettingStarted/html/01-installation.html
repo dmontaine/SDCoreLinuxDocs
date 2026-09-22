@@ -1,0 +1,789 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Installing SD Core - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="00a-copyright-and-licence.html"><span class="pn-label">&larr; Previous</span>Copyright and licence</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>GettingStarted</a>
+<a class="pn-next" href="01a-upgrading-and-uninstalling.html"><span class="pn-label">Next &rarr;</span>Upgrading and uninstalling</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">Installing SD Core</h1>
+<p class="tp-subtitle">What the installer does to the machine, the two kinds of installation, and the choices it puts in front of you.</p>
+</section>
+
+<main>
+<p>There is no compiler to run and no dependency to resolve. SD Core for Windows
+ships as a single <code>sd-setup-W1.0-0.exe</code>, carries its own runtime beside
+<code>sd.exe</code>, and installs in one pass.</p>
+<p>This is the largest single difference from the regular SD version — that, and
+the fact that this version is for Windows and not Linux. In regular SD,
+<code>installsdai.sh</code> existed because ScarletDME targeted four distributions and the
+end user had to compile; Windows has one target and one ABI, so none of that
+transfers.</p>
+<h2 id="before-you-start">Before you start<a class="headerlink" href="#before-you-start" title="Permanent link">#</a></h2>
+<p><strong>You need an elevated session.</strong> The installer creates local groups, sets
+file permissions, registers a service and assigns user rights. You can start
+the install from a normal console session — you will get an elevation prompt.</p>
+<p><strong>SD cannot be installed silently.</strong> This is deliberate, not a missing
+feature. The installer asks questions whose answers cannot be defaulted safely
+— which kind of installation, whether to expose ports, and the password on the
+account it makes for you.</p>
+<p><strong>The installer does not ask where to put SD.</strong> Both roots are fixed. See
+<a href="#what-lands-where">What lands where</a>.</p>
+<h3 id="it-checks-the-machine-before-it-changes-anything">It checks the machine before it changes anything<a class="headerlink" href="#it-checks-the-machine-before-it-changes-anything" title="Permanent link">#</a></h3>
+<p>The installer refuses to start, and changes nothing, if it finds:</p>
+<ul>
+<li>another ssh server using port 22, or</li>
+<li>an ssh service that is not part of Windows, installed even if it is not
+  running, or</li>
+<li>Windows' own ssh server with settings somebody has already changed.</li>
+</ul>
+<p>It tells you what it finds — the service and its path, or the directive that
+was added — so you can decide what to do. You may <strong>remove the other ssh
+server, or put the ssh configuration back the way Windows shipped it, and run
+the installer again.</strong></p>
+<p>Why it is this strict: accounts SD creates cannot log in to Windows at all, so
+ssh is one of only two ways they reach the machine — and SD configures the ssh
+server so those sessions land inside SD and cannot reach a command prompt. <strong>SD
+can only promise that about a server it installed and configured itself.</strong></p>
+<h2 id="what-you-are-asked">What you are asked<a class="headerlink" href="#what-you-are-asked" title="Permanent link">#</a></h2>
+<p>There is one kind of installation. What varies is how the machine can be
+reached afterwards, and that is three tick boxes on one page.</p>
+<p>The boxes appear only on a <strong>first</strong> install. An upgrade shows no tasks page at
+all: the machine already carries the answers, and every one of these settings
+has a command that changes it afterwards.</p>
+<h3 id="1-system-integration">1. System integration<a class="headerlink" href="#1-system-integration" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Add SD Core to the system PATH, so <code>sd</code> runs from any directory</td>
+<td><strong>ticked</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Changed afterwards with <code>append.sd.path on</code> or <code>off</code>.</p>
+<h3 id="2-the-ssh-server">2. The ssh server<a class="headerlink" href="#2-the-ssh-server" title="Permanent link">#</a></h3>
+<p><strong>Installing an ssh server is optional, and the box is not ticked.</strong> It
+downloads from Windows Update and can take several minutes — up to about an
+hour on a slow machine or connection — which is why it is offered rather than
+done.</p>
+<p>What you see depends on what the machine already has:</p>
+<table>
+<thead>
+<tr>
+<th>Machine</th>
+<th>Boxes</th>
+<th>Defaults</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>No ssh server</td>
+<td><em>Install the OpenSSH server</em>, and indented under it <em>Let other computers connect</em></td>
+<td>both unticked</td>
+</tr>
+<tr>
+<td>Server present, firewall shut</td>
+<td><em>Let other computers connect</em></td>
+<td>unticked</td>
+</tr>
+<tr>
+<td>Server present, firewall open</td>
+<td><em>Let other computers connect</em></td>
+<td><strong>ticked</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The second box is a child of the first, so Windows greys it out until the
+parent is ticked. You cannot ask for remote ssh access without an ssh server.</p>
+<p>The last row matters on a machine that already uses ssh: the box shows the
+<strong>current</strong> firewall scope, so leaving it alone changes nothing in either
+direction. <code>OpenSSH-Server-In-TCP</code> is Windows' own shared rule and not SD's, so
+defaulting it to unticked and applying that would silently loopback-lock the
+ssh a site already relies on.</p>
+<p>Changed afterwards with <code>ssh.server install</code> or <code>remove</code>, and <code>remote.ssh on</code>
+or <code>off</code>.</p>
+<h3 id="3-the-api">3. The API<a class="headerlink" href="#3-the-api" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Default</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Provide the SD Core API (port 4243)</td>
+<td><strong>unticked</strong></td>
+</tr>
+<tr>
+<td>Let other computers on your network reach it</td>
+<td><strong>unticked</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The API is off unless you ask for it.</strong> Decline it and SD is installed with a
+configuration carrying no <code>APIPORT</code> line, so no socket is opened at all — not a
+listener behind a closed firewall, but no listener.</p>
+<p>Again the second box is a child of the first. The pair appears only when there
+is no existing configuration file to read the answer from.</p>
+<p>Changed afterwards with <code>remote.api on</code>, <code>local</code> or <code>off</code>.</p>
+<h3 id="an-installation-with-neither-is-a-supported-choice">An installation with neither is a supported choice<a class="headerlink" href="#an-installation-with-neither-is-a-supported-choice" title="Permanent link">#</a></h3>
+<p>Leaving every remote box unticked gives a working SD that nothing outside the
+machine can reach. That is a real deployment rather than a degraded one.</p>
+<p><strong>Be aware of what it means for accounts.</strong> Accounts SD creates are denied the
+Windows console and Remote Desktop, so they reach SD over ssh or over the API
+and nothing else — including at this keyboard, where an ssh account arrives by
+<code>ssh localhost</code>. With no ssh server on the machine, <code>create.account … ssh</code> and
+<code>… both</code> are refused, because the account could sign in nowhere. <code>api</code> and
+<code>none</code> still work, and <code>none</code> is meaningful: an application account reached only
+by <code>logto</code>.</p>
+<p>The refusal is tested against the machine when you type the command, not
+against a decision recorded at install time. Install an ssh server later and
+<code>create.account … ssh</code> simply starts working.</p>
+<h2 id="what-lands-where">What lands where<a class="headerlink" href="#what-lands-where" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>What</th>
+<th>Where</th>
+<th>Was, on Linux</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Binaries, and the MSYS2 DLLs beside them</td>
+<td><code>C:\Program Files\SD\usr\bin\</code></td>
+<td><code>/usr/local/bin</code></td>
+</tr>
+<tr>
+<td>The changelog</td>
+<td><code>C:\Program Files\SD\changelog</code></td>
+<td>—</td>
+</tr>
+<tr>
+<td>Configuration</td>
+<td><code>C:\ProgramData\SD\sd.conf</code></td>
+<td><code>/etc/sd.conf</code></td>
+</tr>
+<tr>
+<td>The SDSYS account</td>
+<td><code>C:\ProgramData\SD\sdsys\</code></td>
+<td><code>/usr/local/sdsys</code></td>
+</tr>
+<tr>
+<td>User accounts</td>
+<td><code>C:\ProgramData\SD\user_accounts\</code></td>
+<td><code>/home/sd/user_accounts</code></td>
+</tr>
+<tr>
+<td>Group accounts</td>
+<td><code>C:\ProgramData\SD\group_accounts\</code></td>
+<td><code>/home/sd/group_accounts</code></td>
+</tr>
+<tr>
+<td>POSIX shared memory</td>
+<td><code>C:\ProgramData\SD\shm\</code></td>
+<td><code>/dev/shm</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>usr\bin</code> is load-bearing, not tidiness.</strong> Shipping <code>msys-2.0.dll</code> beside the
+executable relocates the POSIX root to the DLL's directory minus two
+components, so only that depth puts <code>/</code> on <code>C:\Program Files\SD\</code>. Do not move
+the binaries.</p>
+<p><strong>The DLLs ship beside <code>sd.exe</code> on purpose.</strong> Do not change their location.</p>
+<h3 id="configuration">Configuration<a class="headerlink" href="#configuration" title="Permanent link">#</a></h3>
+<p>Server and client both read <code>SD_CONFIG</code>, then fall back to
+<code>%ProgramData%\SD\sd.conf</code>.</p>
+<p><code>sd.conf</code> is installed <code>onlyifdoesntexist</code> and marked never to uninstall, so
+your edits survive both upgrade and removal.</p>
+<h2 id="what-the-installer-creates-on-the-machine">What the installer creates on the machine<a class="headerlink" href="#what-the-installer-creates-on-the-machine" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sdusers</code></td>
+<td>grants access to the files under <code>C:\ProgramData\SD</code>. Everyone who uses SD needs it</td>
+</tr>
+<tr>
+<td><code>sdsshonly</code></td>
+<td>carries the two deny rights that confine an account to ssh. Every non-administrator account SD creates joins it</td>
+</tr>
+<tr>
+<td><code>sdu_&lt;name&gt;</code></td>
+<td>one per account, created by <strong><code>create.account</code></strong></td>
+</tr>
+<tr>
+<td>the service</td>
+<td><strong>String Database (SD)</strong></td>
+</tr>
+<tr>
+<td>ACLs</td>
+<td>inheritance is broken on <code>C:\ProgramData\SD</code> and access granted narrowly. This is what makes the database private from the rest of the machine</td>
+</tr>
+</tbody>
+</table>
+<p><strong>You must sign out and back in after being added to <code>sdusers</code>.</strong> Windows
+group membership is carried in your logon token. Until you get a new one, you
+cannot read the data tree at all, and the symptom looks like a broken install.</p>
+<h2 id="openssh">OpenSSH<a class="headerlink" href="#openssh" title="Permanent link">#</a></h2>
+<p><strong>The OpenSSH server is installed only if you ask for it</strong>, and the box is not
+ticked. This section covers what happens when you do ask.</p>
+<p>Accounts SD creates cannot log in to Windows, so they reach the machine over
+ssh or through an API client. An installation offering neither is usable by
+nobody but you — which is a legitimate choice, and worth making knowingly. A
+local-only machine is served by <code>ssh localhost</code>, which needs no network.</p>
+<p><strong>It is slow and it looks like a hang.</strong> <code>Add-WindowsCapability</code> hands off to
+<code>TiWorker</code> and can work for minutes with nothing on screen. <strong>Never kill it</strong> —
+interrupting Windows servicing mid-flight is how the component store gets
+corrupted. It may also leave a reboot pending, which is real; SD itself needs
+none.</p>
+<p><strong>If it cannot be installed, the install still succeeds.</strong> It is a Features on
+Demand capability and can be blocked by policy, a WSUS with no source, a
+metered connection or an offline machine. The installer reports it in as many
+words, with the command to retry — and you should read that report, because in
+that state <strong>no account but yours can sign in anywhere.</strong></p>
+<p>It is the same command either way, and it is repeated here because the closing
+report is easy to close. From an elevated prompt:</p>
+<pre><code>powershell -File &quot;C:\Program Files\SD\install-ssh.ps1&quot;
+</code></pre>
+<p>It exits <strong>0</strong> installed and running, <strong>2</strong> installed but Windows wants a
+restart before the service exists, <strong>1</strong> failed — and it prints which, so run
+it in a window you can read rather than expecting a log. It is safe to run
+twice: on a machine that already has the server it says so and changes
+nothing.</p>
+<h2 id="the-full-screen-editors">The full-screen editors<a class="headerlink" href="#the-full-screen-editors" title="Permanent link">#</a></h2>
+<p><strong>The installer makes sure the two terminal editors are on the machine</strong>,
+because the <strong><code>edit</code></strong> and <strong><code>micro</code></strong> verbs run them. Current Windows builds
+already carry <code>edit.exe</code>; micro never ships with Windows, so it is always a
+winget install. Neither is offered as a choice, for the same reason the ssh
+server is not: a programmer account with a verb that does nothing is worse
+than either answer.</p>
+<p><strong>If one cannot be installed, the install still succeeds.</strong> No winget, no
+network or a policy in the way all end the same: SD is complete and one editor
+verb is not — <strong><code>ed</code></strong>, the line editor, needs nothing. What happened is in
+<code>C:\ProgramData\SD\install-editors.log</code>, and to do it by hand afterwards,
+from an elevated prompt:</p>
+<pre><code>winget install -e --id Microsoft.Edit --scope machine
+winget install -e --id zyedidia.micro --scope machine
+</code></pre>
+<p><strong>The scope is not optional.</strong> Without it winget installs into the profile of
+whoever ran it, and accounts SD creates cannot log in to Windows at all — so a
+per-user copy is one they can never reach.</p>
+<h2 id="changing-any-of-it-afterwards">Changing any of it afterwards<a class="headerlink" href="#changing-any-of-it-afterwards" title="Permanent link">#</a></h2>
+<p>Every choice on the tasks page has a verb that changes it later, and that is
+why an upgrade does not ask again. All four need an elevated administrator
+session, and all four report when given no keyword:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ssh.server install</code> | <code>remove</code></td>
+<td>add or remove the OpenSSH server</td>
+</tr>
+<tr>
+<td><code>remote.ssh on</code> | <code>off</code></td>
+<td>who may reach it</td>
+</tr>
+<tr>
+<td><code>remote.api on</code> | <code>local</code> | <code>off</code></td>
+<td>whether SD opens its API socket, and who may reach it</td>
+</tr>
+<tr>
+<td><code>append.sd.path on</code> | <code>off</code></td>
+<td>whether <code>sd</code> runs from any directory</td>
+</tr>
+</tbody>
+</table>
+<p>They are covered in the SD Core for Windows administrator documentation, under
+<em>Remote access and the machine</em>.</p>
+<p><code>remote.api on</code> and <code>off</code> change whether SD opens a socket at all, which it
+decides at start-up, so they offer to restart SD — and that restart ends every
+session including the one that asked. <code>local</code> and <code>on</code> differ only in the
+firewall and take effect at once.</p>
+<p>The underlying scripts are still on the machine and can be run directly if you
+prefer, from an elevated prompt:</p>
+<pre><code>powershell -File &quot;C:\Program Files\SD\api-firewall.ps1&quot; -Open
+</code></pre>
+<h2 id="at-the-end">At the end<a class="headerlink" href="#at-the-end" title="Permanent link">#</a></h2>
+<p>The installer <strong>finishes, and then opens SD</strong> so you can set your own password.
+It does not leave a wizard page waiting behind the session.</p>
+<p>A Start Menu entry, <strong>Check the SD installation</strong>, runs a post-install check
+you can re-run at any time. It closes on a keypress.</p>
+<p>You are told plainly what setting no password costs, rather than being allowed
+to skip past it silently.</p>
+<h2 id="continued-in">Continued in<a class="headerlink" href="#continued-in" title="Permanent link">#</a></h2>
+<p><a href="01a-upgrading-and-uninstalling.html">Upgrading and uninstalling</a> — upgrading
+an existing installation, and uninstalling.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="00a-copyright-and-licence.html"><span class="pn-label">&larr; Previous</span>Copyright and licence</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>GettingStarted</a>
+<a class="pn-next" href="01a-upgrading-and-uninstalling.html"><span class="pn-label">Next &rarr;</span>Upgrading and uninstalling</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

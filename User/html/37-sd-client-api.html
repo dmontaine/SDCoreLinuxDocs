@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Client API - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="36-sd-standard-subroutines.html"><span class="pn-label">&larr; Previous</span>SD Standard Subroutines</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="38-sd-glossary.html"><span class="pn-label">Next &rarr;</span>SD Glossary</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Client API</h1>
+<p class="tp-subtitle">The sdclilib client library, its functions across four language bindings, and the server status codes.</p>
+</section>
+
+<main>
+<p>The SDClient API lets an external application connect to SD, open
+files, read and write records, execute commands, call subroutines,
+and manage select lists — all through a single shared library.</p>
+<p><strong>The API is a normal way for any account to use SD</strong>, not a facility reserved
+for developers and administrators. A person running a custom GUI program that
+talks to SD needs API access and may need nothing else.</p>
+<h2 id="the-library">The library<a class="headerlink" href="#the-library" title="Permanent link">#</a></h2>
+<p>Four DLLs are installed. They are built from one source: each pair is the same
+code compiled twice under two output names, so the two files are not identical
+on disk but behave identically.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>64-bit</td>
+<td><code>sdclilib.dll</code> and <code>sdclient.dll</code></td>
+</tr>
+<tr>
+<td>32-bit</td>
+<td><code>qmclilib.dll</code> and <code>qmclient.dll</code></td>
+</tr>
+</tbody>
+</table>
+<p>The <code>*clilib</code> names are what existing applications ask for; the <code>*client</code> names
+are for new work. <strong>Renaming one to the other does not work</strong>: an import library
+records the DLL name its symbols come from, so an application built against
+<code>sdclilib</code> loads <code>sdclilib.dll</code> whatever you call the file on disk. That is why
+both names are built rather than one being a copy of the other.</p>
+<blockquote>
+<p><strong>The architecture must match the application, not the machine.</strong> A 32-bit
+application on 64-bit Windows needs the 32-bit DLL. The 32-bit build is a
+shipping deliverable rather than a testing convenience.</p>
+</blockquote>
+<h3 id="where-they-are-and-how-to-use-them">Where they are, and how to use them<a class="headerlink" href="#where-they-are-and-how-to-use-them" title="Permanent link">#</a></h3>
+<pre><code>C:\Program Files\SD\usr\clients\client64\     sdclilib.dll  sdclient.dll
+C:\Program Files\SD\usr\clients\client32\     qmclilib.dll  qmclient.dll
+</code></pre>
+<p>Copy the DLL your application needs either <strong>beside the application's own
+executable</strong> or into <code>C:\Windows\System32</code>. Those are the two supported routes
+and either works.</p>
+<blockquote>
+<p><strong><code>C:\Program Files\SD\usr\bin</code> is normally on the system PATH</strong>, because the
+installer offers to put it there — the <em>"Add SD Core to the system PATH"</em>
+task, which is ticked unless you untick it, and it is what makes <code>sd</code> run from
+any directory. <strong>All four client DLLs live in that directory too</strong>, so an
+application may find one without your having copied anything. That is
+convenient, and it is not the same as choosing which copy it loads: PATH order
+decides, and a stale copy earlier on the PATH wins. <strong>Put the DLL where your
+application will find it deliberately.</strong></p>
+</blockquote>
+<p><code>usr\clients</code> holds the DLLs <strong>and one import library for each</strong> — <code>.dll.a</code>
+files, GNU-style, for linking rather than loading:</p>
+<pre><code>client64\     libsdclilib.dll.a  libsdclient.dll.a
+client32\     libqmclilib.dll.a  libqmclient.dll.a
+</code></pre>
+<p>They sit beside the DLLs so that everything a client <em>build</em> needs is in one
+place. <strong>No header travels with them</strong>: <code>sdclilib.h</code> reaches every installation
+at <code>C:\ProgramData\SD\sdsys\syscom\sdclilib.h</code>.</p>
+<p><strong>All four DLLs also appear in <code>C:\Program Files\SD\usr\bin</code>, beside <code>sd.exe</code></strong>,
+and each copy is byte-identical to the one under <code>usr\clients</code>. The 32-bit pair
+is there because <code>usr\bin</code> is on the PATH, and that is where a <strong>32-bit
+administrative utility</strong> finds its client. Those copies are the server's own and
+are not the ones you should be taking — with one exception, which is the next
+section. <strong>The import libraries are deliberately not in <code>usr\bin</code></strong>: a linker
+input has no business in a directory that goes on the PATH.</p>
+<h2 id="connection">Connection<a class="headerlink" href="#connection" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDConnect(host, port, user, pass, account)</code></td>
+<td>over the network, to port <strong>4243</strong></td>
+</tr>
+<tr>
+<td><code>SDConnectLocal(account)</code></td>
+<td>on the same machine. Sends no password and never did</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>SDConnectUDS</code> (Unix Domain Socket) appears in the header but is not
+applicable on Windows. The Windows port supports local and TCP
+connections only.</p>
+</blockquote>
+<h3 id="sdconnectlocal-has-a-requirement-the-other-does-not">SDConnectLocal has a requirement the other does not<a class="headerlink" href="#sdconnectlocal-has-a-requirement-the-other-does-not" title="Permanent link">#</a></h3>
+<p><code>SDConnectLocal</code> starts a session by running <code>sd.exe</code>, and <strong>it looks for
+<code>sd.exe</code> beside itself</strong> — in the directory the loaded DLL came from, not on
+the PATH.</p>
+<p>So a copy of the DLL sitting next to your own application will not make a local
+connection: there is no <code>sd.exe</code> there. Two ways round it:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Load the copy in <code>usr\bin</code></td>
+<td>it is beside <code>sd.exe</code>, which is why that copy exists</td>
+</tr>
+<tr>
+<td>Use <code>SDConnect</code> instead</td>
+<td>connect to <code>127.0.0.1</code> on port 4243 like any other client</td>
+</tr>
+</tbody>
+</table>
+<p><code>SDConnectLocal</code> sends no password at all. It takes the identity of the process
+that called it and checks that account's grants, so the account has to be one
+the calling Windows user may enter.</p>
+<p><strong>The login is SCRAM-SHA-256.</strong> A client that sends a password in
+clear is refused. The server sets a puzzle only someone who knows the
+password can answer, and the password itself is never sent in any
+form. The server also proves itself to the client — another program
+that grabbed the port before SD started cannot pretend to be SD.</p>
+<blockquote>
+<p><strong>Run <code>modify.password</code> again for every account that uses the API</strong>
+after upgrading. The stored credentials changed shape and the old
+ones cannot be converted — the password was never kept anywhere, by
+design.</p>
+</blockquote>
+<p>A session is confined to its own account. An API session can open
+everything inside its own account and the shipped SDSYS files every
+account needs, but cannot open, rename, delete or list anything else.</p>
+<h2 id="server-status-codes">Server status codes<a class="headerlink" href="#server-status-codes" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Constant</th>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SV_OK</code></td>
+<td>0</td>
+<td>success</td>
+</tr>
+<tr>
+<td><code>SV_ON_ERROR</code></td>
+<td>1</td>
+<td>an <code>ON ERROR</code> clause fired</td>
+</tr>
+<tr>
+<td><code>SV_ELSE</code></td>
+<td>2</td>
+<td>an <code>ELSE</code> clause fired</td>
+</tr>
+<tr>
+<td><code>SV_ERROR</code></td>
+<td>3</td>
+<td>an error occurred</td>
+</tr>
+<tr>
+<td><code>SV_LOCKED</code></td>
+<td>4</td>
+<td>the record is locked by another session</td>
+</tr>
+<tr>
+<td><code>SV_PROMPT</code></td>
+<td>5</td>
+<td>the command issued a prompt and is waiting for input</td>
+</tr>
+</tbody>
+</table>
+<h2 id="function-reference">Function reference<a class="headerlink" href="#function-reference" title="Permanent link">#</a></h2>
+<h3 id="connection-management">Connection management<a class="headerlink" href="#connection-management" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDConnect(host, port, user, pass, account)</code></td>
+<td>Boolean</td>
+<td>connect over TCP</td>
+</tr>
+<tr>
+<td><code>SDConnectLocal(account)</code></td>
+<td>Boolean</td>
+<td>connect on the same machine</td>
+</tr>
+<tr>
+<td><code>SDConnected()</code></td>
+<td>Boolean</td>
+<td>is a session active</td>
+</tr>
+<tr>
+<td><code>SDDisconnect()</code></td>
+<td>none</td>
+<td>end the current session</td>
+</tr>
+<tr>
+<td><code>SDDisconnectAll()</code></td>
+<td>none</td>
+<td>end all sessions</td>
+</tr>
+<tr>
+<td><code>SDGetSession()</code></td>
+<td>Integer</td>
+<td>get the current session number</td>
+</tr>
+<tr>
+<td><code>SDSetSession(session)</code></td>
+<td>Boolean</td>
+<td>switch to a session</td>
+</tr>
+<tr>
+<td><code>SDLogto(account)</code></td>
+<td>Boolean</td>
+<td>switch to another account</td>
+</tr>
+</tbody>
+</table>
+<h3 id="file-operations">File operations<a class="headerlink" href="#file-operations" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDOpen(filename)</code></td>
+<td>Integer (file number)</td>
+<td>open a file</td>
+</tr>
+<tr>
+<td><code>SDClose(fileNo)</code></td>
+<td>none</td>
+<td>close a file</td>
+</tr>
+<tr>
+<td><code>SDRead(fileNo, id, err)</code></td>
+<td>String</td>
+<td>read a record</td>
+</tr>
+<tr>
+<td><code>SDReadl(fileNo, id, wait, err)</code></td>
+<td>String</td>
+<td>read with a shared lock</td>
+</tr>
+<tr>
+<td><code>SDReadu(fileNo, id, wait, err)</code></td>
+<td>String</td>
+<td>read with an update lock</td>
+</tr>
+<tr>
+<td><code>SDWrite(fileNo, id, data)</code></td>
+<td>none</td>
+<td>write a record</td>
+</tr>
+<tr>
+<td><code>SDWriteu(fileNo, id, data)</code></td>
+<td>none</td>
+<td>write with an update lock</td>
+</tr>
+<tr>
+<td><code>SDDelete(fileNo, id)</code></td>
+<td>none</td>
+<td>delete a record</td>
+</tr>
+<tr>
+<td><code>SDDeleteu(fileNo, id)</code></td>
+<td>none</td>
+<td>delete with an update lock</td>
+</tr>
+<tr>
+<td><code>SDRecordlock(fileNo, id, updateLock, wait)</code></td>
+<td>none</td>
+<td>set a record lock</td>
+</tr>
+<tr>
+<td><code>SDRelease(fileNo, id)</code></td>
+<td>none</td>
+<td>release a record lock</td>
+</tr>
+<tr>
+<td><code>SDMarkMapping(fileNo, state)</code></td>
+<td>none</td>
+<td>enable/disable mark mapping</td>
+</tr>
+</tbody>
+</table>
+<h3 id="record-manipulation">Record manipulation<a class="headerlink" href="#record-manipulation" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDExtract(src, fno, vno, svno)</code></td>
+<td>String</td>
+<td>extract a field, value or subvalue</td>
+</tr>
+<tr>
+<td><code>SDIns(src, fno, vno, svno, newdata)</code></td>
+<td>String</td>
+<td>insert into a dynamic array</td>
+</tr>
+<tr>
+<td><code>SDDel(src, fno, vno, svno)</code></td>
+<td>String</td>
+<td>delete from a dynamic array</td>
+</tr>
+<tr>
+<td><code>SDReplace(src, fno, vno, svno, newdata)</code></td>
+<td>String</td>
+<td>replace a field, value or subvalue</td>
+</tr>
+<tr>
+<td><code>SDLocate(item, src, fno, vno, svno, pos, order)</code></td>
+<td>Boolean</td>
+<td>find a position for ordered insert</td>
+</tr>
+</tbody>
+</table>
+<h3 id="string-functions">String functions<a class="headerlink" href="#string-functions" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDField(str, delim, first, occurrences)</code></td>
+<td>String</td>
+<td>extract a field from a delimited string</td>
+</tr>
+<tr>
+<td><code>SDDcount(src, delim)</code></td>
+<td>Long</td>
+<td>count delimiters</td>
+</tr>
+<tr>
+<td><code>SDChange(str, old, new, occurrences, start)</code></td>
+<td>String</td>
+<td>replace substrings</td>
+</tr>
+<tr>
+<td><code>SDMatch(src, template)</code></td>
+<td>Boolean</td>
+<td>match a string against a pattern</td>
+</tr>
+<tr>
+<td><code>SDMatchfield(src, template, component)</code></td>
+<td>String</td>
+<td>extract a matched component</td>
+</tr>
+<tr>
+<td><code>SDSubstr(...)</code></td>
+<td>String</td>
+<td>substring (language-specific)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="command-execution">Command execution<a class="headerlink" href="#command-execution" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDExecute(cmnd, err)</code></td>
+<td>String</td>
+<td>execute a TCL command</td>
+</tr>
+<tr>
+<td><code>SDRespond(response, err)</code></td>
+<td>String</td>
+<td>respond to a prompt from <code>SDExecute</code></td>
+</tr>
+<tr>
+<td><code>SDEndCommand()</code></td>
+<td>none</td>
+<td>end a multi-line command</td>
+</tr>
+<tr>
+<td><code>SDCall(name, argcount, ...)</code></td>
+<td>none</td>
+<td>call a catalogued subroutine (pass by reference)</td>
+</tr>
+<tr>
+<td><code>SDCallx(name, argcount, ...)</code></td>
+<td>Integer</td>
+<td>call a catalogued subroutine (pass by value)</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><code>SDCall</code> and <code>SDCallx</code> are variadic: 0 to 20 arguments. Each binding
+provides per-arity wrappers — <code>SDCall0</code> through <code>SDCall20</code>, and
+<code>SDCallx0</code> through <code>SDCallx20</code>.</p>
+</blockquote>
+<h3 id="select-lists">Select lists<a class="headerlink" href="#select-lists" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDSelect(fileNo, listNo)</code></td>
+<td>none</td>
+<td>select all records in a file</td>
+</tr>
+<tr>
+<td><code>SDSelectIndex(fileNo, indexName, indexValue, listNo)</code></td>
+<td>none</td>
+<td>select by index value</td>
+</tr>
+<tr>
+<td><code>SDSelectLeft(fileNo, indexName, listNo)</code></td>
+<td>String</td>
+<td>select left of an index cursor</td>
+</tr>
+<tr>
+<td><code>SDSelectRight(fileNo, indexName, listNo)</code></td>
+<td>String</td>
+<td>select right of an index cursor</td>
+</tr>
+<tr>
+<td><code>SDSetLeft(fileNo, indexName)</code></td>
+<td>none</td>
+<td>position cursor left</td>
+</tr>
+<tr>
+<td><code>SDSetRight(fileNo, indexName)</code></td>
+<td>none</td>
+<td>position cursor right</td>
+</tr>
+<tr>
+<td><code>SDReadNext(listNo, err)</code></td>
+<td>String</td>
+<td>read next select list id</td>
+</tr>
+<tr>
+<td><code>SDReadList(listNo, err)</code></td>
+<td>String</td>
+<td>read the whole list as a dynamic array</td>
+</tr>
+<tr>
+<td><code>SDClearSelect(listNo)</code></td>
+<td>none</td>
+<td>clear a select list</td>
+</tr>
+<tr>
+<td><code>SDRelease(fileNo, id)</code></td>
+<td>none</td>
+<td>release a read lock</td>
+</tr>
+</tbody>
+</table>
+<h3 id="session-and-package-management">Session and package management<a class="headerlink" href="#session-and-package-management" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDEnterPackage(name)</code></td>
+<td>Boolean</td>
+<td>enter a package context</td>
+</tr>
+<tr>
+<td><code>SDExitPackage(name)</code></td>
+<td>Boolean</td>
+<td>exit a package context</td>
+</tr>
+<tr>
+<td><code>SDGetArg(argNo)</code></td>
+<td>String</td>
+<td>get a command argument</td>
+</tr>
+</tbody>
+</table>
+<h3 id="error-handling">Error handling<a class="headerlink" href="#error-handling" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Returns</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDError()</code></td>
+<td>String</td>
+<td>get the last error message</td>
+</tr>
+<tr>
+<td><code>SDDebug(mode)</code></td>
+<td>none</td>
+<td>enable/disable debug mode</td>
+</tr>
+<tr>
+<td><code>SDStatus()</code></td>
+<td>Long</td>
+<td>get the last server status code</td>
+</tr>
+<tr>
+<td><code>SDFree(ptr)</code></td>
+<td>none</td>
+<td>free a returned pointer</td>
+</tr>
+</tbody>
+</table>
+<h2 id="language-bindings">Language bindings<a class="headerlink" href="#language-bindings" title="Permanent link">#</a></h2>
+<p>The API headers define bindings for four languages. The function
+signatures are identical in meaning; the syntax differs.</p>
+<h3 id="gambas3">Gambas3<a class="headerlink" href="#gambas3" title="Permanent link">#</a></h3>
+<pre><code>Library &quot;./sdclilib&quot;
+Extern SDConnect(Host As String, Port As Integer, UserName As String,
+  Password As String, Account As String) As Boolean
+Extern SDRead(FileNo As Integer, Id As String,
+  ByRef Errno As Integer) As String
+</code></pre>
+<h3 id="purebasic">PureBasic<a class="headerlink" href="#purebasic" title="Permanent link">#</a></h3>
+<pre><code>PrototypeC.l P_SDConnect(host.p-utf8, port.l, user.p-utf8,
+  pass.p-utf8, account.p-utf8)
+PrototypeC.i P_SDRead(fno.l, id.p-utf8, *err)
+</code></pre>
+<p>Per-arity prototypes are provided for <code>SDCall</code> and <code>SDCallx</code>:
+<code>P_SDCall0</code> through <code>P_SDCall20</code>, <code>P_SDCallx0</code> through <code>P_SDCallx20</code>.</p>
+<h3 id="free-pascal-lazarus">Free Pascal / Lazarus<a class="headerlink" href="#free-pascal-lazarus" title="Permanent link">#</a></h3>
+<pre><code class="language-pascal">type
+  TSDConnectFn = function(Host: PAnsiChar; Port: LongInt;
+    User, Pass, Account: PAnsiChar): LongInt; cdecl;
+  TSDReadFn = function(FileNo: LongInt; Id: PAnsiChar;
+    Err: PLongInt): PAnsiChar; cdecl;
+</code></pre>
+<p>A <code>LoadSdCliLib</code> function loads the library and resolves all
+function pointers; <code>UnloadSdCliLib</code> releases it.</p>
+<h3 id="python-ctypes">Python (ctypes)<a class="headerlink" href="#python-ctypes" title="Permanent link">#</a></h3>
+<pre><code class="language-python">import ctypes
+_lib = ctypes.CDLL('./sdclilib.dll')
+
+SDConnect = _lib.SDConnect
+SDConnect.argtypes = [ctypes.c_char_p, ctypes.c_int,
+    ctypes.c_char_p, ctypes.c_char_p, ctypes.c_char_p]
+SDConnect.restype = ctypes.c_int
+
+SDRead = _lib.SDRead
+SDRead.argtypes = [ctypes.c_int, ctypes.c_char_p,
+    ctypes.POINTER(ctypes.c_int)]
+SDRead.restype = ctypes.c_char_p
+</code></pre>
+<p>Per-arity <code>CFUNCTYPE</code> definitions are provided for <code>SDCall</code> and
+<code>SDCallx</code> wrappers.</p>
+<h2 id="what-the-api-cannot-do">What the API cannot do<a class="headerlink" href="#what-the-api-cannot-do" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sh</code> and <code>OS.EXECUTE</code></td>
+<td>refused over the API</td>
+</tr>
+<tr>
+<td>Open files outside the account</td>
+<td>refused (status 3035 — <em>not permitted</em>)</td>
+</tr>
+<tr>
+<td>Reach the credential file</td>
+<td>never, and cannot be added</td>
+</tr>
+<tr>
+<td>Enumerate accounts</td>
+<td>refused; all three failure cases give the same message</td>
+</tr>
+</tbody>
+</table>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="36-sd-standard-subroutines.html"><span class="pn-label">&larr; Previous</span>SD Standard Subroutines</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="38-sd-glossary.html"><span class="pn-label">Next &rarr;</span>SD Glossary</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,700 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD TCL - The micro Screen Editor - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="26-sd-tcl-edit.html"><span class="pn-label">&larr; Previous</span>SD TCL - The edit Screen Editor</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="28-sd-tcl-printing-and-spooling.html"><span class="pn-label">Next &rarr;</span>SD TCL - Printing and Spooling</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD TCL - The micro Screen Editor</h1>
+<p class="tp-subtitle">The capable one — SD BASIC highlighting, a command bar, split windows and a help screen.</p>
+</section>
+
+<main>
+<pre><code>micro {dict} file record
+</code></pre>
+<p><code>micro</code> opens a record in <strong>micro</strong>, a full-screen editor that does rather more
+than <a href="26-sd-tcl-edit.html">edit</a> does. Two things make it the one to use for
+programming:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>it highlights SD BASIC</strong></td>
+<td>statements, reserved words, intrinsics, strings and comments, from rules SD generates out of the compiler's own tables and ships</td>
+</tr>
+<tr>
+<td><strong>it has a command bar and a help screen</strong></td>
+<td>so everything it can do is reachable and readable without leaving the editor</td>
+</tr>
+</tbody>
+</table>
+<p>It also has multiple files open at once, split windows, a plugin system and
+rebindable keys. <strong>If you only want to change one line in a record</strong>, <code>edit</code> is
+less to think about.</p>
+<p>SD folds case, so a command may be typed in either case. Commands are shown here
+in lower case. In the tables, <em>italics</em> mark something you supply and <strong>bold</strong>
+marks a word typed as it stands; braces mark an optional part.</p>
+<blockquote>
+<p><strong>The keys below are micro's own</strong>, read from the default bindings and the
+help text inside the executable SD installs — <strong>micro 2.0.15</strong>. The SD half of
+the page describes SD Core for Windows W1.0-0.</p>
+</blockquote>
+<h2 id="both-editors-are-installed-with-sd">Both editors are installed with SD<a class="headerlink" href="#both-editors-are-installed-with-sd" title="Permanent link">#</a></h2>
+<p><strong>You do not install anything.</strong> SD's installer checks for both editors and
+installs whichever is missing, machine-wide, so every account SD creates can
+reach them.</p>
+<p>If that could not happen — an offline machine, or one whose policy blocks the
+package manager — the verb says so and names the command that installs it,
+rather than opening nothing and reporting the record unchanged.</p>
+<h2 id="the-keys">The keys<a class="headerlink" href="#the-keys" title="Permanent link">#</a></h2>
+<p><code>Ctrl-S</code> saves, <code>Ctrl-Q</code> quits, and <strong><code>Ctrl-G</code> opens the help screen</strong>, which is
+the answer to everything not on this page.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>Ctrl-S</code></strong></td>
+<td>save</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-Q</code></strong></td>
+<td>close the file — and quit, if it is the last one open</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-G</code></strong></td>
+<td>open and close <strong>help</strong></td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-E</code></strong></td>
+<td>the <strong>command bar</strong> — see below</td>
+</tr>
+<tr>
+<td><strong><code>Alt-G</code></strong></td>
+<td>show and hide the key hints</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-Z</code></strong> · <strong><code>Ctrl-Y</code></strong></td>
+<td>undo · redo</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-X</code></strong> · <strong><code>Ctrl-C</code></strong> · <strong><code>Ctrl-V</code></strong></td>
+<td>cut · copy · paste</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-K</code></strong> · <strong><code>Ctrl-D</code></strong></td>
+<td>cut the current line · duplicate it</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-A</code></strong></td>
+<td>select all</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-F</code></strong></td>
+<td>find</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-N</code></strong> · <strong><code>Ctrl-P</code></strong></td>
+<td>find next · find previous</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-O</code></strong></td>
+<td>open a file</td>
+</tr>
+<tr>
+<td><strong><code>Ctrl-T</code></strong></td>
+<td>open a new tab</td>
+</tr>
+<tr>
+<td><strong><code>Alt-A</code></strong> · <strong><code>Alt-E</code></strong></td>
+<td>start · end of line</td>
+</tr>
+<tr>
+<td><strong><code>Alt-B</code></strong> · <strong><code>Alt-F</code></strong></td>
+<td>previous · next word</td>
+</tr>
+</tbody>
+</table>
+<p>Function keys work too, for anyone who prefers them: <strong><code>F1</code></strong> help, <strong><code>F2</code></strong>
+save, <strong><code>F3</code></strong> or <strong><code>F7</code></strong> find, <strong><code>F4</code></strong> or <strong><code>F10</code></strong> quit.</p>
+<blockquote>
+<p><strong><code>Ctrl-Q</code> closes the file rather than the editor.</strong> With one record open —
+which is how SD starts it — that is the same thing. With a second file opened
+by hand it is not, and micro stays up until the last one is closed.</p>
+</blockquote>
+<h2 id="the-command-bar">The command bar<a class="headerlink" href="#the-command-bar" title="Permanent link">#</a></h2>
+<p><strong><code>Ctrl-E</code></strong> opens a <code>&gt;</code> prompt at the foot of the screen. It takes micro's own
+commands, and the two worth knowing on the first day are:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>&gt; help</code></td>
+<td>the same screen as <code>Ctrl-G</code></td>
+</tr>
+<tr>
+<td><code>&gt; help keybindings</code></td>
+<td>every key, including the ones not listed above</td>
+</tr>
+<tr>
+<td><code>&gt; set</code> <em>option</em> <em>value</em></td>
+<td>change a setting for this session</td>
+</tr>
+</tbody>
+</table>
+<h2 id="saving-is-broken-for-an-ordinary-account-in-w10-0">Saving is broken for an ordinary account in W1.0-0<a class="headerlink" href="#saving-is-broken-for-an-ordinary-account-in-w10-0" title="Permanent link">#</a></h2>
+<blockquote>
+<p><strong><code>micro</code> draws, edits and highlights correctly and then cannot save</strong>,
+unless the session is elevated:</p>
+<p><code>Permission denied. Save with sudo not supported on Windows</code></p>
+<p><strong>The record you were editing is not touched and nothing is lost</strong> — the
+failure is on micro's side of the working copy, and quitting without saving
+leaves the record exactly as it was.</p>
+<p><strong>It is not a permission problem with your file or your account.</strong> SD points
+micro's configuration directory at a folder under <code>C:\Program Files</code>, which
+micro has to write to and an ordinary account may not. It is recorded as a
+release blocker in the project's fix lists.</p>
+<p><strong>Until it is fixed, use <code>ed</code> for anything you intend to save.</strong> It runs
+inside SD, needs no external editor and no operating-system access, and is
+documented on <a href="25-sd-tcl-ed.html">SD TCL - The ed Line Editor</a>. <code>micro</code> is
+still useful for reading a record with syntax highlighting.</p>
+</blockquote>
+<h2 id="highlighting-sd-basic">Highlighting SD BASIC<a class="headerlink" href="#highlighting-sd-basic" title="Permanent link">#</a></h2>
+<p><strong>SD SHIPS THE RULES AND POINTS micro AT THEM.</strong> They are generated from the
+BASIC compiler's own tables rather than typed by hand, so the list of
+statements, reserved words and intrinsics is the one the compiler actually
+accepts.</p>
+<p><strong>It works on a record from a <code>bp</code> file and not on other records</strong>, and the
+reason is worth knowing: micro decides which language a file is by matching its
+<em>name</em>, and a record called <code>MY.REPORT</code> tells it nothing. So SD names the
+working copy <code>*record*.editing.sdbasic</code>, and that suffix is what micro
+recognises. A record edited out of any other file is plain text.</p>
+<h2 id="what-sd-does-around-the-editor">What SD does around the editor<a class="headerlink" href="#what-sd-does-around-the-editor" title="Permanent link">#</a></h2>
+<p>The two screen editors are <strong>one SD program with two names</strong>. The working copy,
+the save and compile questions, the two permission gates and the refusals are
+the same for both, and they are set out on
+<a href="26-sd-tcl-edit.html#what-sd-does-around-the-editor">SD TCL - The edit Screen Editor</a>.</p>
+<p>In short: the record is copied into <code>$hold</code>, micro is run on the copy, and on
+the way out SD asks whether to save it and — for a <code>bp</code> record — whether to
+compile and catalogue it. Both verbs need <code>OS.EXECUTE</code> permission and a real
+terminal, and refuse a session driven down a pipe:</p>
+<pre><code>:micro bp zzed
+micro needs a terminal to draw on, and this session has none.
+ed, the line editor, works anywhere.
+</code></pre>
+<h2 id="marks-and-how-to-type-one">Marks, and how to type one<a class="headerlink" href="#marks-and-how-to-type-one" title="Permanent link">#</a></h2>
+<p>A <strong>field</strong> mark is a line break, so micro handles fields on its own. The other
+three have a token you type instead. <strong>Every token is <code>~</code> and one more
+character, and <code>~</code> is the only escape character.</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>~~</code></td>
+<td>a value mark</td>
+</tr>
+<tr>
+<td><code>~`</code></td>
+<td>a subvalue mark</td>
+</tr>
+<tr>
+<td><code>~!</code></td>
+<td>a text mark</td>
+</tr>
+<tr>
+<td><code>~-</code></td>
+<td>a literal <code>~</code>, where one would otherwise be misread</td>
+</tr>
+<tr>
+<td><code>~,</code></td>
+<td>a literal <code>,</code>, where one would otherwise read as a separator</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Marks in a row are separated by a comma</strong> — a text mark, a text mark and a
+value mark is <code>~!,~!,~~</code>. The conversion is lossless: no record is refused and
+none is mangled. The full rules are on
+<a href="26-sd-tcl-edit.html#marks-and-how-to-type-one">SD TCL - The edit Screen Editor</a>.</p>
+<h2 id="who-has-these-verbs">Who has these verbs<a class="headerlink" href="#who-has-these-verbs" title="Permanent link">#</a></h2>
+<p><strong><code>micro</code>, <code>edit</code> and <code>ed</code> are all programmer verbs.</strong> A standard account has
+none of them.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="26-sd-tcl-edit.html">SD TCL - The edit Screen Editor</a> ·
+<a href="25-sd-tcl-ed.html">SD TCL - The ed Line Editor</a> ·
+<a href="24-sd-tcl-programs-and-the-catalogue.html">SD TCL - Programs and the Catalogue</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="26-sd-tcl-edit.html"><span class="pn-label">&larr; Previous</span>SD TCL - The edit Screen Editor</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="28-sd-tcl-printing-and-spooling.html"><span class="pn-label">Next &rarr;</span>SD TCL - Printing and Spooling</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

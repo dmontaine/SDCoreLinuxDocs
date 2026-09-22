@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD TCL - Files and Records - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="19a-sd-tcl-the-command-stack.html"><span class="pn-label">&larr; Previous</span>SD TCL - The Command Stack</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="21-sd-tcl-query-processor.html"><span class="pn-label">Next &rarr;</span>SD TCL - The Query Processor</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD TCL - Files and Records</h1>
+<p class="tp-subtitle">Making, configuring and removing files; copying, renaming, deleting and dumping the records inside them.</p>
+</section>
+
+<main>
+<p>This page covers the verbs that act on a whole file or on the records in it,
+from the command line. What a program does with the same files is
+<a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a>; this is the part you
+type.</p>
+<p>SD folds case, so a command may be typed in either case. Commands are shown here
+in lower case, which is what this port uses on disk. In the tables, <em>italics</em>
+mark something you supply and <strong>bold</strong> marks a word typed as it stands; braces
+mark an optional part.</p>
+<h2 id="the-two-kinds-of-file-and-what-they-look-like-in-explorer">The two kinds of file, and what they look like in Explorer<a class="headerlink" href="#the-two-kinds-of-file-and-what-they-look-like-in-explorer" title="Permanent link">#</a></h2>
+<p><strong>Both kinds are a directory on Windows.</strong> This surprises people who expect a
+database file to be one file.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>dynamic</strong></td>
+<td>a directory holding components named <code>%0</code>, <code>%1</code>, … The records are hashed across them and none of it is readable from outside SD</td>
+</tr>
+<tr>
+<td><strong>directory</strong></td>
+<td>a directory holding <strong>one ordinary file per record</strong>, named by the record id</td>
+</tr>
+</tbody>
+</table>
+<p><code>voc</code>, <code>$ipc</code> and <code>dict.dic</code> are dynamic. <code>messages</code>, <code>accounts</code> and <code>bp</code> are
+directory files — which is why you can open a BASIC program in Notepad and why
+<code>gpl.bp</code> is readable in the source tree.</p>
+<p><strong>A dictionary is a separate file that travels with the data file.</strong> Verbs that
+can act on either take <code>dict</code> in front of the file name; with no <code>dict</code> they
+mean the data portion.</p>
+<p><strong>The shipped file names are lower case on disk in this port.</strong> <code>voc</code>, <code>bp</code>,
+<code>newvoc</code>, <code>accounts</code>, <code>messages</code> and the rest were renamed. NTFS matches without
+being asked, so this changes nothing about what you can type — but it is what
+you will see in Explorer and in the path text SD reports back.</p>
+<h2 id="making-and-removing-files">Making and removing files<a class="headerlink" href="#making-and-removing-files" title="Permanent link">#</a></h2>
+<pre><code>create.file {dict|data} voc.name directory
+create.file {dict|data} voc.name dynamic {parameters}
+create.file voc.name using dict filename
+</code></pre>
+<p><code>create.file</code> makes the file <strong>and</strong> the VOC record that names it. Without
+<code>dict</code> or <code>data</code> it makes both portions. <code>using dict</code> <em>filename</em> takes the
+dictionary from an existing file instead of creating an empty one, and
+<code>no.query</code> suppresses the confirmation.</p>
+<p>Dynamic files take parameters, all optional:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>minimum.modulus</code> <em>n</em></td>
+<td>the floor the file will not shrink below</td>
+</tr>
+<tr>
+<td><code>group.size</code> <em>n</em></td>
+<td>group size in 1 KB units</td>
+</tr>
+<tr>
+<td><code>large.record</code> <em>n</em></td>
+<td>the size above which a record is stored separately</td>
+</tr>
+<tr>
+<td><code>split.load</code> <em>n</em> · <code>merge.load</code> <em>n</em></td>
+<td>the load factors that trigger growth and shrink</td>
+</tr>
+<tr>
+<td><code>version</code> <em>n</em></td>
+<td>file format version</td>
+</tr>
+<tr>
+<td><code>directory</code> <em>path</em></td>
+<td>put the file at <em>path</em> instead of in the account</td>
+</tr>
+<tr>
+<td><code>no.case</code></td>
+<td>record ids are case-insensitive</td>
+</tr>
+<tr>
+<td><code>no.resize</code></td>
+<td>disable automatic resizing</td>
+</tr>
+</tbody>
+</table>
+<pre><code>delete.file {dict|data} voc.name {force} {no.query}
+clear.file {dict|data} file
+</code></pre>
+<p><code>delete.file</code> removes the file and its VOC record. <strong><code>force</code> is needed if the
+file is not empty.</strong> <code>clear.file</code> empties a file and keeps it, along with its
+dictionary and its indexes.</p>
+<h2 id="changing-a-file-after-it-exists">Changing a file after it exists<a class="headerlink" href="#changing-a-file-after-it-exists" title="Permanent link">#</a></h2>
+<pre><code>configure.file {dict} voc.name {parameters}
+configure.file {dict} voc.name default
+</code></pre>
+<p>The parameters are the <code>create.file</code> ones, plus <code>immediate</code> to do the work now
+rather than lazily, and <code>dynamic</code> or <code>directory</code> to change the file's kind.
+<code>default</code> puts the settings back.</p>
+<p><strong>Two of them restructure the whole file.</strong> Changing <code>group.size</code> or <code>version</code>
+requires a full restructure; the rest take effect without one. Plan for the time
+and the disk on a large file.</p>
+<p><code>no.case</code> / <code>case</code> and <code>resize</code> / <code>no.resize</code> are the pairs that turn a setting
+on and off. For a directory file, <code>binary</code> turns on mark mapping.</p>
+<h2 id="looking-at-a-file">Looking at a file<a class="headerlink" href="#looking-at-a-file" title="Permanent link">#</a></h2>
+<pre><code>analyse.file {dict} file {statistics} {lptr}
+</code></pre>
+<p>Without <code>statistics</code> it reports the shape: the account, the file name, the path,
+the type, the group size, the large-record size, the minimum and current
+modulus, the load factors and the size in bytes. With <code>statistics</code> it walks the
+whole file and adds record counts, per-group minimum, maximum and average, and a
+size distribution. <strong><code>statistics</code> reads every group</strong>, so it is not free on a big
+file.</p>
+<p><code>analyze.file</code> is the same verb under the other spelling.</p>
+<pre><code>fstat filename on            start collecting, clearing the counters
+fstat filename {lptr}        show what has been collected
+fstat filename off           stop collecting
+fstat global {lptr}          the global counters
+fstat reset                  clear the global counters
+fstat                        the periodic global summary
+</code></pre>
+<p><strong><code>fstat</code> only works on dynamic files.</strong> A directory file named on the command
+line gets a warning; one arriving through a select list is skipped silently.
+Where a file name is taken, a select list or several names may be given instead.</p>
+<pre><code>hsm {on|off|display} {user n}
+</code></pre>
+<p>The Hot Spot Monitor. <code>display</code> is the default.</p>
+<pre><code>list.files
+</code></pre>
+<p>Reports how many files are open now, the peak for the session and the
+configured limit, then lists them:</p>
+<pre><code>Number of files open = 2.  Peak = 6.  Limit = 80.
+</code></pre>
+<p>The limit is the <code>NUMFILES</code> configuration parameter. <strong>The peak is what matters
+when you are sizing it</strong> — the current figure moves constantly and tells you
+almost nothing.</p>
+<h2 id="reaching-a-file-in-another-account">Reaching a file in another account<a class="headerlink" href="#reaching-a-file-in-another-account" title="Permanent link">#</a></h2>
+<pre><code>set.file account file.name pointer.name
+</code></pre>
+<p>This writes a <strong>Q-pointer</strong> into your VOC — an indirect pointer naming another
+account and a file in it. After it, <em>pointer.name</em> is usable wherever a file name
+is, and the data stays where it is.</p>
+<p><strong>The account must be in the accounts register</strong>, and the name is folded to
+upper case before the register is read. If it is not there you get <em>Account name
+'…' is not in register</em> and nothing is written.</p>
+<blockquote>
+<p><strong>Read what <code>set.file</code> prints, not just whether it printed.</strong> Its refusals
+echo the names you passed in, so a script that checks its output for the
+pointer name it asked for will find that name in the refusal as well as in the
+success. Check for the success wording, and treat <em>not in register</em> and <em>not
+found</em> as disqualifiers.</p>
+</blockquote>
+<h2 id="copying-deleting-and-renaming-records">Copying, deleting and renaming records<a class="headerlink" href="#copying-deleting-and-renaming-records" title="Permanent link">#</a></h2>
+<pre><code>copy from {dict} src.file {to {dict} tgt.file} {s1{,t1} {s2{,t2}}...}
+copy from {dict} src.file {to {dict} tgt.file} all
+</code></pre>
+<p>With no <code>to</code> clause the copy is <strong>within the source file</strong>, which is how you
+duplicate a record under a new id. Each <em>s</em><code>,</code><em>t</em> pair is a source id and the id
+to give the copy; a bare <em>s</em> keeps the id. Options:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>overwriting</code></td>
+<td>replace records that already exist in the target</td>
+</tr>
+<tr>
+<td><code>updating</code></td>
+<td>copy <strong>only</strong> records that already exist in the target</td>
+</tr>
+<tr>
+<td><code>deleting</code></td>
+<td>delete the source record after a successful copy</td>
+</tr>
+<tr>
+<td><code>reporting</code></td>
+<td>list what was copied</td>
+</tr>
+<tr>
+<td><code>binary</code></td>
+<td>force binary mode when one side is hashed and the other a directory</td>
+</tr>
+</tbody>
+</table>
+<p><code>@system.return.code</code> comes back as the <strong>number of records copied</strong>, or
+negative on error.</p>
+<pre><code>copyp {dict} filename id... {(options}
+</code></pre>
+<p>The Pick-style copy. Its options are single letters in a trailing bracket:
+<code>d</code> delete source, <code>i</code> suppress the id, <code>n</code> no pagination, <code>o</code> overwrite,
+<code>p</code> to the printer, <code>s</code> suppress field numbers, <code>t</code> to the terminal.</p>
+<pre><code>delete {dict} file.name {record.name} {no.query}
+delete {dict} file.name all
+</code></pre>
+<p><code>@system.return.code</code> is the <strong>number of records deleted</strong>, or negative on error.</p>
+<pre><code>cname old.file.name to new.file.name
+cname {dict} file.name old.record.name to new.record.name
+</code></pre>
+<p>A comma may be used instead of <code>to</code>. <code>rename</code> is the same verb under the other
+name. <code>@system.return.code</code> is <code>0</code> on success and <code>-1</code> if the arguments were
+wrong.</p>
+<p><strong><code>cname</code> on a file renames the VOC record too</strong>, which is the point — the
+name you type and the name on disk stay together.</p>
+<h2 id="seeing-what-is-actually-in-a-record">Seeing what is actually in a record<a class="headerlink" href="#seeing-what-is-actually-in-a-record" title="Permanent link">#</a></h2>
+<pre><code>ct {dict} file.name {record.name... | *} {options}
+dump {dict} file.name {record.name... | *} {options}
+</code></pre>
+<p>Both are the same program. <code>ct</code> is a field-by-field listing; <code>dump</code> reports the
+same data in binary. Options: <code>hex</code> for hexadecimal, <code>binary</code> for a full-width
+report that is not field-based, <code>no.query</code> to skip the prompt when a select list
+is in use, and <code>lptr</code> {<em>n</em>} to send it to a print unit.</p>
+<p><strong><code>ct</code> is the one verb here a standard account has</strong>; <code>dump</code> is withheld. They
+run the same code, and the line between the tiers runs between the two VOC
+records rather than through the program.</p>
+<h2 id="triggers">Triggers<a class="headerlink" href="#triggers" title="Permanent link">#</a></h2>
+<pre><code>set.trigger file.name trigger.name {modes}
+set.trigger file.name &quot;&quot;
+set.trigger file.name
+</code></pre>
+<p>Set, remove, or display a file's trigger function. An empty string in quotes
+removes it; no argument at all displays it.</p>
+<h2 id="who-has-these-verbs">Who has these verbs<a class="headerlink" href="#who-has-these-verbs" title="Permanent link">#</a></h2>
+<p><strong>Almost everything on this page is withheld from a standard account.</strong> That is
+deliberate: these are the verbs that change data in bulk.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>standard</strong></td>
+<td><code>ct</code> <code>list.files</code> <code>set.file</code></td>
+</tr>
+<tr>
+<td><strong>programmer</strong></td>
+<td><code>analyse.file</code> <code>analyze.file</code> <code>clear.file</code> <code>cname</code> <code>configure.file</code> <code>copy</code> <code>copyp</code> <code>create.file</code> <code>delete</code> <code>delete.file</code> <code>dump</code> <code>fstat</code> <code>hsm</code> <code>rename</code> <code>set.trigger</code></td>
+</tr>
+</tbody>
+</table>
+<p>A standard account can therefore look at a record and point at a file, and
+cannot create, empty, delete, copy or rename anything. An account that does not
+have a verb does not have the VOC record for it, so the name is not recognised
+at all rather than refused.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p><strong>Indexes are their own subject</strong> and are not on this page. For what an index
+is and what it does to a file, see <a href="09-sd-basic-alternate-key-indexes.html">SD Basic - Alternate Key
+Indexes</a>.</p>
+<p><strong>Selecting records is the query processor's job</strong>, not these verbs'. <code>copy</code>,
+<code>delete</code> and <code>ct</code> all accept a select list built by <code>select</code> or <code>sselect</code>, and
+that is how they are usually driven over more than a handful of ids.</p>
+<p><strong><code>reformat</code> and <code>sreformat</code></strong> rewrite records through a dictionary and are run
+by the query processor, so they are documented with it.</p>
+<p><strong>There is no verb that repairs a damaged file.</strong> <code>analyse.file statistics</code> will
+tell you a file is badly overflowed; <code>configure.file</code> is what acts on that.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="19-sd-tcl-command-processor.html">SD TCL - The Command Processor</a> ·
+<a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> ·
+<a href="08-sd-basic-select-lists.html">SD Basic - Select Lists</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="19a-sd-tcl-the-command-stack.html"><span class="pn-label">&larr; Previous</span>SD TCL - The Command Stack</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="21-sd-tcl-query-processor.html"><span class="pn-label">Next &rarr;</span>SD TCL - The Query Processor</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Programming 101 - Routines and an Application - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="40-sd-programming-tutorial.html"><span class="pn-label">&larr; Previous</span>SD Programming 101</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="94-sd-basic-syntax.html"><span class="pn-label">Next &rarr;</span>SD Basic - Syntax</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Programming 101 - Routines and an Application</h1>
+<p class="tp-subtitle">Lessons 7 to 10: subroutines, functions, error handling, and a small application put together.</p>
+</section>
+
+<main>
+<p>This page continues <a href="40-sd-programming-tutorial.html">SD Programming 101</a>.</p>
+<h2 id="7-a-subroutine">7. A subroutine<a class="headerlink" href="#7-a-subroutine" title="Permanent link">#</a></h2>
+<p>A subroutine is a separate program, called by name, that takes
+arguments and returns values through them. You write it as its own
+source record and compile it:</p>
+<pre><code>subroutine get.field(result, file.var, id, field.no)
+   read rec from file.var, id then
+      result = rec&lt;field.no&gt;
+   end else
+      result = ''
+   end
+end
+</code></pre>
+<pre><code>basic bp get.field
+</code></pre>
+<p>Notice: a subroutine starts with <code>subroutine</code> where a program starts
+with <code>program</code>. It does not <code>run</code> — you call it from another program.</p>
+<pre><code>program test.get.field
+   open 'customers' to f.cust else stop 'no file'
+   call get.field(name, f.cust, '1001', 1)
+   print 'name is ' : name
+
+   call get.field(phone, f.cust, '1001', 2)
+   print 'phone is ' : phone
+end
+</code></pre>
+<pre><code>basic bp test.get.field
+run bp test.get.field
+</code></pre>
+<pre><code>name is Acme Supplies
+phone is 555-1234
+</code></pre>
+<p><code>call</code> runs the subroutine. Arguments are passed <strong>by reference</strong>: the
+subroutine sets <code>result</code> and the caller sees it in <code>name</code>. This is
+how subroutines return values — there is no <code>return value</code> statement
+for subroutines.</p>
+<p>A subroutine must be compiled before the program that calls it. If
+<code>get.field</code> is not compiled, the calling program gets <em>Subroutine not
+found</em> at run time, not at compile time.</p>
+<h2 id="8-a-function">8. A function<a class="headerlink" href="#8-a-function" title="Permanent link">#</a></h2>
+<p>A function is like a subroutine, but it returns a value in an
+expression rather than through an argument:</p>
+<pre><code>function fmt.phone(number)
+   if len(number) = 7 then
+      fmt.phone = number[1,3] : '-' : number[4,3]
+   end else
+      fmt.phone = number
+   end
+end
+</code></pre>
+<pre><code>basic bp fmt.phone
+</code></pre>
+<p>A function assigns its return value to <strong>its own name</strong>. That is the
+<code>fmt.phone = ...</code> line — it is not a variable called <code>fmt.phone</code>, it is the
+function saying what to return.</p>
+<p><strong>A caller has to declare it with <code>deffun</code> before using it.</strong> Without that
+line, the compiler has no way to know <code>fmt.phone(raw)</code> is a call rather than a
+matrix reference, and says so in those terms: <em>Matrix FMT.PHONE is not
+referenced in a DIM statement</em>. Subroutines called with <code>call</code> need no
+declaration; functions do.</p>
+<pre><code>program test.fmt.phone
+   deffun fmt.phone(number) calling 'FMT.PHONE'
+   open 'customers' to f.cust else stop 'no file'
+   read rec from f.cust, '1001' then
+      raw = rec&lt;2&gt;
+      print 'raw      : ' : raw
+      print 'formatted: ' : fmt.phone(raw)
+   end
+end
+</code></pre>
+<pre><code>basic bp test.fmt.phone
+run bp test.fmt.phone
+</code></pre>
+<pre><code>raw    : 5551234
+formatted: 555-1234
+</code></pre>
+<p><code>number[1,3]</code> is a <strong>substring</strong>: start at position 1, take 3
+characters. <code>number[4,3]</code> starts at position 4 and takes 3 more. The
+square brackets are the shorthand for the <code>substr()</code> function.</p>
+<h2 id="9-error-handling">9. Error handling<a class="headerlink" href="#9-error-handling" title="Permanent link">#</a></h2>
+<p>File operations can fail. The <code>on error</code> clause catches failures that
+are not about the record being missing — disk full, file locked by
+another session, network error:</p>
+<pre><code>program safe.write
+   open 'customers' to f.cust else stop 'no file'
+
+   print 'id?' :
+   input id
+   print 'name?' :
+   input name
+
+   rec = name : @fm : '' : @fm : ''
+
+   write rec on f.cust, id on error
+      print 'write failed, status ' : status()
+      stop
+   end
+   print 'saved'
+end
+</code></pre>
+<pre><code>basic bp safe.write
+run bp safe.write
+</code></pre>
+<pre><code>id? 1003
+name? Test Co
+saved
+</code></pre>
+<p>The <code>on error</code> clause fires when the write fails for a system reason.
+The <code>then</code>/<code>else</code> on <code>write</code> is about the record — but <code>write</code> has no
+<code>then</code>/<code>else</code>, because writing always succeeds unless something is
+broken. The <code>on error</code> is where that broken-something arrives.</p>
+<p><strong><code>status()</code> carries the code</strong>, and it is what to read inside an <code>on error</code>
+block. Read it on the line you care about rather than three lines later: the
+next operation that sets a status overwrites it.</p>
+<p>There is no system variable holding the error <em>text</em>. To turn a code into a
+sentence, call the catalogued subroutine <code>!ERRTEXT</code>:</p>
+<pre><code>   call &quot;!ERRTEXT&quot;, message, status()
+   print 'write failed: ' : message
+</code></pre>
+<p><code>@system.return.code</code> is a different thing and is worth not confusing with
+this one: it carries the result of the last <code>execute</code>d command, not of the last
+file operation.</p>
+<h2 id="10-putting-it-together-a-small-application">10. Putting it together: a small application<a class="headerlink" href="#10-putting-it-together-a-small-application" title="Permanent link">#</a></h2>
+<p>This program ties everything together. It is a menu-driven customer
+manager: list, add, view and delete. It uses subroutines, select
+lists, file I/O, error handling, and a loop.</p>
+<pre><code>program customer.manager
+   open 'customers' to f.cust else
+      print 'cannot open customers - create it first'
+      stop
+   end
+
+   loop
+      print
+      print 'l)ist  a)dd  v)iew  d)elete  q)uit'
+      print 'choice?' :
+      input choice
+
+      begin case
+         case choice = 'l'
+            gosub list.all
+
+         case choice = 'a'
+            gosub add.one
+
+         case choice = 'v'
+            gosub view.one
+
+         case choice = 'd'
+            gosub delete.one
+
+         case choice = 'q'
+            exit
+
+         case 1
+            print 'not a choice'
+      end case
+   repeat
+
+   print 'bye'
+   stop
+
+* ---- list ----
+list.all:
+   select f.cust to 2
+   cnt = 0
+
+   print 'id' : ' ' : 'name' : ' ' : 'city'
+   print '---' : ' ' : '----' : ' ' : '----'
+
+   loop
+      readnext id from 2 else exit
+      read rec from f.cust, id then
+         print id : ' ' : rec&lt;1&gt; : ' ' : rec&lt;3&gt;
+         cnt += 1
+      end
+   repeat
+
+   clearselect 2
+   print cnt : ' record(s)'
+   return
+
+* ---- add ----
+add.one:
+   print 'new id?' :
+   input id
+   print 'name?' :
+   input name
+   print 'phone?' :
+   input phone
+   print 'city?' :
+   input city
+
+   rec = name : @fm : phone : @fm : city
+   write rec on f.cust, id on error
+      print 'write failed, status ' : status()
+      return
+   end
+   print 'saved'
+   return
+
+* ---- view ----
+view.one:
+   print 'id?' :
+   input id
+   read rec from f.cust, id then
+      print 'name  : ' : rec&lt;1&gt;
+      print 'phone : ' : rec&lt;2&gt;
+      print 'city  : ' : rec&lt;3&gt;
+   end else
+      print 'not found'
+   end
+   return
+
+* ---- delete ----
+delete.one:
+   print 'id?' :
+   input id
+   print 'are you sure? (y/n)' :
+   input confirm
+   if confirm # 'y' then
+      print 'cancelled'
+      return
+   end
+
+   delete f.cust, id on error
+      print 'delete failed, status ' : status()
+      return
+   end
+   print 'deleted'
+   return
+end
+</code></pre>
+<pre><code>basic bp customer.manager
+run bp customer.manager
+</code></pre>
+<pre><code>l)ist  a)dd  v)iew  d)elete  q)uit
+choice? l
+
+id name city
+--- ---- ----
+1001 Acme Supplies Springfield
+1002 Widget Corp Shelbyville
+2 record(s)
+
+l)ist  a)dd  v)iew  d)elete  q)uit
+choice? v
+id? 1001
+name  : Acme Supplies
+phone : 555-1234
+city  : Springfield
+
+l)ist  a)dd  v)iew  d)elete  q)uit
+choice? q
+bye
+</code></pre>
+<h3 id="what-is-in-this-program">What is in this program<a class="headerlink" href="#what-is-in-this-program" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Where</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>loop ... repeat</code></td>
+<td>the main menu loop</td>
+</tr>
+<tr>
+<td><code>begin case</code> / <code>case</code> / <code>end case</code></td>
+<td>dispatching on the menu choice</td>
+</tr>
+<tr>
+<td><code>gosub</code> / <code>return</code></td>
+<td>internal subroutines — labels inside the program</td>
+</tr>
+<tr>
+<td><code>select</code> / <code>readnext</code> / <code>clearselect</code></td>
+<td>walking the file for the list</td>
+</tr>
+<tr>
+<td><code>read</code> / <code>then</code> / <code>else</code></td>
+<td>reading a record</td>
+</tr>
+<tr>
+<td><code>write</code> / <code>on error</code></td>
+<td>writing a record safely</td>
+</tr>
+<tr>
+<td><code>delete</code> / <code>on error</code></td>
+<td>deleting a record</td>
+</tr>
+<tr>
+<td><code>@fm</code></td>
+<td>building a dynamic array</td>
+</tr>
+<tr>
+<td><code>rec&lt;1&gt;</code></td>
+<td>extracting fields</td>
+</tr>
+<tr>
+<td><code>exit</code></td>
+<td>leaving the main loop</td>
+</tr>
+<tr>
+<td><code>#</code></td>
+<td>not-equal comparison</td>
+</tr>
+<tr>
+<td><code>+=</code></td>
+<td>increment</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>gosub</code> subroutines are <strong>internal</strong> — they are labels in the
+same program, not separate programs. They share every variable in the
+program. For subroutines with their own scope, see <em>SD Basic - Modern
+Program Structure</em>.</p>
+<h2 id="cataloguing">Cataloguing<a class="headerlink" href="#cataloguing" title="Permanent link">#</a></h2>
+<p>Running a program with <code>run bp name</code> works, but typing <code>run bp</code> every
+time is tedious. <strong>Cataloguing</strong> gives a program a name you can type
+directly:</p>
+<pre><code>basic bp customer.manager
+catalog bp customer.manager
+</code></pre>
+<pre><code>customer.manager
+</code></pre>
+<pre><code>l)ist  a)dd  v)iew  d)elete  q)uit
+choice?
+</code></pre>
+<p>A catalogued program can be called from any account that can reach
+it. The catalogue puts an entry in the VOC — the same file that maps
+<code>list</code>, <code>select</code> and the built-in verbs. See <em>SD TCL - Programs and
+the Catalogue</em>.</p>
+<h2 id="where-to-go-next">Where to go next<a class="headerlink" href="#where-to-go-next" title="Permanent link">#</a></h2>
+<p>Each section above linked to a reference page. Here they are together,
+in the order the tutorial uses them:</p>
+<table>
+<thead>
+<tr>
+<th>Topic</th>
+<th>Reference page</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Program structure</td>
+<td><a href="01-sd-basic-program-structure.html">SD Basic - Program Structure</a></td>
+</tr>
+<tr>
+<td>Variables, loops, conditions</td>
+<td><a href="02-sd-basic-program-control.html">SD Basic - Program Control</a></td>
+</tr>
+<tr>
+<td>Math functions</td>
+<td><a href="03-sd-basic-math-functions.html">SD Basic - Math Functions</a></td>
+</tr>
+<tr>
+<td>String functions</td>
+<td><a href="04-sd-basic-string-functions.html">SD Basic - String Functions</a></td>
+</tr>
+<tr>
+<td>Dynamic arrays</td>
+<td><a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a></td>
+</tr>
+<tr>
+<td>Data conversion</td>
+<td><a href="06-sd-basic-data-conversion.html">SD Basic - Data Conversion</a></td>
+</tr>
+<tr>
+<td>File handling</td>
+<td><a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a></td>
+</tr>
+<tr>
+<td>Select lists</td>
+<td><a href="08-sd-basic-select-lists.html">SD Basic - Select Lists</a></td>
+</tr>
+<tr>
+<td>Locks and transactions</td>
+<td><a href="14-sd-basic-locks-and-transactions.html">SD Basic - Locks and Transactions</a></td>
+</tr>
+<tr>
+<td>Modern program structure</td>
+<td><a href="18-sd-basic-modern-program-structure.html">SD Basic - Modern Program Structure</a></td>
+</tr>
+<tr>
+<td>Compiling and cataloguing</td>
+<td><a href="24-sd-tcl-programs-and-the-catalogue.html">SD TCL - Programs and the Catalogue</a></td>
+</tr>
+<tr>
+<td>File system concepts</td>
+<td><a href="35-sd-file-system.html">SD File System Concepts</a></td>
+</tr>
+<tr>
+<td>Standard subroutines</td>
+<td><a href="36-sd-standard-subroutines.html">SD Standard Subroutines</a></td>
+</tr>
+</tbody>
+</table>
+<p>The syntax cards at the end of the set list every statement and
+function alphabetically:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="94-sd-basic-syntax.html">SD Basic - Syntax</a></td>
+<td>every SDBasic name, with its syntax</td>
+</tr>
+<tr>
+<td><a href="95-sd-tcl-syntax.html">SD TCL - Syntax</a></td>
+<td>every TCL verb, with its syntax</td>
+</tr>
+</tbody>
+</table>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="40-sd-programming-tutorial.html"><span class="pn-label">&larr; Previous</span>SD Programming 101</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="94-sd-basic-syntax.html"><span class="pn-label">Next &rarr;</span>SD Basic - Syntax</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

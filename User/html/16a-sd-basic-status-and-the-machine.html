@@ -1,0 +1,735 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - Status, Encryption and the Machine - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="16-sd-basic-system-and-environment.html"><span class="pn-label">&larr; Previous</span>SD Basic - System and Environment</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="17-sd-basic-debugging.html"><span class="pn-label">Next &rarr;</span>SD Basic - Debugging</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - Status, Encryption and the Machine</h1>
+<p class="tp-subtitle">Status codes, checksums, encryption, the file mask, the @variables, os.execute and the error log.</p>
+</section>
+
+<main>
+<p>This page continues <a href="16-sd-basic-system-and-environment.html">SD Basic - System and
+Environment</a>.</p>
+<h2 id="status-and-oserror">STATUS() and OS.ERROR()<a class="headerlink" href="#status-and-oserror" title="Permanent link">#</a></h2>
+<p><code>status()</code> carries the result of the last operation that sets one. It is
+overwritten constantly, so <strong>read it into a variable on the line after the call
+you care about</strong>, not three lines later. Every <code>status()</code> value quoted in this
+document set was captured that way.</p>
+<p><code>os.error()</code> carries the operating system's own error number from the last call
+that made one, and is <code>0</code> when nothing has failed.</p>
+<p>Codes worth knowing:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1004</code></td>
+<td>item not found</td>
+</tr>
+<tr>
+<td><code>1006</code></td>
+<td>bad action key</td>
+</tr>
+<tr>
+<td><code>1008</code></td>
+<td>action failed — <code>os.error()</code> has the detail</td>
+</tr>
+<tr>
+<td><code>1011</code></td>
+<td>timeout</td>
+</tr>
+<tr>
+<td><code>3001</code></td>
+<td>subfile not found</td>
+</tr>
+<tr>
+<td><code>3006</code></td>
+<td>record not found</td>
+</tr>
+<tr>
+<td><code>3007</code></td>
+<td><strong>no VOC record</strong> — from a failed <code>open</code> of a name that is not in the VOC</td>
+</tr>
+<tr>
+<td><code>3021</code></td>
+<td>cannot gain exclusive access to a file</td>
+</tr>
+<tr>
+<td><code>3023</code></td>
+<td>write or delete with no lock held</td>
+</tr>
+<tr>
+<td><code>7005</code> / <code>7012</code> / <code>7013</code></td>
+<td>socket: cannot connect / cannot bind / closed</td>
+</tr>
+</tbody>
+</table>
+<h2 id="checksum">CHECKSUM()<a class="headerlink" href="#checksum" title="Permanent link">#</a></h2>
+<pre><code>checksum(string)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>checksum('ABC')</code></td>
+<td><code>451</code></td>
+</tr>
+<tr>
+<td><code>checksum('abc')</code></td>
+<td><code>291</code></td>
+</tr>
+<tr>
+<td><code>checksum('ACB')</code></td>
+<td><code>448</code></td>
+</tr>
+<tr>
+<td><code>checksum('')</code></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>checksum('A' : @fm : 'B')</code></td>
+<td><strong><code>-325</code></strong></td>
+</tr>
+</tbody>
+</table>
+<p>It is case sensitive and order sensitive, and <strong>it can be negative</strong>, so a
+program that stores it needs a signed field. It is a change detector, not a
+digest: it is short, and it is not a security primitive.</p>
+<h2 id="sdencrypt-and-sddecrypt">SDENCRYPT() and SDDECRYPT()<a class="headerlink" href="#sdencrypt-and-sddecrypt" title="Permanent link">#</a></h2>
+<pre><code>sdencrypt(data, key, encoding)
+sddecrypt(data, key, encoding)
+</code></pre>
+<p>Three arguments. The encoding is <code>201</code> for hex or <code>202</code> for base64.</p>
+<p><strong>A passphrase is not a key, and an ordinary program cannot make one.</strong>
+<code>sdencrypt('The quick brown fox', 'secretkey', 202)</code> returns <strong>nothing</strong> and
+sets <code>status()</code> to <strong>10204</strong>, a key length error. The key has to
+be an encoded 256-bit key, and the function that derives one from a password is
+<code>sdext()</code>, which is internal-only. <strong>From an ordinary account these two
+functions have no usable key</strong>, and there is no way in.</p>
+<h2 id="umask">UMASK()<a class="headerlink" href="#umask" title="Permanent link">#</a></h2>
+<pre><code>umask(n)
+</code></pre>
+<p>Sets the file creation mask and returns the <strong>previous</strong> value. A negative
+argument asks without setting:</p>
+<table>
+<thead>
+<tr>
+<th>call</th>
+<th>returned</th>
+<th>mask afterwards</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>umask(-1)</code></td>
+<td><code>2</code></td>
+<td><code>2</code> — unchanged</td>
+</tr>
+<tr>
+<td><code>umask(18)</code></td>
+<td><code>2</code> — the old value</td>
+<td><code>18</code></td>
+</tr>
+<tr>
+<td><code>umask(-1)</code></td>
+<td><code>18</code></td>
+<td><code>18</code></td>
+</tr>
+<tr>
+<td><code>umask(2)</code></td>
+<td><code>18</code></td>
+<td><code>2</code> — restored</td>
+</tr>
+</tbody>
+</table>
+<p>So the way to change it temporarily is to keep what the setting call returned
+and pass it back.</p>
+<h2 id="sentence-and-the-variables">SENTENCE() and the @variables<a class="headerlink" href="#sentence-and-the-variables" title="Permanent link">#</a></h2>
+<p><code>sentence()</code> and <code>@sentence</code> are the same thing. Both hold
+the command line that started the program: <code>RUN BP ZZMATH</code>.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>@who</code></td>
+<td><code>DON</code> — <strong>upper case</strong></td>
+</tr>
+<tr>
+<td><code>@logname</code>, <code>@user</code></td>
+<td><code>don</code> — <strong>lower case</strong></td>
+</tr>
+<tr>
+<td><code>@path</code></td>
+<td><code>/cygdrive/c/ProgramData/SD/user_accounts/don</code></td>
+</tr>
+<tr>
+<td><code>@sdsys</code></td>
+<td><code>C:\ProgramData\SD\sdsys</code></td>
+</tr>
+<tr>
+<td><code>@user.no</code></td>
+<td><code>67</code>, the same as <code>system(18)</code></td>
+</tr>
+<tr>
+<td><code>@tty</code></td>
+<td><strong>empty in a piped session</strong></td>
+</tr>
+<tr>
+<td><code>@system.return.code</code></td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>@user.return.code</code></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>@crtwide</code> / <code>@crthigh</code></td>
+<td><code>200</code> / <code>9999</code> — whatever <code>TERM</code> last set</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>@who</code> and <code>@logname</code> differ in case for the same account.</strong> Compare them
+with <code>upcase()</code> on both sides or the test fails on a machine where it worked.</p>
+<p><code>set.exit.status</code> sets what SD returns to the operating system when the session
+ends.</p>
+<h2 id="osexecute">OS.EXECUTE<a class="headerlink" href="#osexecute" title="Permanent link">#</a></h2>
+<pre><code>os.execute command {capturing variable}
+</code></pre>
+<p><strong>It is gated per account, and a refusal aborts the program rather than
+setting a status.</strong> In an ordinary account:</p>
+<pre><code>don is not permitted to use OS.EXECUTE at line 10 of .../BP.OUT/ZZMATH
+</code></pre>
+<p>The program stops there. There is no <code>else</code>, no <code>on error</code> and no status to
+test, so <strong>a program that may run in an account without the right must not
+reach the statement at all</strong>.</p>
+<p>Permission is field 2 of the account's record in the system <code>os.users</code> file —
+not a VOC entry and not a Windows privilege. An administrator's session passes
+regardless. Ask your administrator to grant it; there is nothing a program can
+do about it.</p>
+<h2 id="logmsg">LOGMSG<a class="headerlink" href="#logmsg" title="Permanent link">#</a></h2>
+<pre><code>logmsg text
+</code></pre>
+<p>Writes a line to SD's error log. It has no return value, and <strong>what <code>status()</code>
+says afterwards is whatever the previous statement left there</strong> — worth knowing
+because it looks like a result.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p><strong>A whole family of functions is internal-only, and the compiler's complaint
+names something else entirely.</strong> This program, in an ordinary account:</p>
+<pre><code>      v1 = kernel(28, 0)
+      v2 = ospath('C:', 1)
+      v5 = option('X')
+      v6 = pterm(1, '')
+</code></pre>
+<p>compiles to, at the <strong>last line of the program</strong>:</p>
+<pre><code>41: Matrix KERNEL is not referenced in a DIM statement
+41: Matrix OPTION is not referenced in a DIM statement
+41: Matrix OSPATH is not referenced in a DIM statement
+41: Matrix PTERM is not referenced in a DIM statement
+WARNING: KERNEL is not assigned a value
+</code></pre>
+<p>A name the compiler does not know as a function is read as a <strong>matrix
+reference</strong>, so the error is about a <code>dim</code> statement you never wrote, at a line
+number nowhere near the call. <strong>If a function you are sure exists produces
+that, it exists and this account may not call it.</strong> A call with three arguments
+gives a different but equally misleading answer — <code>sdext(101, 'pw', 'salt')</code>
+is <em>"Right bracket not found where expected"</em>, because a matrix takes at most
+two subscripts.</p>
+<p>Internal-only: <code>kernel()</code> — and therefore the Windows path conversion —
+<code>ospath()</code>, <code>option()</code>, <code>pterm()</code>, <code>sdext()</code>, <code>testlock()</code> and <code>getlocks()</code>.
+The compiler's list is longer than that; those seven are the ones this page
+put in front of it. They are reachable only from a program compiled
+with <code>$internal</code>, which additionally requires an administrator in the <code>SDSYS</code>
+account.</p>
+<p><strong>And some statements are restricted the same way.</strong> These are
+<em>"Unrecognised statement"</em> in an ordinary account: <code>set.modes</code>, <code>reset.modes</code>,
+<code>remove.token</code>, <code>release.lock</code>, <code>como</code>, <code>quit</code>, <code>keyboard.input</code>, <code>writepkt</code>,
+and the whole debugging family — <code>debug.on</code>, <code>debug.off</code>, <code>debug.set</code>,
+<code>breakpoint</code> and <code>watch</code>.</p>
+<p><strong><code>errmsg</code> is in the compiler's statement table and does not exist.</strong> It
+compiles to <em>"Unrecognised statement"</em> for everybody. Its opcode was removed in
+July 2024 and the name was left behind in the table. <strong>Being in the table is
+not evidence a statement exists.</strong></p>
+<p><strong><code>sendmail</code>, <code>chgphant()</code> and <code>ccall()</code> compile for an ordinary account</strong>, and
+each needs something outside SD before it can do anything: <code>sendmail</code> a mail
+relay, <code>chgphant</code> a phantom to change, and <code>ccall</code> a C function registered into
+the executable. Nothing on this page depends on them.</p>
+<p><strong><code>procread</code> and <code>procwrite</code></strong> belong to the PROC language rather than to BASIC
+and are only meaningful inside one.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="02-sd-basic-program-control.html">SD Basic - Program Control</a> ·
+<a href="06-sd-basic-data-conversion.html">SD Basic - Data Conversion</a> ·
+<a href="17-sd-basic-debugging.html">SD Basic - Debugging</a> ·
+<a href="14-sd-basic-locks-and-transactions.html">SD Basic - Locks and Transactions</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="16-sd-basic-system-and-environment.html"><span class="pn-label">&larr; Previous</span>SD Basic - System and Environment</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="17-sd-basic-debugging.html"><span class="pn-label">Next &rarr;</span>SD Basic - Debugging</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

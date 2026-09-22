@@ -1,0 +1,734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Other hardening - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="12a-security-and-the-operating-system.html"><span class="pn-label">&larr; Previous</span>Security and the operating system</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>GettingStarted</a>
+<a class="pn-next" href="14-not-in-sd-core.html"><span class="pn-label">Next &rarr;</span>Not in SD Core</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">Other hardening</h1>
+<p class="tp-subtitle">The catalogue and pcode locks, the logs, line endings, and the rest of the smaller changes.</p>
+</section>
+
+<main>
+<p>Everything on this page is a change you may notice while testing, grouped by
+what it touches. The identity model and the file permissions are on
+<a href="12-security.html">Security</a>; this is the remainder.</p>
+<h2 id="the-global-catalogue">The global catalogue<a class="headerlink" href="#the-global-catalogue" title="Permanent link">#</a></h2>
+<p><strong>Adding to or removing from the system-wide catalogue now requires
+administrator rights, whichever way you ask for it.</strong></p>
+<p><strong><code>catalog</code></strong> already required them for the spelled-out form,
+<code>catalog bp myprog global</code>. <strong>It did not require them for the form most people
+use</strong> — putting a <code>*</code>, <code>!</code>, <code>_</code> or <code>$</code> in front of the name. <strong><code>delete.catalog</code></strong>
+required nothing at all, by either route.</p>
+<p>This matters because the system-wide catalogue holds the programs SD runs for
+everybody, <code>$login</code> among them. <strong>Replacing one ran your code in every session
+on the machine, administrators included; deleting one stopped everybody signing
+in.</strong></p>
+<p><strong>Nothing changes for local and private cataloguing</strong>, which is what
+programmers use day to day:</p>
+<pre><code>catalog bp myprog          private catalogue, this account
+catalog bp myprog local    this account's VOC
+</code></pre>
+<p>Both still work, in any account you are allowed to <strong><code>logto</code></strong> into. The only thing
+an ordinary user can no longer do is catalogue a program whose name starts with
+<code>*</code>, <code>!</code>, <code>_</code> or <code>$</code> — those characters mean <em>system-wide</em>. Name it without
+one.</p>
+<p><strong>To catalogue system-wide you need an elevated session, not just an
+administrator account.</strong> Start SD from an elevated window and <code>logto sdsys</code>.
+Entering SDSYS from an ordinary window still gives you administrator rights
+<em>inside</em> SD, but <strong>Windows itself now refuses the write</strong> — so use the same
+elevated window you already need in order to recompile the system programs.</p>
+<h2 id="the-pcode-library">The pcode library<a class="headerlink" href="#the-pcode-library" title="Permanent link">#</a></h2>
+<p><code>&lt;sysdir&gt;\bin</code> holds the pcode library — the interpreter itself, which SD loads
+into shared memory at start-up and every session then runs.</p>
+<p><strong>UNTIL 23 Aug 2026 ANY MEMBER OF <code>sdusers</code> COULD WRITE TO IT</strong>, so one SD
+user could have replaced what everybody else's session executes, including an
+administrator's.</p>
+<p>It is now readable by SD users and writable only by administrators. Nothing
+needs to write it after an install — only the process that starts SD reads it,
+and that is already elevated. <strong>If you have anything that writes into
+<code>&lt;sysdir&gt;\bin</code>, it will now be refused and will need to run elevated.</strong></p>
+<h2 id="scheduled-jobs">Scheduled jobs<a class="headerlink" href="#scheduled-jobs" title="Permanent link">#</a></h2>
+<p>A scheduled task can run an SD command without administrator rights, and only
+the commands an administrator has named for it. The permit list is the SDSYS
+file <code>batch.jobs</code>, locked read-only to SD users by the same control as the
+<a href="06-administrator-commands.html#the-list"><code>os.users</code> list</a>.</p>
+<p>It has its own page: <strong><a href="04-scheduled-jobs.html">Scheduled jobs</a></strong>.</p>
+<h2 id="the-logs">The logs<a class="headerlink" href="#the-logs" title="Permanent link">#</a></h2>
+<p>There are three, and they are not interchangeable.</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Where</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>audit</code></td>
+<td><code>C:\ProgramData\SD\sdsys</code></td>
+<td><strong>who did what</strong> — logins, refusals, <strong><code>logto</code></strong>, grants. See <a href="12a-security-and-the-operating-system.html#the-audit-trail">Security and the operating system</a></td>
+</tr>
+<tr>
+<td><code>errlog</code></td>
+<td><code>C:\ProgramData\SD\sdsys</code></td>
+<td>diagnostics, and API connection records</td>
+</tr>
+<tr>
+<td><code>sd-elevate.log</code></td>
+<td><code>C:\ProgramData\SD</code></td>
+<td><strong>what the elevation helper actually did</strong></td>
+</tr>
+</tbody>
+</table>
+<h3 id="sd-elevatelog"><code>sd-elevate.log</code><a class="headerlink" href="#sd-elevatelog" title="Permanent link">#</a></h3>
+<p>It records when a helper started for a session, each script it was asked to
+run, the exit code that came back, and when it stopped.</p>
+<p><strong>Only administrators can read or write it.</strong> Ordinary SD users are not on
+its permissions at all. That is different from the audit trail, which SD users
+<em>can</em> add to because SD writes it as them; nothing unelevated ever writes this
+one.</p>
+<p><strong>It is a diagnostic, not the audit trail.</strong> For <em>who obtained privilege and
+when</em>, read <code>audit</code>. This file answers <em>"the account was not created — what
+actually happened"</em>, which previously had no answer at all.</p>
+<p><strong>If the file is missing, nothing is logged and SD does not create one.</strong> That
+is deliberate: a log created on the fly would inherit permissions letting every
+SD user rewrite it, and <strong>a record of privileged work that its own subjects can
+edit is worse than none.</strong> A reinstall keeps whatever is already there.</p>
+<h3 id="the-error-log-records-who-connects-to-the-api-port">The error log records who connects to the API port<a class="headerlink" href="#the-error-log-records-who-connects-to-the-api-port" title="Permanent link">#</a></h3>
+<p>Every accepted API connection adds a line naming the Windows process and
+account at the other end:</p>
+<pre><code>API connection from 127.0.0.1:59314 - pid 11448, GITORLI\don
+</code></pre>
+<p><strong>Nothing is refused on the strength of it.</strong> This records who connected; it
+does not decide who may. The API's own checks are unchanged.</p>
+<p><strong>A connection forwarded over ssh shows <code>sshd</code>, not the person at the far
+end.</strong> The tunnel ends on this machine, so the process that connects genuinely
+is <code>sshd</code>. What the line distinguishes is a client running <em>on</em> this machine
+from one arriving through a tunnel; <strong>it cannot name a remote person.</strong></p>
+<blockquote>
+<p><strong>This matters beyond the log.</strong> SD refuses an administrator an API session
+from another computer, and it decides that from the address the connection
+came from. A tunnelled connection arrives from <code>127.0.0.1</code> because it really
+does start here, so <strong>it is admitted</strong>. If that matters to you, turn port
+forwarding off in <code>sshd_config</code>; no check inside SD can see through a tunnel.</p>
+</blockquote>
+<p><em>"peer process not identified"</em> means the client had already gone by the time
+the connection was looked up. It is not an error and the connection proceeds
+normally.</p>
+<h3 id="two-things-about-error-log-trimming">Two things about error-log trimming<a class="headerlink" href="#two-things-about-error-log-trimming" title="Permanent link">#</a></h3>
+<p><strong><code>ERRLOG</code> now applies to these lines too.</strong> The background daemon used to
+append without ever trimming — it only wrote at start-up and on failure, so it
+never grew. Now that it writes per connection, it discards the oldest part of
+the log on reaching the <code>ERRLOG</code> size in <code>sd.conf</code>. <strong>If you have set <code>ERRLOG</code>
+unusually large, consider what an entry per connection adds to it.</strong></p>
+<p><strong>After the log is trimmed, its first line may have no timestamp.</strong> An entry
+is two lines — a timestamped header and the message indented below it — and
+trimming restarts the file at a <strong>line</strong>, not at an entry, so the first message
+can be left without its header. <strong>This is not damage</strong> and no entry after it is
+affected. SD has always trimmed this way; it is only visible now because the
+log turns over more often.</p>
+<h2 id="line-endings">Line endings<a class="headerlink" href="#line-endings" title="Permanent link">#</a></h2>
+<p>Both halves are fixed, and they were fixed separately.</p>
+<h3 id="reading-files-edited-in-notepad-or-saved-from-excel">Reading — files edited in Notepad or saved from Excel<a class="headerlink" href="#reading-files-edited-in-notepad-or-saved-from-excel" title="Permanent link">#</a></h3>
+<p>Directory files exist so you can edit their records with an ordinary Windows
+editor, and Windows editors end each line with CR+LF. <strong>SD only ever looked for
+the LF, so it kept the CR — and put it on the end of the data.</strong></p>
+<p>You would have seen it as an invisible extra character at the end of every
+line: comparisons failing for no visible reason, a name that would not match, a
+trailing space that was not a space.</p>
+<p><strong>Reading a CSV saved by Excel is the clearest case.</strong> The last column of
+every row picked up the stray character, because a comma ended the other
+columns and the line ending only ever touched the last one. <code>READCSV</code>,
+<code>READSEQ</code> and reading a directory file record are all corrected.</p>
+<p><strong>A CR on its own is still data</strong> and is left exactly as it is. Only the CR+LF
+pair that ends a line is treated as a line ending, so this cannot alter data
+that happens to contain a CR.</p>
+<h3 id="writing">Writing<a class="headerlink" href="#writing" title="Permanent link">#</a></h3>
+<p>Anything SD writes that an ordinary Windows program can open now ends its lines
+with CR+LF: records in a directory file, <code>WRITESEQ</code> and <code>WRITECSV</code> output,
+command output captured with <code>COMO</code>, printer output sent to a file, and the
+error log.</p>
+<p>SD's CSV statements are documented as following RFC 4180, and <strong>that standard
+asks for CR+LF.</strong></p>
+<p><strong>Dynamic files are unaffected</strong> — they are stored in SD's own format and are
+not readable by other programs.</p>
+<p><strong>Existing files are left alone</strong>, so a file can contain both endings. SD
+reads either, so this is untidy rather than a problem.</p>
+<h2 id="the-terminal">The terminal<a class="headerlink" href="#the-terminal" title="Permanent link">#</a></h2>
+<p><strong>The default terminal type is now <code>WINDOWS</code>.</strong> <code>TERM</code> on its own should say
+<code>Device : windows</code>.</p>
+<p><strong>THE ARROW KEYS DID NOTHING in cmd, PowerShell or Windows Terminal</strong> on
+earlier builds. A terminal has two spellings for an arrow key: in its ordinary
+state it sends <code>ESC [ D</code> for Left, and the other spelling <code>ESC O D</code> only after
+the application asks it to switch — <strong>which SD never does.</strong> The <code>vt100</code>
+definition SD was defaulting to lists only the second spelling, so SD was
+listening for a key no Windows console ever sends.</p>
+<p>The shipped <code>WINDOWS</code> definition is an exact copy of <code>LINUX</code>, which had this
+right all along — its name describes an operating system, but what matters is
+the byte protocol.</p>
+<p><strong>Existing accounts keep their old setting</strong> until their VOC is updated. An
+upgrade now does that for every account, and <strong><code>update.accounts</code></strong> does it on
+demand.
+Until then, <code>term windows</code> sets it for the session. <strong>63 definitions ship,
+compiling to 100 terminal names</strong> — the extra names are variants such as
+<code>vt100-w</code> and <code>vt220-at</code> — so <code>term wyse60</code> still works.</p>
+<p><strong>A name that is not installed is refused and your current type is kept</strong> —
+<em>"Unrecognised terminal name"</em> — so a typo costs you nothing. <strong><code>term</code> with no
+argument reports the type actually in force</strong>, which is how to check.</p>
+<p>Watch for near-misses all the same. There is no plain <code>vt320</code> — the shipped
+name is <code>vt320-at</code>. <code>terminfo.src</code> ships with SD, so <code>sdtic</code> can add a
+definition that is not there.</p>
+<p><strong>Backspace works</strong>, at the prompt and when you are asked for a password.</p>
+<h3 id="the-page-is-120-36-not-80-24">The page is 120 × 36, not 80 × 24<a class="headerlink" href="#the-page-is-120-36-not-80-24" title="Permanent link">#</a></h3>
+<p><strong>SD's default terminal size is 120 columns by 36 lines.</strong> It is not a
+cosmetic default: the shipped <code>@</code> dictionary records and the default <code>list</code>
+report layouts are formatted for 120 columns. <strong>A console window narrower than
+that makes ordinary reports look wrapped or truncated</strong>, which reads as a
+formatting bug and is not one.</p>
+<p><code>term</code> reports the size in force, above the <code>Device</code> line:</p>
+<pre><code>:term
+Page width: 120
+Page depth: 36
+Device    : windows
+</code></pre>
+<p><strong>The size is worked out at login</strong>, in this order: the <code>LINES</code> and <code>COLUMNS</code>
+environment variables if they are numeric, otherwise the terminfo entry's
+<code>lines</code> and <code>cols</code>, <strong>otherwise 36 and 120</strong> — then raised to a minimum of
+10 × 20 if smaller. So a console or ssh session normally gets its real window
+size and 120 × 36 is the fallback when nothing answers, which is the case for a
+phantom or a piped script.</p>
+<blockquote>
+<p><strong><code>term default</code> restores it, and it prints nothing when it does.</strong> It sets
+the same 120 × 36 the login path falls back to and returns silently, so run a
+bare <code>term</code> after it to see the result. <code>term 120,36</code> does the same by hand.</p>
+<p><strong>If you have notes from an earlier build, this is one of the things that
+changed</strong>: <code>term default</code> used to set 20 × 24 — the <em>minimum</em> width and a
+fixed depth rather than the defaults — so it made the display worse instead of
+putting it back.</p>
+</blockquote>
+<h2 id="paths">Paths<a class="headerlink" href="#paths" title="Permanent link">#</a></h2>
+<p><strong>A Windows PATH typed at the command prompt is no longer cut off at the first
+backslash.</strong> Typing <code>C:\Data\Sales</code> was read as just <code>C:</code>, with the rest
+treated as a second, separate thing. <code>create.account other</code>, which is given a
+folder to put the account in, was the command most likely to show it — the
+account went to the wrong place, or the command failed for a reason that made
+no sense from what you had typed.</p>
+<p>Forward slashes always worked and still do. <strong>Both are now read the same way.</strong></p>
+<h2 id="powershell-execution-policy-leave-it-alone">PowerShell execution policy — leave it alone<a class="headerlink" href="#powershell-execution-policy-leave-it-alone" title="Permanent link">#</a></h2>
+<p>This is a hardening page, so it is worth saying plainly: <strong>tightening your
+PowerShell execution policy does not break SD, and loosening it does not help
+SD.</strong> Set it to whatever your own security policy wants.</p>
+<p>SD does a lot of its Windows-side work — <code>logto sdsys</code>, <code>append.sd.path</code>,
+<code>remote.api</code>, <code>remote.ssh</code> and the editor verbs — by running a small
+PowerShell script that the installer put in <code>C:\Program Files\SD</code>. Each one is
+launched with <code>-ExecutionPolicy Bypass</code> <strong>on that single command line</strong>, which
+applies to that one process and that one script. It does not change the
+machine, and it does not affect any other script you or anyone else runs.</p>
+<p><strong>If you loosened the policy to get SD working, put it back.</strong> That was needed
+on builds before 5 September 2026, where those commands failed with <em>"running
+scripts is disabled on this system"</em>. It is fixed. The <code>sh</code> verb still gives
+you a PowerShell prompt under your machine's own policy — SD lifts the
+restriction only for the scripts it installed itself, never for a shell you
+type into.</p>
+<p><strong>The one case that does stop SD is Group Policy.</strong> A policy that sets the
+execution policy outranks anything a program can pass on a command line. Run
+<code>Get-ExecutionPolicy -List</code>: if <code>MachinePolicy</code> or <code>UserPolicy</code> reads
+<code>Restricted</code> or <code>AllSigned</code>, SD's administrative commands will fail and only
+your Windows administrator can change it. <code>Undefined</code>, <code>RemoteSigned</code>,
+<code>Unrestricted</code> or <code>Bypass</code> on those two rows are all fine. <strong>The Installed
+Scripts page in the Administrator set has the detail.</strong></p>
+<h2 id="running-sd">Running SD<a class="headerlink" href="#running-sd" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>The service</td>
+<td><strong>String Database (SD)</strong></td>
+</tr>
+<tr>
+<td>After an unclean shutdown</td>
+<td>SD now starts anyway, rather than refusing because the last stop was abrupt</td>
+</tr>
+<tr>
+<td>Nested sessions</td>
+<td>SD will not start a second time inside itself</td>
+</tr>
+<tr>
+<td><code>sd &lt;command&gt;</code></td>
+<td>needs an elevated session, or an entry in <code>batch.jobs</code> — see above</td>
+</tr>
+</tbody>
+</table>
+<h2 id="setting-no-password">Setting no password<a class="headerlink" href="#setting-no-password" title="Permanent link">#</a></h2>
+<p>Earlier builds of this port had both the end of the installer and SD's own
+prompt say that without a password you could not use ssh or the API, and stop
+there. <strong>That was true and easy to read as "some things will not work".</strong></p>
+<p><strong>It is stronger than that, and both now say so:</strong> with no password the
+account can be used <strong>only at that computer</strong> — at the keyboard, or through
+Remote Desktop or similar remote-control software — <strong>and only from a session
+run as administrator.</strong></p>
+<p>You can still choose it, and SD asks again the next time you open the account.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="12a-security-and-the-operating-system.html"><span class="pn-label">&larr; Previous</span>Security and the operating system</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>GettingStarted</a>
+<a class="pn-next" href="14-not-in-sd-core.html"><span class="pn-label">Next &rarr;</span>Not in SD Core</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

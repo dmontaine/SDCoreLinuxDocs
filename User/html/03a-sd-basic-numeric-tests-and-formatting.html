@@ -1,0 +1,815 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - Numeric Tests and Formatting - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="03-sd-basic-math-functions.html"><span class="pn-label">&larr; Previous</span>SD Basic - Math Functions</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="04-sd-basic-string-functions.html"><span class="pn-label">Next &rarr;</span>SD Basic - String Functions</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - Numeric Tests and Formatting</h1>
+<p class="tp-subtitle">Reducing arrays to a number, testing what is numeric, bit operations, checksums and print formatting.</p>
+</section>
+
+<main>
+<p>This page continues <a href="03-sd-basic-math-functions.html">SD Basic - Math
+Functions</a>.</p>
+<h2 id="reducing-a-dynamic-array-to-a-number">Reducing a dynamic array to a number<a class="headerlink" href="#reducing-a-dynamic-array-to-a-number" title="Permanent link">#</a></h2>
+<p>These take a dynamic array and give a single value, or a shallower array.</p>
+<pre><code>sum(array)
+summation(array)
+maximum(array)
+minimum(array)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sum()</code></td>
+<td>adds the elements at the <strong>lowest mark level present</strong> and returns an array one level shallower. Subvalues become values, values become fields</td>
+</tr>
+<tr>
+<td><code>summation()</code></td>
+<td>adds <strong>every</strong> element at every level and returns one number</td>
+</tr>
+<tr>
+<td><code>maximum()</code></td>
+<td>the largest numeric element</td>
+</tr>
+<tr>
+<td><code>minimum()</code></td>
+<td>the smallest numeric element</td>
+</tr>
+</tbody>
+</table>
+<h3 id="worked-through">Worked through<a class="headerlink" href="#worked-through" title="Permanent link">#</a></h3>
+<p>With <code>a</code> holding <code>1</code>, <code>2</code>, <code>3</code> as values, and <code>b</code> holding a field of
+<code>10</code>ˢ<code>20</code> and <code>30</code>, where ˢ is a subvalue mark:</p>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sum(a)</code></td>
+<td><code>6</code></td>
+</tr>
+<tr>
+<td><code>sum(b)</code></td>
+<td><code>30</code> and <code>30</code> as two values — the subvalues collapsed, the value did not</td>
+</tr>
+<tr>
+<td><code>summation(b)</code></td>
+<td><code>60</code></td>
+</tr>
+<tr>
+<td><code>maximum(a)</code></td>
+<td><code>3</code></td>
+</tr>
+<tr>
+<td><code>minimum(a)</code></td>
+<td><code>1</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>All four silently skip anything that is not a number.</strong> With <code>1</code>, <code>two</code>,
+<code>3</code> in an array, <code>sum()</code> returns <code>4</code> and <code>maximum()</code> returns <code>3</code>. Nothing is
+reported. <strong>If a non-numeric element means your data is wrong, you have to
+test for it yourself</strong> — walk the array with <code>num()</code> before summing.</p>
+<p><code>maximum()</code> and <code>minimum()</code> return the <strong>null string</strong>, not zero, when there
+is no numeric element at all. Test for that with <code>if result = '' then</code>,
+because a numeric test would read the null string as zero and cannot tell it
+from a genuine maximum of zero.</p>
+</blockquote>
+<p>While developing, <code>option non.numeric.warning</code> makes SD report a non-numeric
+value used where a number was expected, which turns a class of silent wrong
+answers into something you can see. It is off by default. <code>option</code> on its own
+lists every option and its current state; <code>option all off</code> clears them.</p>
+<p>Negative values are handled correctly: <code>maximum()</code> of <code>-5</code> and <code>-3</code> is <code>-3</code>.</p>
+<h3 id="comparing-two-values">Comparing two values<a class="headerlink" href="#comparing-two-values" title="Permanent link">#</a></h3>
+<pre><code>max(expr1, expr2)
+min(expr1, expr2)
+</code></pre>
+<p>These take <strong>two values, not an array</strong>, and return the larger or smaller.
+Unlike the four above they are not restricted to numbers: they use SD's general
+comparison, so <code>max('abc', 'abd')</code> returns <code>abd</code>. <code>max(3, 7)</code> returns <code>7</code>.</p>
+<h2 id="testing-whether-a-value-is-a-number">Testing whether a value is a number<a class="headerlink" href="#testing-whether-a-value-is-a-number" title="Permanent link">#</a></h2>
+<pre><code>num(expr)
+</code></pre>
+<p>Returns true if <em>expr</em> would be accepted as a number, false otherwise.</p>
+<h3 id="what-it-accepts">What it accepts<a class="headerlink" href="#what-it-accepts" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Result</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>num('12')</code></td>
+<td>true</td>
+<td></td>
+</tr>
+<tr>
+<td><code>num('12.5')</code></td>
+<td>true</td>
+<td></td>
+</tr>
+<tr>
+<td><code>num('.5')</code></td>
+<td>true</td>
+<td>a leading decimal point is fine</td>
+</tr>
+<tr>
+<td><code>num('+3')</code></td>
+<td>true</td>
+<td>a leading sign is fine</td>
+</tr>
+<tr>
+<td><code>num('')</code></td>
+<td><strong>true</strong></td>
+<td><strong>the null string is numeric</strong></td>
+</tr>
+<tr>
+<td><code>num(' 12')</code></td>
+<td>false</td>
+<td>no leading space</td>
+</tr>
+<tr>
+<td><code>num('12 ')</code></td>
+<td>false</td>
+<td>no trailing space</td>
+</tr>
+<tr>
+<td><code>num('3-')</code></td>
+<td>false</td>
+<td>a trailing sign is not accepted</td>
+</tr>
+<tr>
+<td><code>num('1e3')</code></td>
+<td>false</td>
+<td>no exponent notation</td>
+</tr>
+<tr>
+<td><code>num('123456789012345')</code></td>
+<td>true</td>
+<td>15 digits before the point</td>
+</tr>
+<tr>
+<td><code>num('1234567890123456')</code></td>
+<td>false</td>
+<td>16 is too many</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong><code>num('')</code> is true, and it is the single most common source of a wrong
+answer from this function.</strong> An empty field passes the test and then
+evaluates as zero, so a validation written as <code>if num(value) then ...</code>
+accepts a blank. <strong>Test for the null string first:</strong></p>
+<p><code>if value # '' and num(value) then
+   ...
+end</code></p>
+<p>The rule is consistent with the rest of SD, where an empty value is zero in
+a numeric context — but the function reads like a validator and is not one.</p>
+</blockquote>
+<p><code>nums()</code> applies the same test to every element of a dynamic array. See
+<a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a> for the whole family of <code>s</code> functions.</p>
+<h2 id="bit-operations">Bit operations<a class="headerlink" href="#bit-operations" title="Permanent link">#</a></h2>
+<p>These work on <strong>32-bit signed integers</strong>. A value outside that range is
+truncated to fit.</p>
+<pre><code>bitand(expr1, expr2)      bitset(expr, bit)
+bitor(expr1, expr2)       bitreset(expr, bit)
+bitxor(expr1, expr2)      bittest(expr, bit)
+bitnot(expr)              shift(expr, distance)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>bitand()</code></td>
+<td>bitwise AND. <code>bitand(12, 10)</code> is <code>8</code></td>
+</tr>
+<tr>
+<td><code>bitor()</code></td>
+<td>bitwise OR. <code>bitor(12, 10)</code> is <code>14</code></td>
+</tr>
+<tr>
+<td><code>bitxor()</code></td>
+<td>bitwise exclusive OR. <code>bitxor(12, 10)</code> is <code>6</code></td>
+</tr>
+<tr>
+<td><code>bitnot()</code></td>
+<td>bitwise NOT — every bit inverted. <code>bitnot(0)</code> is <code>-1</code></td>
+</tr>
+<tr>
+<td><code>bitset()</code></td>
+<td>returns <em>expr</em> with the given bit set. <code>bitset(0, 3)</code> is <code>8</code></td>
+</tr>
+<tr>
+<td><code>bitreset()</code></td>
+<td>returns <em>expr</em> with the given bit cleared. <code>bitreset(15, 0)</code> is <code>14</code></td>
+</tr>
+<tr>
+<td><code>bittest()</code></td>
+<td>true if the given bit is set. <code>bittest(8, 3)</code> is true, <code>bittest(8, 2)</code> is false</td>
+</tr>
+<tr>
+<td><code>shift()</code></td>
+<td>shifts the bits. <strong>A negative distance shifts left, a positive distance shifts right</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Bits are numbered from zero, and zero is the least significant bit.</strong> So
+bit 3 has the value 8, and bit 31 is the sign bit. <strong>There is no range check on
+the bit number</strong> — a value outside 0 to 31 gives an unpredictable result rather
+than an error, so validate it yourself if it is calculated.</p>
+<blockquote>
+<p><strong><code>shift()</code>'s direction is the reverse of what the name suggests, and its
+right shift does not preserve the sign.</strong> <code>shift(1, -4)</code> is <code>16</code> — shifted
+left. <code>shift(256, 4)</code> is <code>16</code> — shifted right. And <code>shift(-1, 1)</code> is
+<code>2147483647</code>, not <code>-1</code>: the value is treated as unsigned, so a right shift
+brings in zeros rather than copying the sign bit. <strong>Do not use <code>shift()</code> to
+divide a signed number by a power of two</strong> — use <code>div()</code>.</p>
+</blockquote>
+<h2 id="checksums">Checksums<a class="headerlink" href="#checksums" title="Permanent link">#</a></h2>
+<pre><code>checksum(expr)
+</code></pre>
+<p>Returns a 32-bit integer derived from the bytes of <em>expr</em>. It is cheap and it
+changes when the data changes — <code>checksum('hello')</code> is <code>1199</code> and
+<code>checksum('hellp')</code> is <code>1200</code> — which makes it useful for spotting that a
+record has been altered since you last read it.</p>
+<blockquote>
+<p><strong>It is not a cryptographic hash and must not be used as one.</strong> It is a
+rotate-and-exclusive-or over the bytes, and it is straightforward to
+construct a different string with the same result. It will not detect
+deliberate tampering, and it must never be used to store or compare a
+password. <code>checksum('')</code> is <code>0</code>, so an empty value and a failed read are
+indistinguishable by checksum alone.</p>
+</blockquote>
+<p>For real cryptography this port provides <code>sdencrypt()</code> and <code>sddecrypt()</code>. The
+older <code>encrypt()</code> and <code>decrypt()</code> functions <strong>have been removed</strong> and programs
+using them will not compile.</p>
+<h2 id="controlling-how-numbers-print">Controlling how numbers print<a class="headerlink" href="#controlling-how-numbers-print" title="Permanent link">#</a></h2>
+<pre><code>precision n
+</code></pre>
+<p>Sets how many decimal places are used when a floating-point number is converted
+to a string — by <code>print</code>, by concatenation, by writing to a file. It does not
+change the accuracy of the arithmetic itself, only what you see and what gets
+stored.</p>
+<p><strong>The default is 4.</strong> <em>n</em> may be 0 to 14; a value outside that range is pulled
+to the nearest end rather than refused.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1 / 3</code> at the default</td>
+<td><code>0.3333</code></td>
+</tr>
+<tr>
+<td><code>1 / 3</code> after <code>precision 8</code></td>
+<td><code>0.33333333</code></td>
+</tr>
+<tr>
+<td><code>1 / 3</code> after <code>precision 0</code></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>1 / 3</code> after <code>precision 20</code></td>
+<td><code>0.33333333333333</code> — clamped to 14, not refused</td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>Precision is per program and it does not travel with a call.</strong> Every
+program starts at 4, including one you <code>call</code>, and setting it in a caller has
+no effect inside the subroutine. It is restored to the caller's value when the
+subroutine returns. <strong>A subroutine that formats numbers must set its own
+<code>precision</code></strong> — a common cause of a report where the totals show four decimal
+places and the line items show something else.</p>
+</blockquote>
+<p>Where you need a specific layout rather than a number of decimals, use <code>fmt()</code>
+and the output conversion codes instead; they are covered in
+<a href="06-sd-basic-data-conversion.html">SD Basic - Data Conversion</a>.</p>
+<h3 id="comparing-floating-point-numbers">Comparing floating-point numbers<a class="headerlink" href="#comparing-floating-point-numbers" title="Permanent link">#</a></h3>
+<p>Two floating-point values are treated as equal if they differ by less than the
+<code>FLTDIFF</code> configuration parameter, which defaults to a very small number
+(<code>0.0000000000291</code>).</p>
+<p><strong>This is why <code>0.1 + 0.2 = 0.3</code> is true in SD BASIC</strong>, where the
+same test is false in C, Java, Python and JavaScript. It is a deliberate
+convenience and not an accident of this port. <code>config('FLTDIFF')</code> reports the
+value in force.</p>
+<p><strong>It also means two values that differ in the fourteenth decimal place compare
+as equal</strong>, so a comparison is not a safe way to detect a tiny drift. If you
+need to know that two numbers really are bit-identical, compare their string
+forms after <code>precision 14</code>.</p>
+<h2 id="applying-a-function-to-every-element">Applying a function to every element<a class="headerlink" href="#applying-a-function-to-every-element" title="Permanent link">#</a></h2>
+<p>Several of the functions above have a partner ending in <code>s</code> that applies the
+same operation to every element of a dynamic array instead of to a single
+value: <code>abss()</code>, <code>negs()</code>, <code>mods()</code>, <code>nums()</code>.</p>
+<pre><code>abss(-1 : @vm : 2 : @vm : -3)     ;* gives 1, 2, 3 as three values
+</code></pre>
+<p>The whole family — including the string and comparison members — is described
+in <a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a>.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p>These existed in OpenQM and in earlier SD releases and <strong>are not in SD Core for
+Windows</strong>. A program using one will not compile.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>encrypt()</code> · <code>decrypt()</code></td>
+<td>replaced by <code>sdencrypt()</code> and <code>sddecrypt()</code></td>
+</tr>
+</tbody>
+</table>
+<p>Nothing else in the mathematical and logical group has been removed: every
+function the OpenQM 2.6.6 documentation lists under that heading is present in
+this port, and this page covers the numeric ones. The comparison and logical
+members of the group — <code>ands()</code>, <code>ors()</code>, <code>nots()</code>, <code>eqs()</code>, <code>nes()</code>, <code>gts()</code>,
+<code>ges()</code>, <code>lts()</code>, <code>les()</code>, <code>ifs()</code>, <code>not()</code>, <code>reuse()</code> — are documented in
+<a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a>, where their multivalue behaviour is the point.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a> · <a href="06-sd-basic-data-conversion.html">SD Basic - Data Conversion</a> ·
+<a href="04-sd-basic-string-functions.html">SD Basic - String Functions</a> · the <code>config</code> verb, for <code>INTPREC</code> and <code>FLTDIFF</code>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="03-sd-basic-math-functions.html"><span class="pn-label">&larr; Previous</span>SD Basic - Math Functions</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="04-sd-basic-string-functions.html"><span class="pn-label">Next &rarr;</span>SD Basic - String Functions</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

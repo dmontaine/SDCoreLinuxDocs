@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Configuration - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="06-sd-system-limits.html"><span class="pn-label">&larr; Previous</span>System limits</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="08-sd-installation.html"><span class="pn-label">Next &rarr;</span>Installation and the service</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">Configuration</h1>
+<p class="tp-subtitle">The sd.conf file, the two ways to read a setting, and every parameter SD accepts.</p>
+</section>
+
+<main>
+<p>SD reads one configuration file at start-up. It sizes the shared memory
+segment, sets the limits every session inherits, and names the directories SD
+writes to.</p>
+<blockquote>
+<p>This document is separate so that it can be withheld. It links to nothing
+outside the administrator set. Where a page in another set is worth naming,
+it is named in words.</p>
+</blockquote>
+<p>SD folds case, so a command may be typed in either case. Commands are shown
+here in lower case.</p>
+<blockquote>
+<p>Every listing on this page was produced by running it, on SD Core for Windows
+W1.0-0, from an unelevated session in an administrator account.</p>
+</blockquote>
+<h2 id="the-file">The file<a class="headerlink" href="#the-file" title="Permanent link">#</a></h2>
+<pre><code>C:\ProgramData\SD\sd.conf
+</code></pre>
+<p>The server and the client both read the <code>SD_CONFIG</code> environment variable first
+and fall back to that path. The file is installed only if it does not already
+exist and is marked never to uninstall, so edits to it survive an upgrade and
+survive removal of the product.</p>
+<p>It is plain text in one section:</p>
+<pre><code>[sd]
+SDSYS=C:\ProgramData\SD\sdsys
+GRPSIZE=2
+NUMUSERS=20
+</code></pre>
+<p>Lines beginning <code>#</code> are comments. The shipped file is heavily commented and
+those comments record why each value was chosen. Read them before changing
+anything.</p>
+<h3 id="a-name-sd-does-not-recognise-stops-it-starting">A name SD does not recognise stops it starting<a class="headerlink" href="#a-name-sd-does-not-recognise-stops-it-starting" title="Permanent link">#</a></h3>
+<p>An unrecognised parameter is not ignored. The parser abandons the file with
+<code>Unrecognised configuration parameter</code>, and SD does not start.</p>
+<p>That is why obsolete names are still parsed rather than deleted. <code>CREATUSR</code> has
+done nothing since 14 August 2026, but a configuration file copied from a Linux
+installation still carries it, and removing the branch would turn a tidy-up
+into a failure to start.</p>
+<p>Range failures behave the same way. <code>GRPSIZE</code>, <code>INTPREC</code>, <code>LPTRHIGH</code>,
+<code>LPTRWIDE</code>, <code>MAXCALL</code>, <code>RECCACHE</code>, <code>SORTMRG</code> and <code>MAXIDLEN</code> are bounds-checked
+once the file has been read, and a value outside its range stops start-up with
+a message naming the parameter.</p>
+<h2 id="reading-the-settings">Reading the settings<a class="headerlink" href="#reading-the-settings" title="Permanent link">#</a></h2>
+<p>The <code>config</code> verb reports what is in force:</p>
+<pre><code>:config
+Virtual Machine Version Number W1.0-0
+APILOGIN  1
+APIPORT   4243
+CMDSTACK  99
+DEADLOCK  0
+DUMPDIR   C:\ProgramData\SD\sdsys\dumps
+ERRLOG    50 kb
+...
+YEARBASE  1930
+</code></pre>
+<p>SD accepts <strong>52</strong> parameters and the verb prints <strong>43</strong> of them. Nine are
+accepted in the file and never displayed: <code>CODEPAGE</code>, <code>CREATUSR</code>, <code>DEBUG</code>,
+<code>FDS</code>, <code>FIXUSERS</code>, <code>NETDIRS</code>, <code>PORTMAP</code>, <code>SDSYS</code> and <code>TXCHAR</code>.</p>
+<p><code>NETDIRS</code> is the one to know about. It decides what an API session may reach
+outside its own account, and the verb will not tell you what it is set to. Read
+it from the file.</p>
+<p>The <code>config()</code> function reads one parameter from a program:</p>
+<pre><code>group.size = config('GRPSIZE')
+</code></pre>
+<p><strong>49 parameters are readable this way.</strong> The three that are not are <code>CREATUSR</code>,
+which stores nothing, <code>SDSYS</code>, and <code>TXCHAR</code>. The name is truncated to eight
+characters before it is matched; no parameter name is longer than eight, so
+that only shows up if you pass something which is not a parameter.</p>
+<p>Two further forms exist. <code>config lptr</code> reports the settings of the default
+printer, and <code>config gpl</code> and <code>config contrib</code> display the licence and the list
+of contributors.</p>
+<h2 id="changing-a-parameter">Changing a parameter<a class="headerlink" href="#changing-a-parameter" title="Permanent link">#</a></h2>
+<p>Editing <code>sd.conf</code> and restarting SD is the durable route, and for most
+parameters it is the only one.</p>
+<p><strong>28 parameters can also be changed for the current session:</strong></p>
+<pre><code>config sortmem 8192
+</code></pre>
+<p>That writes to the session's own copy of the settings, taken from shared memory
+when the session started. It does not reach <code>sd.conf</code>, it does not affect any
+other session, and it is gone when the session ends.</p>
+<p>The 28 are <code>CODEPAGE</code>, <code>DUMPDIR</code>, <code>EXCLREM</code>, <code>FILERULE</code>, <code>FLTDIFF</code>, <code>FSYNC</code>,
+<code>GDI</code>, <code>GRPSIZE</code>, <code>INTPREC</code>, <code>LPTRHIGH</code>, <code>LPTRWIDE</code>, <code>MAXCALL</code>, <code>MUSTLOCK</code>,
+<code>OBJECTS</code>, <code>OBJMEM</code>, <code>RECCACHE</code>, <code>RINGWAIT</code>, <code>SAFEDIR</code>, <code>SDCLIENT</code>, <code>SH</code>,
+<code>SH1</code>, <code>SORTMEM</code>, <code>SORTMRG</code>, <code>SORTWORK</code>, <code>SPOOLER</code>, <code>TEMPDIR</code>, <code>TERMINFO</code> and
+<code>YEARBASE</code>.</p>
+<p>Everything else takes effect only when SD is next started. That includes every
+limit which sizes the shared memory segment and every setting the API listener
+reads.</p>
+<h2 id="sessions-and-limits">Sessions and limits<a class="headerlink" href="#sessions-and-limits" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NUMUSERS</code></td>
+<td>20</td>
+<td>Maximum concurrent sessions. Sizes the user table in shared memory</td>
+</tr>
+<tr>
+<td><code>NUMFILES</code></td>
+<td>80</td>
+<td>Maximum open files across all sessions</td>
+</tr>
+<tr>
+<td><code>NUMLOCKS</code></td>
+<td>100</td>
+<td>Maximum record locks across all sessions</td>
+</tr>
+<tr>
+<td><code>MAXCALL</code></td>
+<td>10000</td>
+<td>Maximum subroutine call depth. Range 10 to 1000000</td>
+</tr>
+<tr>
+<td><code>CMDSTACK</code></td>
+<td>99</td>
+<td>Depth of the command stack</td>
+</tr>
+<tr>
+<td><code>FDS</code></td>
+<td>unset</td>
+<td>Limit on file descriptors. No limit when unset</td>
+</tr>
+<tr>
+<td><code>FIXUSERS</code></td>
+<td>unset</td>
+<td><code>base,range</code> — user numbers reserved for sessions that ask for a specific number</td>
+</tr>
+<tr>
+<td><code>PORTMAP</code></td>
+<td>unset</td>
+<td><code>base_port,base_user,range</code> — gives a session a fixed user number derived from the port its connection arrived on. Refused if the range overlaps <code>FIXUSERS</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="files-and-locking">Files and locking<a class="headerlink" href="#files-and-locking" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>GRPSIZE</code></td>
+<td>2</td>
+<td>Default group size for a new dynamic file, in 1 KB units. Read by <code>create.file</code> and <code>configure.file</code> when no group size is given</td>
+</tr>
+<tr>
+<td><code>MAXIDLEN</code></td>
+<td>63</td>
+<td>Maximum record id length. 63 is also the lower bound</td>
+</tr>
+<tr>
+<td><code>MUSTLOCK</code></td>
+<td>0</td>
+<td>When 1, a <code>write</code> or <code>delete</code> requires the record to be locked first</td>
+</tr>
+<tr>
+<td><code>DEADLOCK</code></td>
+<td>0</td>
+<td>When 1, SD traps deadlocks</td>
+</tr>
+<tr>
+<td><code>SAFEDIR</code></td>
+<td>0</td>
+<td>When 1, directory files are updated by write-and-rename rather than in place</td>
+</tr>
+<tr>
+<td><code>RECCACHE</code></td>
+<td>0</td>
+<td>Records cached per file. Range 0 to 32</td>
+</tr>
+<tr>
+<td><code>FSYNC</code></td>
+<td>0</td>
+<td>Bit flags controlling when SD forces data to disk</td>
+</tr>
+<tr>
+<td><code>FILERULE</code></td>
+<td>0</td>
+<td>Bit flags deciding which special VOC file references are honoured. Bit 4 allows a <code>PATH:</code> reference to name a pathname directly</td>
+</tr>
+</tbody>
+</table>
+<h2 id="directories">Directories<a class="headerlink" href="#directories" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default on a new install</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SDSYS</code></td>
+<td><code>C:\ProgramData\SD\sdsys</code></td>
+<td>The system account. SD does not start if the global catalogue is not found beneath it</td>
+</tr>
+<tr>
+<td><code>USRDIR</code></td>
+<td><code>C:\ProgramData\SD\user_accounts</code></td>
+<td>Where <code>create.account</code> puts a user account</td>
+</tr>
+<tr>
+<td><code>GRPDIR</code></td>
+<td><code>C:\ProgramData\SD\group_accounts</code></td>
+<td>Where <code>create.account</code> puts a group account</td>
+</tr>
+<tr>
+<td><code>DUMPDIR</code></td>
+<td><code>C:\ProgramData\SD\sdsys\dumps</code></td>
+<td>Where process dumps are written</td>
+</tr>
+<tr>
+<td><code>TEMPDIR</code></td>
+<td><code>/cygdrive/c/WINDOWS/TEMP</code></td>
+<td>Temporary files</td>
+</tr>
+<tr>
+<td><code>SORTWORK</code></td>
+<td><code>/cygdrive/c/WINDOWS/TEMP</code></td>
+<td>Work files for a sort that does not fit in memory</td>
+</tr>
+<tr>
+<td><code>JNLDIR</code></td>
+<td>empty</td>
+<td>Journal directory</td>
+</tr>
+<tr>
+<td><code>TERMINFO</code></td>
+<td>empty</td>
+<td>An additional terminfo directory. The shipped definitions are found without it</td>
+</tr>
+</tbody>
+</table>
+<p><code>DUMPDIR</code> is set rather than left empty on purpose. A blank value falls back to
+the system directory, which SD users can write to, and a process dump carries
+the whole variable state of the session that wrote it. The installer makes the
+dump directory write-only to SD users, so a dump can be added and nobody else's
+can be listed or read.</p>
+<p><code>TEMPDIR</code> and <code>SORTWORK</code> are reported in POSIX form because that is how the
+server's runtime addresses them. <code>C:\WINDOWS\TEMP</code> and
+<code>/cygdrive/c/WINDOWS/TEMP</code> are the same directory.</p>
+<h2 id="the-api">The API<a class="headerlink" href="#the-api" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>APIPORT</code></td>
+<td>4243</td>
+<td>The port the API listens on. If the line is absent no socket is created at all, which is how the API is turned off</td>
+</tr>
+<tr>
+<td><code>APILOGIN</code></td>
+<td>1</td>
+<td>Whether the API requires authentication. <code>0</code> is the weaker setting, not the safer one</td>
+</tr>
+<tr>
+<td><code>NETDIRS</code></td>
+<td>unset</td>
+<td>Directories outside its own account an API session may open, separated by semicolons because a Windows path contains a colon</td>
+</tr>
+<tr>
+<td><code>SDCLIENT</code></td>
+<td>0</td>
+<td>Restricts what an API session may do. Non-zero disables file access outright; <code>2</code> additionally refuses any subroutine not compiled as callable from a client</td>
+</tr>
+</tbody>
+</table>
+<p>Unset is the strict value for <code>NETDIRS</code>. With nothing there, an API session can
+open files in the account it is standing in and nothing else. It never grants
+the credential store, the global catalogue, <code>os.users</code> or the account register,
+and naming those has no effect. A directory listed here is reachable by every
+API session in every account, so it is a decision about the machine rather than
+about one account.</p>
+<p><code>SDCLIENT</code> is not reported by the <code>config</code> verb and has no entry in the shipped
+<code>sd.conf</code>. It defaults to 0, which permits everything.</p>
+<h2 id="printing">Printing<a class="headerlink" href="#printing" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>LPTRWIDE</code></td>
+<td>80</td>
+<td>Default page width for the printer. Range 10 to 1000</td>
+</tr>
+<tr>
+<td><code>LPTRHIGH</code></td>
+<td>66</td>
+<td>Default page depth for the printer. Range 10 to 32767</td>
+</tr>
+<tr>
+<td><code>SPOOLER</code></td>
+<td>empty</td>
+<td>The spooler to hand print jobs to</td>
+</tr>
+<tr>
+<td><code>GDI</code></td>
+<td>0</td>
+<td>Selects the Windows printing interface used by default</td>
+</tr>
+</tbody>
+</table>
+<h2 id="sorting">Sorting<a class="headerlink" href="#sorting" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SORTMEM</code></td>
+<td>4096 kb</td>
+<td>Above this much data a sort works on disk instead of in memory</td>
+</tr>
+<tr>
+<td><code>SORTMRG</code></td>
+<td>4</td>
+<td>Files merged at once in a disk sort. Range 2 to 10</td>
+</tr>
+</tbody>
+</table>
+<h2 id="numbers-and-dates">Numbers and dates<a class="headerlink" href="#numbers-and-dates" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>INTPREC</code></td>
+<td>13</td>
+<td>Digits of precision in integer arithmetic. Range 0 to 14</td>
+</tr>
+<tr>
+<td><code>FLTDIFF</code></td>
+<td>0.00000000002910</td>
+<td>Two floating point numbers closer together than this compare equal</td>
+</tr>
+<tr>
+<td><code>YEARBASE</code></td>
+<td>1930</td>
+<td>The century a two-digit year is read into</td>
+</tr>
+</tbody>
+</table>
+<h2 id="diagnostics">Diagnostics<a class="headerlink" href="#diagnostics" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ERRLOG</code></td>
+<td>50 kb</td>
+<td>Size of the error log. A non-zero value below 10 KB is raised to 10 KB, and the oldest entries are discarded when it fills</td>
+</tr>
+<tr>
+<td><code>PDUMP</code></td>
+<td>0</td>
+<td>Bit flags controlling when a process dump is written</td>
+</tr>
+<tr>
+<td><code>DEBUG</code></td>
+<td>unset</td>
+<td>Bit flags enabling debugging features</td>
+</tr>
+<tr>
+<td><code>STARTUP</code></td>
+<td>empty</td>
+<td>A command run when SD starts</td>
+</tr>
+<tr>
+<td><code>JNLMODE</code></td>
+<td>0</td>
+<td>Journalling mode</td>
+</tr>
+<tr>
+<td><code>OBJECTS</code></td>
+<td>0 (no limit)</td>
+<td>Compiled programs held in memory at once</td>
+</tr>
+<tr>
+<td><code>OBJMEM</code></td>
+<td>0 (no limit)</td>
+<td>Memory those programs may occupy, in KB</td>
+</tr>
+</tbody>
+</table>
+<h2 id="the-shell">The shell<a class="headerlink" href="#the-shell" title="Permanent link">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Default</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>SH</code></td>
+<td>PowerShell, interactive</td>
+<td>The shell a bare <code>sh</code> starts</td>
+</tr>
+<tr>
+<td><code>SH1</code></td>
+<td>PowerShell, non-interactive</td>
+<td>The shell <code>sh command</code> uses</td>
+</tr>
+</tbody>
+</table>
+<p>Both are full paths on a real install:</p>
+<pre><code>SH        C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -NoLogo
+SH1       C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -NonInteractive -Command
+</code></pre>
+<p>The difference between them matters. <code>SH1</code> carries <code>-NonInteractive</code> and <code>SH</code>
+does not, so a bare <code>sh</code> in a phantom or a scheduled job hands control to a
+shell with nobody at the keyboard. Operating system access has its own page in
+this set.</p>
+<h2 id="parameters-that-are-accepted-and-do-nothing">Parameters that are accepted and do nothing<a class="headerlink" href="#parameters-that-are-accepted-and-do-nothing" title="Permanent link">#</a></h2>
+<p>These are parsed so that an existing <code>sd.conf</code> still loads. None of them
+changes SD's behaviour, and none should be offered to a site as a control.</p>
+<table>
+<thead>
+<tr>
+<th>Parameter</th>
+<th>Why it is inert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>NETFILES</code></td>
+<td>SDNet was removed from this port. <code>netfiles.c</code> is deleted, a <code>server;file</code> VOC reference is refused, and the request that reports open SDNet connections returns an empty list. The value is still stored and still reported, and setting it opens nothing</td>
+</tr>
+<tr>
+<td><code>CREATUSR</code></td>
+<td>SD has accounts rather than accounts and users, so <code>create.account</code> always creates the operating system account and there is nothing to opt in to. The value is discarded as it is read</td>
+</tr>
+<tr>
+<td><code>CODEPAGE</code></td>
+<td>Stored, readable and settable. Nothing acts on it</td>
+</tr>
+<tr>
+<td><code>EXCLREM</code></td>
+<td>Stored, readable and settable. It described exclusive access to a remote file, and there are no remote files</td>
+</tr>
+<tr>
+<td><code>RINGWAIT</code></td>
+<td>Stored, readable and settable. Nothing acts on it</td>
+</tr>
+<tr>
+<td><code>TXCHAR</code></td>
+<td>Stored, and not readable — there is no <code>config('TXCHAR')</code></td>
+</tr>
+</tbody>
+</table>
+<p><code>FILERULE</code> is <strong>not</strong> in this list, and is easy to mistake for it. Its remote
+bits died with SDNet, but bit 4 is live and decides whether a <code>PATH:</code> VOC
+reference may name a pathname directly.</p>
+<p>There is no licence parameter and no licence verb. SD Core for Windows is
+GPL v3 and is not licensed per site or per user; <code>config gpl</code> displays the
+licence text.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="06-sd-system-limits.html"><span class="pn-label">&larr; Previous</span>System limits</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="08-sd-installation.html"><span class="pn-label">Next &rarr;</span>Installation and the service</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

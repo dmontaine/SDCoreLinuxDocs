@@ -1,0 +1,810 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD Basic - Program Structure - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="00a-copyright-and-licence.html"><span class="pn-label">&larr; Previous</span>Copyright and licence</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="02-sd-basic-program-control.html"><span class="pn-label">Next &rarr;</span>SD Basic - Program Control</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD Basic - Program Structure</h1>
+<p class="tp-subtitle">Programs, subroutines and functions; variables, matrices, common blocks and how a program is called.</p>
+</section>
+
+<main>
+<p>This page covers the shape of an SD BASIC program: how it is declared, how it
+is called, what its variables are, and the declarations that have to appear
+before anything else.</p>
+<p>SD folds case, so a program may be written in either case. Keywords are shown
+here in lower case. In the tables, <em>italics</em> mark something you supply and
+<strong>bold</strong> marks a word typed as it stands; braces mark an optional part.</p>
+<h2 id="the-three-kinds-of-program">The three kinds of program<a class="headerlink" href="#the-three-kinds-of-program" title="Permanent link">#</a></h2>
+<pre><code>program {name}
+subroutine name {(argument, ...)} {var.args}
+function name {(argument, ...)} {var.args}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>program</strong></td>
+<td>runs on its own. Started by <code>run</code>, by its catalogued name, or from another program with <code>execute</code></td>
+</tr>
+<tr>
+<td><strong>subroutine</strong></td>
+<td>called by <code>call</code>, and returns nothing. Its arguments carry values back</td>
+</tr>
+<tr>
+<td><strong>function</strong></td>
+<td>called inside an expression, and returns a value with <code>return</code></td>
+</tr>
+</tbody>
+</table>
+<p>A source record with no declaration at all is a program. <code>end</code> closes it.</p>
+<pre><code>program hello
+   print 'hello'
+end
+</code></pre>
+<p><strong><code>var.args</code></strong> allows the caller to pass fewer arguments than are declared;
+<code>arg.count()</code> then says how many actually arrived, and reading one that was not
+passed is an unassigned-variable error rather than a silent empty string.</p>
+<h3 id="local-subroutines-and-functions">Local subroutines and functions<a class="headerlink" href="#local-subroutines-and-functions" title="Permanent link">#</a></h3>
+<pre><code>local subroutine name {(arguments)}
+local function name {(arguments)}
+</code></pre>
+<p>These live inside the program that uses them rather than in the catalogue, and
+they can declare <code>private</code> variables of their own — which is how you get a
+routine whose working variables do not collide with the rest of the program.</p>
+<p><strong>They are not called the way external ones are.</strong> A local subroutine is
+reached with <code>gosub name(…)</code> and not <code>call</code>; a local function must be declared
+with <code>deffun … local</code> before it is used; and both need an explicit <code>return</code>,
+because falling into the closing <code>end</code> stops the program. All of that, with the
+scope rules and the errors each mistake produces, is on
+<a href="18-sd-basic-modern-program-structure.html">SD Basic - Modern Program Structure</a>.</p>
+<h3 id="internal-subroutines">Internal subroutines<a class="headerlink" href="#internal-subroutines" title="Permanent link">#</a></h3>
+<pre><code>gosub label
+...
+label:
+   ...
+   return
+</code></pre>
+<p><code>gosub</code> is not a call to another program — it jumps within the current one, and
+shares all its variables. The nesting limit is <strong>256 levels</strong>.</p>
+<h2 id="calling">Calling<a class="headerlink" href="#calling" title="Permanent link">#</a></h2>
+<pre><code>call name {(argument, ...)}
+call @variable {(argument, ...)}
+subr(name {, argument, ...})
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>call name</code></td>
+<td>the name is fixed at compile time</td>
+</tr>
+<tr>
+<td><code>call @variable</code></td>
+<td>the name is taken from the variable at run time</td>
+</tr>
+<tr>
+<td><code>subr()</code></td>
+<td>the function form — use it where you want the result in an expression</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Arguments are passed by reference, not by value.</strong> A subroutine that
+assigns to one of its parameters changes the caller's variable. That is how a
+subroutine returns anything at all, and it is also how a subroutine that uses a
+parameter as scratch space quietly corrupts its caller's data. <strong>If you do not
+intend to return a value through an argument, copy it into a local variable
+first.</strong></p>
+<p>Passing an expression rather than a variable — <code>call sub(a + 0)</code> — forces a
+copy, because there is no variable to write back to.</p>
+<pre><code>catalogued(name)
+</code></pre>
+<p>reports whether a name can be called. <code>catalogued('ZZNOSUCH')</code> is
+<code>0</code>. Use it before a <code>call @variable</code> whose name came from data, because an
+uncatalogued name is a runtime abort rather than a testable failure.</p>
+<h2 id="variables">Variables<a class="headerlink" href="#variables" title="Permanent link">#</a></h2>
+<p>Variables are not declared and have no type. A variable holds whatever was last
+assigned to it, and its type follows the value.</p>
+<pre><code>assigned(variable)
+unassigned(variable)
+vartype(variable)
+</code></pre>
+<table>
+<thead>
+<tr>
+<th>Expression</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>assigned(neverset)</code></td>
+<td><code>0</code></td>
+</tr>
+<tr>
+<td><code>assigned(zz)</code> after <code>zz = 1</code></td>
+<td><code>1</code></td>
+</tr>
+<tr>
+<td><code>unassigned(neverset)</code></td>
+<td><code>1</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The compiler warns about a variable that is never assigned</strong> — <em>"WARNING:
+NEVERSET is not assigned a value"</em> — but it still compiles, and using the
+variable is an error only when the line is reached.</p>
+<h3 id="vartype"><code>vartype()</code><a class="headerlink" href="#vartype" title="Permanent link">#</a></h3>
+<p>Returns the internal type code:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Code</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>unassigned</td>
+<td><code>0</code></td>
+<td></td>
+</tr>
+<tr>
+<td>an integer</td>
+<td><code>2</code></td>
+<td></td>
+</tr>
+<tr>
+<td>a floating-point number</td>
+<td><code>3</code></td>
+<td></td>
+</tr>
+<tr>
+<td>a string</td>
+<td><code>5</code></td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<p>The remaining codes exist for things a program does not usually inspect: <code>1</code>
+address, <code>4</code> subroutine reference, <code>6</code> file variable, <code>7</code> array, <code>8</code> common
+block, <code>9</code> image, <code>11</code> select list, <code>13</code> socket, <code>15</code> object.</p>
+<blockquote>
+<p><strong><code>vartype()</code> tells you how the value is held, not what it means.</strong> <code>'12'</code>
+read from a file is a string (<code>5</code>) even though it is a number everywhere it
+is used; the same value after arithmetic is an integer (<code>2</code>). <strong>Use <code>num()</code>
+to ask whether something is numeric</strong> — see <a href="03-sd-basic-math-functions.html">SD Basic - Math Functions</a> —
+and keep <code>vartype()</code> for telling an unassigned variable from an empty one.</p>
+</blockquote>
+<p><code>set.unassigned</code> returns a variable to the unassigned state, which is how you
+make <code>assigned()</code> false again after using it.</p>
+<h2 id="constants">Constants<a class="headerlink" href="#constants" title="Permanent link">#</a></h2>
+<pre><code>equate name to value
+equ name to value
+</code></pre>
+<p><code>equate</code> is resolved at compile time and costs nothing at run time. It can name
+a literal, another variable, or a matrix element:</p>
+<pre><code>equate true to 1
+equate esc to char(27)
+equate cust.name to record&lt;3&gt;
+</code></pre>
+<p><strong>An <code>equate</code> is a substitution, not a variable.</strong> You cannot assign to one,
+and it is replaced wherever the name appears. <code>equate cust.name to record&lt;3&gt;</code>
+means <code>cust.name</code> reads field 3 of whatever <code>record</code> holds at that moment.</p>
+<pre><code>$include file.name record.name
+include file.name record.name
+</code></pre>
+<p>pulls in another source record at compile time. The system definitions live in
+<code>syscom</code> — <code>$include syscom keys.h</code> for the key numbers used by <code>fileinfo()</code>,
+<code>selectinfo()</code> and the rest.</p>
+<h2 id="matrices">Matrices<a class="headerlink" href="#matrices" title="Permanent link">#</a></h2>
+<pre><code>dim name(rows {, columns})
+dimension name(rows {, columns})
+mat name = expression
+mat name = mat other.name
+</code></pre>
+<p>A matrix is a fixed set of numbered variables, not a dynamic array. <code>dim</code> must
+appear before any use, and the bounds are fixed at that point.</p>
+<pre><code>dim m(3)
+mat m = 7          ;* every element becomes 7
+</code></pre>
+<p>After <code>mat m = 7</code>, <code>m(1)</code>, <code>m(2)</code> and <code>m(3)</code> all read <code>7</code>.</p>
+<p><strong>A matrix has a zero element and it is not counted in the dimension.</strong>
+<code>dim m(3)</code> gives <code>m(0)</code> through <code>m(3)</code>. <code>m(0)</code> is where <code>matparse</code> puts
+anything left over, and it is easy to forget it exists.</p>
+<h3 id="between-a-matrix-and-a-string">Between a matrix and a string<a class="headerlink" href="#between-a-matrix-and-a-string" title="Permanent link">#</a></h3>
+<pre><code>matbuild variable from matrix {, start {, end}}
+matparse matrix from string, delimiter
+inmat({matrix})
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matbuild</code></td>
+<td>joins the elements into one string</td>
+</tr>
+<tr>
+<td><code>matparse</code></td>
+<td>splits a string across the elements</td>
+</tr>
+<tr>
+<td><code>inmat()</code></td>
+<td>after <code>matparse</code>, how many elements were filled</td>
+</tr>
+</tbody>
+</table>
+<p>With <code>m</code> holding <code>7</code>, <code>7</code>, <code>7</code>:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>matbuild bs from m</code></td>
+<td>the three elements joined with <strong>field marks</strong></td>
+</tr>
+<tr>
+<td><code>matbuild bs from m, 1, 2</code></td>
+<td>the first two only</td>
+</tr>
+<tr>
+<td><code>matparse m from 'x' : @vm : 'y' : @vm : 'z', @vm</code> then <code>m(1)</code>…<code>m(3)</code></td>
+<td><code>x y z</code></td>
+</tr>
+<tr>
+<td><code>inmat()</code> after that</td>
+<td><code>3</code></td>
+</tr>
+</tbody>
+</table>
+<blockquote>
+<p><strong>The <code>using</code> clause of <code>matbuild</code> does not work, in either case.</strong>
+The documented syntax <code>matbuild var from mat using delimiter</code> compiles the
+keyword as a <strong>variable name</strong> and the program aborts at run time with
+<em>"Unassigned variable USING"</em>, with both <code>using</code> and <code>USING</code>.</p>
+<p><strong>This is inherited, not introduced by this port</strong> — the <code>st.matbuild</code> block
+in <code>BCOMP</code> is byte-identical to the one in the upstream <code>sdb64</code> tree. <strong>The
+delimiter is always a field mark.</strong> If you need another one, use <code>matbuild</code>
+and then <code>change()</code>, or build the string with a <code>for</code> loop.</p>
+</blockquote>
+<p><code>matparse</code> splits on the delimiter you give and stops when the matrix is full;
+anything left over goes into element zero.</p>
+<h2 id="common-blocks">Common blocks<a class="headerlink" href="#common-blocks" title="Permanent link">#</a></h2>
+<pre><code>common {/name/} variable, ...
+clearcommon
+delete.common name
+</code></pre>
+<p>Variables in a common block survive <code>chain</code> and are shared between programs
+that declare the same block. An <strong>unnamed</strong> common block — <code>common // a, b, c</code>
+— belongs to the program run and is cleared when it ends; a <strong>named</strong> one
+persists for the session.</p>
+<p><strong><code>//</code> is the unnamed common marker, which is why it is not an integer-divide
+operator.</strong> See <a href="03-sd-basic-math-functions.html">SD Basic - Math Functions</a>.</p>
+<p><code>clearcommon</code> sets every unnamed common variable to zero. <code>delete.common</code>
+discards a named block entirely, which is the only way to reclaim it within a
+session.</p>
+<blockquote>
+<p><strong>A common block is matched by name and position, not by variable name.</strong> Two
+programs declaring the same block with different variable lists will read each
+other's data at the wrong offsets, silently. <strong>Put the declaration in an
+include record and <code>$include</code> it everywhere</strong>, so there is one copy.</p>
+</blockquote>
+<h2 id="class-modules-and-objects">Class modules and objects<a class="headerlink" href="#class-modules-and-objects" title="Permanent link">#</a></h2>
+<p>SD BASIC has class modules with member variables, methods, properties,
+constructors, destructors and inheritance. <strong>They have their own page</strong>, because
+they are a different way of writing a program rather than a feature of this one:
+<a href="18-sd-basic-modern-program-structure.html">SD Basic - Modern Program Structure</a>.</p>
+<p>The short form:</p>
+<pre><code>class name {inherits base}
+private variable, ...          public variable, ...
+public subroutine name(...)    public function name(...)
+get name                       set name(value)
+end
+</code></pre>
+<pre><code>o = object('CLASSNAME')
+o-&gt;method(args)
+o-&gt;property = value
+</code></pre>
+<p><strong>SD's own client library is a class module.</strong> <code>gpl.bp/SDCLIENT</code> is 1,040
+lines with 33 members and both lifecycle hooks — connecting to another SD server
+from BASIC means instantiating it. <em>(An earlier version of this page said
+nothing in SD used class modules. That was wrong.)</em></p>
+<h2 id="arguments">Arguments<a class="headerlink" href="#arguments" title="Permanent link">#</a></h2>
+<pre><code>arg.count()
+arg(n)
+set.arg n, value
+</code></pre>
+<p>These read the arguments of the <strong>command line</strong> that started the program, not
+the arguments of a subroutine call. <code>arg(1)</code> is the first word after the verb.</p>
+<h2 id="discarding-a-result">Discarding a result<a class="headerlink" href="#discarding-a-result" title="Permanent link">#</a></h2>
+<pre><code>void expression
+</code></pre>
+<p>Calls a function and throws the answer away. It exists because SD BASIC has no
+statement form for a function call — <code>void kernel(...)</code> is the idiom you will
+see throughout <code>gpl.bp</code>.</p>
+<h2 id="what-is-not-here">What is not here<a class="headerlink" href="#what-is-not-here" title="Permanent link">#</a></h2>
+<p>Nothing in the program-structure group has been removed from this port. The
+<code>package</code> statements — <code>enter.package</code>, <code>exit.package</code> and <code>package</code> — went
+before SD Core, and <code>varset</code> is present but is an internal debugging aid rather
+than something application code uses.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="02-sd-basic-program-control.html">SD Basic - Program Control</a> · <a href="05-sd-basic-dynamic-arrays.html">SD Basic - Dynamic Arrays</a> ·
+<a href="07-sd-basic-file-handling.html">SD Basic - File Handling</a> · <a href="03-sd-basic-math-functions.html">SD Basic - Math Functions</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="00a-copyright-and-licence.html"><span class="pn-label">&larr; Previous</span>Copyright and licence</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="02-sd-basic-program-control.html"><span class="pn-label">Next &rarr;</span>SD Basic - Program Control</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

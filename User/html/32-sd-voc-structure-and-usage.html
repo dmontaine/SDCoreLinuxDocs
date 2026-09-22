@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SD VOC - Structure and Usage - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="31-sd-tcl-locks.html"><span class="pn-label">&larr; Previous</span>SD TCL - Locks</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="32a-sd-voc-in-use.html"><span class="pn-label">Next &rarr;</span>SD VOC - Using and Managing the VOC</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">SD VOC - Structure and Usage</h1>
+<p class="tp-subtitle">The Vocabulary file: all ten record types, and every field of each one.</p>
+</section>
+
+<main>
+<p>The VOC — Vocabulary — is the file that makes a command line work. Type a
+name, and the command processor looks it up here. The name of a verb, a
+file, a paragraph, a stored sentence, a keyword — all of them are records
+in the VOC. This page is about the record types, their fields, and what
+the verbs that manage the VOC do to them.</p>
+<p>SD folds case, so a command may be typed in either case. Commands are shown
+here in lower case, which is what this port uses on disk. In the tables,
+<em>italics</em> mark something you supply and <strong>bold</strong> marks a word typed as it
+stands; braces mark an optional part.</p>
+<blockquote>
+<p><strong>Every record on this page was read from a stock account VOC on SD Core
+for Windows W1.0-0.</strong> The records were written by <code>CREATE.ACCOUNT</code>,
+which copies them from <code>voc_template</code> in the system directory. The counts
+are what a standard account holds; an administrator account holds more.</p>
+</blockquote>
+<h2 id="the-ten-record-types">The ten record types<a class="headerlink" href="#the-ten-record-types" title="Permanent link">#</a></h2>
+<p>Field 1, character 1, is the type. The rest of field 1 is free text and is
+ignored, so a verb record whose field 1 reads <code>Verb to compile SD BASIC
+program</code> is type <code>V</code> and the rest is a comment. <strong>The first character is
+load-bearing and the remaining thirty are not.</strong></p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Name</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>V</code></td>
+<td>verb</td>
+<td>the common case — dispatches to a program or an internal routine</td>
+</tr>
+<tr>
+<td><code>K</code></td>
+<td>keyword</td>
+<td>a query-processor keyword; four of these are also verbs</td>
+</tr>
+<tr>
+<td><code>S</code></td>
+<td>sentence</td>
+<td>one stored command line</td>
+</tr>
+<tr>
+<td><code>PA</code></td>
+<td>paragraph</td>
+<td>several stored command lines, with flow control</td>
+</tr>
+<tr>
+<td><code>M</code></td>
+<td>menu</td>
+<td>dispatched, but no menu ships</td>
+</tr>
+<tr>
+<td><code>Q</code></td>
+<td>Q-pointer</td>
+<td>an indirect pointer to a file in another account</td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>file</td>
+<td>a file — local, or pointing into <code>@SDSYS</code></td>
+</tr>
+<tr>
+<td><code>R</code></td>
+<td>remote</td>
+<td>a pointer to a record in another file, re-read and re-parsed</td>
+</tr>
+<tr>
+<td><code>X</code></td>
+<td>text</td>
+<td>miscellaneous data — not a command</td>
+</tr>
+<tr>
+<td><code>D</code></td>
+<td>descriptor</td>
+<td>a data descriptor, which is what dictionary records are</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>PQ</code> is a valid type and is refused.</strong> PROC was removed from this port
+(23 Aug 2026). A record of type <code>PQ</code> is reported as <em>"PROC is not
+supported"</em> rather than being dispatched, because the record itself is
+valid PROC and it is the interpreter that is gone.</p>
+<h3 id="what-a-stock-voc-holds">What a stock VOC holds<a class="headerlink" href="#what-a-stock-voc-holds" title="Permanent link">#</a></h3>
+<p>Read from <code>voc_template</code> in the system directory, a stock account VOC
+carries 426 records:</p>
+<table>
+<thead>
+<tr>
+<th>Type</th>
+<th>Count</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>V</code></td>
+<td>137</td>
+</tr>
+<tr>
+<td><code>K</code></td>
+<td>248</td>
+</tr>
+<tr>
+<td><code>F</code></td>
+<td>16</td>
+</tr>
+<tr>
+<td><code>R</code></td>
+<td>10</td>
+</tr>
+<tr>
+<td><code>PA</code></td>
+<td>4</td>
+</tr>
+<tr>
+<td><code>S</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>PH</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>Q</code></td>
+<td>2</td>
+</tr>
+<tr>
+<td><code>X</code></td>
+<td>3</td>
+</tr>
+<tr>
+<td><code>Verb - Full screen editor</code></td>
+<td>2</td>
+</tr>
+</tbody>
+</table>
+<p>The last row is <code>edit</code>, the full-screen editor that was removed on 23 Aug
+2026. Its type field reads <code>Verb - Full screen editor</code> rather than <code>V</code>,
+which means it is not a verb and cannot be dispatched — but it is still in
+the template, and <code>EDIT</code> at the command prompt reports <em>"Full screen editor
+is no longer supported"</em> rather than <em>"verb not found"</em>. <strong>Being in the VOC
+is not evidence a command works.</strong></p>
+<h2 id="the-f-record-a-file">The F record — a file<a class="headerlink" href="#the-f-record-a-file" title="Permanent link">#</a></h2>
+<pre><code>001  F
+002  bp
+003
+</code></pre>
+<p>This is the <code>bp</code> entry — the BASIC source file. Field 1 is <code>F</code>, field 2 is
+the operating-system path to the data portion, and field 3 is the path to
+the dictionary portion. An empty field 3 means the file has no separate
+dictionary.</p>
+<table>
+<thead>
+<tr>
+<th>Field</th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>1</code></td>
+<td><code>F</code>, optionally followed by a comment</td>
+</tr>
+<tr>
+<td><code>2</code></td>
+<td>data path — a name in the account directory, or <code>@SDSYS/</code><em>name</em> for a system file</td>
+</tr>
+<tr>
+<td><code>3</code></td>
+<td>dictionary path, or empty if none</td>
+</tr>
+</tbody>
+</table>
+<h3 id="the-eight-pointers-into-sdsys">The eight pointers into @SDSYS<a class="headerlink" href="#the-eight-pointers-into-sdsys" title="Permanent link">#</a></h3>
+<p>A stock account VOC carries eight F-records whose data path begins
+<code>@SDSYS/</code>. They point at files in the system directory that every account
+needs:</p>
+<table>
+<thead>
+<tr>
+<th>VOC id</th>
+<th>Field 2</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>voc</code></td>
+<td><code>@SDSYS/voc.dic</code> (field 3 — the dictionary)</td>
+</tr>
+<tr>
+<td><code>newvoc</code></td>
+<td><code>@SDSYS/newvoc</code></td>
+</tr>
+<tr>
+<td><code>messages</code></td>
+<td><code>@SDSYS/messages</code></td>
+</tr>
+<tr>
+<td><code>syscom</code></td>
+<td><code>@SDSYS/syscom</code></td>
+</tr>
+<tr>
+<td><code>$MAP</code></td>
+<td><code>@SDSYS/...</code></td>
+</tr>
+<tr>
+<td><code>dict.dic</code></td>
+<td><code>@SDSYS/...</code></td>
+</tr>
+<tr>
+<td><code>sd.voclib</code></td>
+<td><code>@SDSYS/...</code></td>
+</tr>
+<tr>
+<td><code>$ipc</code></td>
+<td>(system IPC file)</td>
+</tr>
+</tbody>
+</table>
+<p>These are <strong>read-only to a network session</strong>. The account-root gate in
+the file engine allows them on read paths but sets <code>FV_RDONLY</code> on the
+file variable, so every write path in the engine refuses them. An
+administrator in <code>SDSYS</code> is exempt; an ordinary account cannot write
+these files.</p>
+<h3 id="the-acc-record">The $ACC record<a class="headerlink" href="#the-acc-record" title="Permanent link">#</a></h3>
+<pre><code>001  F
+002  .
+003
+</code></pre>
+<p><code>$ACC</code> is the account itself. Field 2 is <code>.</code>, which means the current
+account directory. It is how a program opens "the account I am in" by
+name rather than by path.</p>
+<h2 id="the-v-record-a-verb">The V record — a verb<a class="headerlink" href="#the-v-record-a-verb" title="Permanent link">#</a></h2>
+<pre><code>001  V
+002  CA
+003  $CREATEF
+004
+</code></pre>
+<p>This is <code>create.file</code>. Field 2 is the dispatch type, field 3 is the
+target, and the remaining fields carry options.</p>
+<table>
+<thead>
+<tr>
+<th>Field 2</th>
+<th>Field 3</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CA</code></td>
+<td><em>catalogue name</em></td>
+<td>a catalogued program — 99 of the shipped verbs</td>
+</tr>
+<tr>
+<td><code>IN</code></td>
+<td><em>number</em></td>
+<td>internal verb <em>n</em>, handled by the command processor itself — 42 verbs</td>
+</tr>
+<tr>
+<td><code>OS</code></td>
+<td><em>text</em></td>
+<td>an operating-system command — <code>sh</code> and <code>!</code>, and nothing else</td>
+</tr>
+<tr>
+<td><code>CS</code></td>
+<td><em>path</em></td>
+<td>a locally catalogued function</td>
+</tr>
+</tbody>
+</table>
+<p>Those four rows account for 143 of the 147 verbs an administrator account has.
+The remaining four are the keyword records described above — <code>break</code>, <code>count</code>,
+<code>display</code> and <code>off</code> — where field 2 holds a keyword number rather than a
+dispatch type, and it is field 3 that marks the record as a verb.</p>
+<p>Field 4 carries dispatch options and <strong>field 5 names a security subroutine</strong>.
+If field 5 is present, that subroutine is called before the verb runs and
+can refuse it. <strong>None of the shipped verbs uses field 5</strong> — the tiering
+in this port is done by giving or withholding the VOC record, not by a
+security subroutine — but the mechanism is there for a site that wants a
+verb guarded rather than absent.</p>
+<h3 id="internal-verbs">Internal verbs<a class="headerlink" href="#internal-verbs" title="Permanent link">#</a></h3>
+<p><code>IN</code> verbs are numbered, and the numbers are positional in the command
+processor's dispatch list. Several names share one: <code>off</code> and <code>quit</code> are
+both internal verb 1, <code>clr</code> and <code>cs</code> are both 2, and each of <code>clear.data</code>,
+<code>clear.input</code>, <code>clear.prompts</code> and <code>clear.select</code> has a run-together
+spelling (<code>cleardata</code> and the rest) pointing at the same number.</p>
+<h3 id="the-four-keyword-verbs">The four keyword-verbs<a class="headerlink" href="#the-four-keyword-verbs" title="Permanent link">#</a></h3>
+<p>Four records ship as a keyword <strong>and</strong> a verb in one: <code>break</code>, <code>count</code>,
+<code>display</code> and <code>off</code>. Their field 2 is the keyword number the query
+processor uses, and <strong>fields 3 onward are a complete verb record</strong>, which
+the command processor re-parses when the name is typed as a command.</p>
+<p><strong>This matters for counting what an account has.</strong> A tally of VOC
+records whose field 1 begins with <code>V</code> misses all four, and <code>count</code> is not
+a marginal verb. A standard account has <strong>82</strong> verbs, not 78.</p>
+<h2 id="the-q-record-an-indirect-pointer">The Q record — an indirect pointer<a class="headerlink" href="#the-q-record-an-indirect-pointer" title="Permanent link">#</a></h2>
+<pre><code>001  Q
+002  SDSYS
+003  accounts
+</code></pre>
+<p>This is <code>sd.accounts</code>. Field 2 is the account name, field 3 is the file
+name in that account. <code>set.file</code> writes Q-pointers; see below.</p>
+<p><code>md</code> is a Q-pointer to <code>voc</code> — the VOC's own dictionary is reached
+through it, and it is how <code>dict voc</code> finds its records.</p>
+<h2 id="the-r-record-a-remote-record-reference">The R record — a remote record reference<a class="headerlink" href="#the-r-record-a-remote-record-reference" title="Permanent link">#</a></h2>
+<pre><code>001  R
+002  SD.VOCLIB
+003  listf
+</code></pre>
+<p>This is <code>listf</code>. Field 2 is the file name, field 3 is the record id. An
+R-record is <strong>re-read and re-parsed every time it is used</strong>, so editing
+the referenced record changes what the command does without touching the
+VOC entry. The <code>LIST</code> family — <code>listf</code>, <code>listfl</code>, <code>listfr</code>, <code>listk</code>,
+<code>listpa</code>, <code>listph</code>, <code>listq</code>, <code>listr</code>, <code>lists</code>, <code>listv</code> — are all
+R-records pointing into <code>SD.VOCLIB</code>.</p>
+<h2 id="the-s-record-a-sentence">The S record — a sentence<a class="headerlink" href="#the-s-record-a-sentence" title="Permanent link">#</a></h2>
+<pre><code>001  S
+002  DISPLAY &lt;&lt;@PATH&gt;&gt;
+</code></pre>
+<p>This is <code>where</code>. A sentence is one stored command line. Typing its name
+runs that line with anything else you typed appended, so a sentence is a
+command with its first arguments filled in.</p>
+<h2 id="the-pa-record-a-paragraph">The PA record — a paragraph<a class="headerlink" href="#the-pa-record-a-paragraph" title="Permanent link">#</a></h2>
+<pre><code>001  PA
+002  TERM WINDOWS
+003  TERM 120,36
+004  PTERM CASE NOINVERT
+</code></pre>
+<p>This is <code>login</code>, the paragraph that runs at sign-on. A paragraph holds
+several lines and has flow control: <code>if</code>, <code>go</code>, <code>stop</code>, <code>abort</code>,
+<code>display</code>, <code>pause</code>. Paragraphs nest, and <code>abort</code> unwinds all of them.</p>
+<p><strong><code>data</code> lines are read ahead of the verb, not executed in sequence.</strong>
+Before a verb runs, the command processor scans forward over any
+immediately following <code>data</code>, comment and blank lines and stacks their
+text as typed-ahead input.</p>
+<h3 id="the-ph-record-a-phrase">The PH record — a phrase<a class="headerlink" href="#the-ph-record-a-phrase" title="Permanent link">#</a></h3>
+<pre><code>001  PH
+002  GRAND.TOTAL &quot;'L'&quot;
+</code></pre>
+<p>This is <code>no.grand.total</code>. A phrase is a stored fragment that is
+substituted into a command line wherever its name appears. <code>PH</code> is
+treated as <code>S</code> for most purposes — the difference is that a phrase is
+designed to be used inside another command rather than typed on its own.</p>
+<p><code>without</code> is also <code>PH</code>, holding <code>WITH NO</code> — so <code>list stock without qty</code>
+expands to <code>list stock with no qty</code>.</p>
+<h2 id="the-k-record-a-keyword">The K record — a keyword<a class="headerlink" href="#the-k-record-a-keyword" title="Permanent link">#</a></h2>
+<pre><code>001  K
+002  26
+</code></pre>
+<p>This is <code>#</code>, the comment keyword. Field 2 is the keyword number the query
+processor uses. Keywords are not commands in their own right; they are
+the words the query processor — <code>LIST</code>, <code>SELECT</code>, <code>SORT</code> and the rest —
+recognises inside a command line. <code>all</code> is <code>K</code> with number 5; <code>after</code> is
+<code>K</code> with a number; <code>and</code> is <code>K</code>.</p>
+<p>The 248 K-records in a stock VOC are the query processor's vocabulary,
+and they are what makes a sentence like <code>list stock with qty &gt; 100 by
+supplier</code> parse.</p>
+<h2 id="the-x-record-text">The X record — text<a class="headerlink" href="#the-x-record-text" title="Permanent link">#</a></h2>
+<pre><code>001  X
+002  Most of SD is licensed under the GPL v3.0 ...
+</code></pre>
+<p>This is <code>$licence</code>. An X-record is <strong>not a command</strong> — it is miscellaneous
+data the VOC holds so that a program or a user can read it by name.
+<code>$contrib</code> and <code>$RELEASE</code> are also X-records. Nobody dispatches them; they
+are read with <code>read</code> from BASIC or with <code>ct</code> from the command line.</p>
+<h2 id="continued-in">Continued in<a class="headerlink" href="#continued-in" title="Permanent link">#</a></h2>
+<p><a href="32a-sd-voc-in-use.html">SD VOC - Using and Managing the VOC</a> — how the
+command processor uses the VOC, the verbs that manage it, and account
+creation.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="31-sd-tcl-locks.html"><span class="pn-label">&larr; Previous</span>SD TCL - Locks</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>User</a>
+<a class="pn-next" href="32a-sd-voc-in-use.html"><span class="pn-label">Next &rarr;</span>SD VOC - Using and Managing the VOC</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

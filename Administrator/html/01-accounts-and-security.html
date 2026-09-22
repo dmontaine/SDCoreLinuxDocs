@@ -1,0 +1,754 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Accounts and Security - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="00a-copyright-and-licence.html"><span class="pn-label">&larr; Previous</span>Copyright and licence</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="01a-account-maintenance.html"><span class="pn-label">Next &rarr;</span>Account Maintenance</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">Accounts and Security</h1>
+<p class="tp-subtitle">Making and changing accounts, passwords, and who may enter an account.</p>
+</section>
+
+<main>
+<p>These are the verbs that decide <strong>who may use this installation and what they
+may do with it.</strong> They are the administrator's set, they are the smallest set
+on the machine, and almost all of them need more than the verb before they will
+do anything.</p>
+<blockquote>
+<p><strong>This document is separate so that it can be withheld.</strong> Everything in the
+administrator set describes verbs an ordinary account does not have and cannot
+run. It is a complete set on its own and <strong>links to nothing outside itself</strong>,
+so that handing somebody the user documentation without this never leaves them
+at a page that is not there. Where a user-set page is worth naming, it is
+named in words rather than linked.</p>
+</blockquote>
+<p>SD folds case, so a command may be typed in either case. Commands are shown here
+in lower case. In the tables, <em>italics</em> mark something you supply and <strong>bold</strong>
+marks a word typed as it stands; braces mark an optional part.</p>
+<h2 id="read-this-before-anything-else-there-are-two-gates-not-one">Read this before anything else: there are two gates, not one<a class="headerlink" href="#read-this-before-anything-else-there-are-two-gates-not-one" title="Permanent link">#</a></h2>
+<p><strong>Having the verb is not having the right to use it.</strong></p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>the tier</strong></td>
+<td>decides whether the account's VOC has the verb at all. Only an <code>administrator</code> account has these names; in any other account they are not recognised</td>
+</tr>
+<tr>
+<td><strong>elevation</strong></td>
+<td>decides whether the verb does anything. Almost every verb here begins by testing it, and stops if the session is not elevated</td>
+</tr>
+</tbody>
+</table>
+<p>In an administrator account, from an ordinary unelevated session:</p>
+<pre><code>:list.grants don
+Command requires administrator privileges
+:delete.account sdsys
+Command requires administrator privileges
+:modify.password sdsys
+Command requires administrator privileges
+</code></pre>
+<p><strong>Every one of those refusals came before the command was looked at.</strong>
+<code>delete.account sdsys</code> would have been refused anyway — you cannot delete
+<code>SDSYS</code> — and it never got that far.</p>
+<p><strong>What counts as elevated is a Windows question and is fixed when SD starts.</strong>
+The token a process gets is decided at process creation, so there is nothing
+you can type inside a running session to elevate it. <strong>Start SD from an
+elevated terminal</strong>, or accept the UAC prompt that <code>logto sdsys</code> raises. The
+three verbs on this page that do <em>not</em> test elevation are <code>clean.account</code>,
+<code>config</code> and <code>update.accounts</code>, and each of them acts only on the account you
+are already standing in or on your own session.</p>
+<h2 id="making-an-account-createaccount">Making an account: <code>create.account</code><a class="headerlink" href="#making-an-account-createaccount" title="Permanent link">#</a></h2>
+<pre><code>create.account user &lt;name&gt; {administrator | programmer}
+                           &lt;ssh | api | both | none&gt; {no.query}
+
+create.account group &lt;name&gt; {no.query}
+
+create.account other &lt;name&gt; &lt;pathname&gt; {no.query}
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>user</code></strong></td>
+<td>an SD account <strong>and</strong> a Windows local account to sign in as</td>
+</tr>
+<tr>
+<td><strong><code>group</code></strong></td>
+<td>a shared workspace with no Windows account, reached only with <code>logto</code></td>
+</tr>
+<tr>
+<td><strong><code>other</code></strong></td>
+<td>an SD account over a directory you name</td>
+</tr>
+</tbody>
+</table>
+<p><strong>One of <code>ssh</code>, <code>api</code>, <code>both</code>, <code>none</code> is required for a user account and there
+is no default.</strong> An account meant to be reached only with <code>logto</code> says <code>none</code>
+and means it. An <code>administrator</code> account is given both routes and takes no
+keyword. Omitting the tier gives a <strong>standard</strong> account.</p>
+<blockquote>
+<p><strong>It prompts for a password and <code>no.query</code> does not suppress that.</strong>
+<code>no.query</code> covers the confirmation, not the credential — a password is never
+an argument anywhere in SD. <strong><code>create.account user</code> therefore cannot be
+driven from a script</strong>, and a group account, which has no password, can.</p>
+</blockquote>
+<p><strong><code>sh-on</code></strong> and <strong><code>os-on</code></strong> may be added to give the new account the <code>sh</code> verb
+and <code>OS.EXECUTE</code>; see <code>modify.account</code> below, which has both and their <code>-off</code>
+forms.</p>
+<h3 id="the-access-model-in-four-sentences">The access model in four sentences<a class="headerlink" href="#the-access-model-in-four-sentences" title="Permanent link">#</a></h3>
+<p>Administrators have API access and <code>OS.EXECUTE</code> access automatically.
+Programmers and standard users do not, unless it is given specifically.
+<strong>API access does not give <code>OS.EXECUTE</code> access.</strong>
+<strong>And an administrator's ssh and API access stops at this machine.</strong></p>
+<p>The fourth sentence is not a grant and there is no keyword for it. An
+administrator keeps both routes permanently — they cannot be taken away — and
+neither reaches past this computer: a sign-in from anywhere else is refused
+after the password has been checked.</p>
+<blockquote>
+<p>An administrator may not sign in to this machine from another one.</p>
+</blockquote>
+<p>Administration happens at the console, or through a remote desktop or
+remote-control product installed as a service, because those are the sessions
+Windows can show a consent prompt on. <strong>Only the administrator tier is
+affected</strong>; programmers and standard users reach the machine remotely on
+whatever routes they were given.</p>
+<p>The third sentence is the one a reader will otherwise get wrong, because the
+two grants look like one grant. They are not:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>api</code></td>
+<td>says who may <strong>connect</strong></td>
+</tr>
+<tr>
+<td><code>os-on</code></td>
+<td>says who may reach the <strong>operating system</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Holding the first has never implied the second. They are independent settings
+and are checked in different places.</p>
+<p>Neither can be taken away from an administrator. <code>modify.account</code> refuses
+<code>os-off</code> and <code>sh-off</code> for an administrator account, exactly as it refuses
+<code>ssh</code>, <code>api</code> and <code>none</code>.</p>
+<h3 id="what-os-on-actually-costs">What os-on actually costs<a class="headerlink" href="#what-os-on-actually-costs" title="Permanent link">#</a></h3>
+<p>Granting <code>os-on</code> to a non-administrator is a larger decision than it looks.</p>
+<p><strong>That account reaches the operating system over the API as well as locally</strong> —
+and over the API the session's process token is LocalSystem. On a
+programmer-tier account over a remote API connection, the operating system
+reports the session as <code>nt authority\system</code>.</p>
+<p>This is accepted behaviour rather than a defect, and it follows from the way
+SD's listener creates a session. It is stated here because it is not something
+a reader should have to discover: <code>os-on</code> on a non-administrator account with
+API access gives that account the operating system, as LocalSystem, from any
+machine that can reach the API port.</p>
+<p>The full account of what creating a user account does to Windows — the groups,
+the disabled-then-enabled login, the console denial — is in the SD Core for
+Windows release documentation, under <em>Account types</em>, and is not repeated here.</p>
+<h2 id="changing-one-modifyaccount">Changing one: <code>modify.account</code><a class="headerlink" href="#changing-one-modifyaccount" title="Permanent link">#</a></h2>
+<pre><code>modify.account account standard | programmer | administrator | suspended
+modify.account account standard | programmer   ssh | api | both | none
+modify.account account ssh | api | both | none
+modify.account account sh-on | sh-off
+modify.account account os-on | os-off
+modify.account account add | delete  user.name
+</code></pre>
+<h3 id="the-tier-moves-in-any-direction">The tier moves in any direction<a class="headerlink" href="#the-tier-moves-in-any-direction" title="Permanent link">#</a></h3>
+<p><strong><code>standard</code>, <code>programmer</code>, <code>administrator</code> and <code>suspended</code> are four names for
+one state</strong>, and any of them can be reached from any other with no intermediate
+step. The account's VOC is rewritten there and then, not at its next login.</p>
+<p><strong><code>suspended</code> denies access and changes nothing else.</strong> The VOC is left as it
+is, no Windows group membership moves, and the tier it displaced is remembered
+so that the way back knows where the account is coming from. <strong>There is no
+<code>resume</code> keyword</strong> — coming back names the destination tier, and naming one on
+a suspended account lifts the suspension into it.</p>
+<p>Three doors refuse a suspended account: signing in, <code>logto</code>, and the API.</p>
+<p><strong>Leaving <code>administrator</code> takes three things away and one must be named.</strong>
+Windows <code>Administrators</code> membership and the operating-system access record go
+by themselves, because the account held them <em>because</em> it was an
+administrator. <strong>ssh and the API were a rule and now have to be a choice</strong>, so
+the second form above is compulsory: <code>modify.account don programmer both</code>.</p>
+<h3 id="the-other-keywords">The other keywords<a class="headerlink" href="#the-other-keywords" title="Permanent link">#</a></h3>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>ssh</code></strong> | <strong><code>api</code></strong> | <strong><code>both</code></strong> | <strong><code>none</code></strong></td>
+<td>what the account's remote access <strong>is</strong>. Absolute: <code>api</code> takes ssh away</td>
+</tr>
+<tr>
+<td><strong><code>sh-on</code></strong> | <strong><code>sh-off</code></strong></td>
+<td>the <code>sh</code> verb and <code>!</code></td>
+</tr>
+<tr>
+<td><strong><code>os-on</code></strong> | <strong><code>os-off</code></strong></td>
+<td><code>OS.EXECUTE</code> and the screen editors</td>
+</tr>
+<tr>
+<td><strong><code>add</code></strong> | <strong><code>delete</code></strong> <em>user</em></td>
+<td>put a Windows user in, or out of, the account's group</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The first group is absolute and the second is not.</strong> <code>ssh</code>/<code>api</code>/<code>both</code>/
+<code>none</code> are four names for one state, so whatever is not named is withdrawn.
+<code>sh-on</code> and <code>os-on</code> are two independent switches over two separate settings, so
+<strong><code>sh-off</code> says nothing about <code>OS.EXECUTE</code></strong> and leaves it alone.</p>
+<p><strong>All of these refuse an administrator account.</strong> An administrator has full
+access and there is no way to turn any of it off — the way to reduce one is to
+move it to another tier, which is what the tier keywords are for. A group
+account is refused too: it has no Windows user to put in a group.</p>
+<h2 id="passwords-modifypassword">Passwords: <code>modify.password</code><a class="headerlink" href="#passwords-modifypassword" title="Permanent link">#</a></h2>
+<pre><code>modify.password {account}
+</code></pre>
+<p>With no account name it changes <strong>your own</strong>, and asks for the current password
+first. With one it changes somebody else's, which needs elevation and does not
+ask for the old password — an administrator resetting a forgotten password does
+not know it.</p>
+<p><strong>The password is never an argument, and a trailing token is refused rather
+than ignored:</strong></p>
+<pre><code>:modify.password don hunter2
+A password is never given on the command line; MODIFY.PASSWORD prompts for it
+</code></pre>
+<p><strong>That refusal is the point of the verb's design.</strong> The older behaviour set the
+password from the prompt and threw the extra word away without a word, so every
+visible sign said it had worked — while the password had already reached SD's
+command stack, and a shell's history and process list if the verb was reached
+from one. Refusing does not put it back, but it says so.</p>
+<p>The prompts are hidden, asked twice, and the account must already exist in the
+register. <strong><code>modify.password</code> cannot be scripted</strong>, by design.</p>
+<h2 id="who-may-enter-an-account-grant-revoke-listgrants">Who may enter an account: <code>grant</code>, <code>revoke</code>, <code>list.grants</code><a class="headerlink" href="#who-may-enter-an-account-grant-revoke-listgrants" title="Permanent link">#</a></h2>
+<pre><code>grant account to user
+revoke account from user
+list.grants account
+grant account              the same as list.grants
+</code></pre>
+<p><strong>The grant is Windows group membership and nothing is written to the account
+record.</strong> Every SD account has a Windows group — <code>sdu_</code><em>name</em> for a user
+account, <code>sdg_</code><em>name</em> for a group account — and entry to the account <strong>is</strong>
+membership of that group. These three verbs edit that group and read it back.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>There is no Windows account named %1</em></td>
+<td><code>grant</code> to somebody who does not exist</td>
+</tr>
+<tr>
+<td><em>%1 is already a member of group %2</em></td>
+<td><code>grant</code> to somebody who already has it</td>
+</tr>
+<tr>
+<td><em>%1 has not been granted account %2</em></td>
+<td><code>revoke</code> from somebody who has not</td>
+</tr>
+<tr>
+<td><em>Account not registered in ACCOUNTS file</em></td>
+<td>the account name is not one of SD's</td>
+</tr>
+<tr>
+<td><em>Account %1 has no Windows group recorded</em></td>
+<td>a record predating the group model; it is <strong>refused, not guessed at</strong></td>
+</tr>
+</tbody>
+</table>
+<p><strong>The account's own user is listed like any other member.</strong> It is not a grant —
+creating the account put them there — but hiding it would make the listing
+disagree with the Windows group it is reporting.</p>
+<p><strong>A successful <code>grant</code> or <code>revoke</code> writes an audit record</strong> to SD's audit
+trail, stamped with the user and process that did it. The identity is stamped
+by SD and is not passed in, so a caller cannot get it wrong or forge it.
+Windows records the group change in its own security log as well, and the two
+are independent records of the same act.</p>
+<blockquote>
+<p><strong><code>modify.account</code> <em>account</em> <code>add</code>/<code>delete</code> <em>user</em> makes the same group
+change and writes no audit record.</strong> Prefer <code>grant</code> and <code>revoke</code> when there
+is a choice: they say what they mean and they leave a trail.</p>
+</blockquote>
+<h2 id="continued-in">Continued in<a class="headerlink" href="#continued-in" title="Permanent link">#</a></h2>
+<p><a href="01a-account-maintenance.html">Account Maintenance</a> — clean.account,
+update.accounts, [locked], config, set.date and delete.account.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="00a-copyright-and-licence.html"><span class="pn-label">&larr; Previous</span>Copyright and licence</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="01a-account-maintenance.html"><span class="pn-label">Next &rarr;</span>Account Maintenance</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>

@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sessions and Locks - SD Core for Windows</title>
+<style>
+:root {
+  --ink:        #000000;
+  --ink-soft:   #333333;
+  --ink-faint:  #555555;
+  --bg:         #ffffff;
+  --panel:      #f4f4f4;
+  --rule:       #999999;
+  --rule-firm:  #333333;
+  --accent:     #000000;
+  --accent-bg:  #f4f4f4;
+  /* screen only: the ground the sheet sits on, the way a PDF viewer shows one */
+  --ground:     #d9dbdf;
+  --sheet-edge: #b6b9be;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--ground);
+  color: var(--ink);
+  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-size: 16px;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+.page {
+  max-width: 52rem;
+  margin: 1.75rem auto;
+  padding: 0 3.25rem 1rem;
+  background: var(--bg);
+  border: 1px solid var(--sheet-edge);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.10);
+}
+@media (max-width: 54rem) {
+  .page { margin: 0; border: 0; box-shadow: none; padding: 0 1.25rem 1rem; }
+}
+
+/* --- the prose column -------------------------------------------------- */
+
+main { max-width: none; }
+main > p, main > ul, main > ol, main > blockquote { max-width: none; }
+
+h1, h2, h3, h4 { line-height: 1.25; font-weight: 600; }
+h1 {
+  font-size: 2rem;
+  margin: 0 0 0.35rem;
+  letter-spacing: -0.01em;
+}
+h2 {
+  font-size: 1.4rem;
+  margin: 2.75rem 0 0.9rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--rule);
+}
+h3 {
+  font-size: 1.02rem;
+  margin: 2rem 0 0.6rem;
+  color: var(--ink-soft);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 0.8rem;
+}
+h4 { font-size: 1rem; margin: 1.5rem 0 0.4rem; }
+
+p { margin: 0 0 1rem; }
+ul, ol { margin: 0 0 1rem; padding-left: 1.4rem; }
+li { margin: 0.25rem 0; }
+
+/* The PDF prints links as plain black text.  On screen they stay black and
+   keep the underline: black with no underline would be faithful and would also
+   make every cross-reference invisible, which is a worse page than a slightly
+   less faithful one. */
+a { color: var(--accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+
+.headerlink {
+  margin-left: 0.4rem;
+  color: var(--ink-faint);
+  text-decoration: none;
+  opacity: 0;
+  font-weight: 400;
+}
+h2:hover .headerlink, h3:hover .headerlink { opacity: 1; }
+
+/* --- code -------------------------------------------------------------- */
+
+code, pre, kbd {
+  font-family: Consolas, "Cascadia Mono", "DejaVu Sans Mono", monospace;
+}
+code {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  padding: 0.05em 0.3em;
+  font-size: 0.88em;
+}
+pre {
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--rule-firm);
+  border-radius: 3px;
+  padding: 0.85rem 1.1rem;
+  margin: 0 0 1.25rem;
+  overflow-x: auto;
+  font-size: 0.875rem;
+  line-height: 1.5;
+}
+pre code { background: none; border: 0; padding: 0; font-size: inherit; }
+
+/* --- tables ------------------------------------------------------------ */
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 0 0 1.5rem;
+  font-size: 0.94rem;
+}
+th, td {
+  text-align: left;
+  vertical-align: baseline;
+  padding: 0.5rem 0.9rem 0.5rem 0;
+  border-bottom: 1px solid var(--rule);
+}
+th {
+  border-bottom: 2px solid var(--rule-firm);
+  font-weight: 600;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--ink-soft);
+}
+td:first-child { white-space: nowrap; padding-right: 1.5rem; }
+td:first-child code { white-space: nowrap; }
+
+/* --- notes ------------------------------------------------------------- */
+
+blockquote {
+  margin: 0 0 1.25rem;
+  padding: 0.8rem 1.1rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--accent);
+  border-radius: 3px;
+  background: var(--accent-bg);
+}
+blockquote p:last-child { margin-bottom: 0; }
+blockquote code { background: var(--bg); }
+
+/* The tag line.  The gap above it is the second of the owner's "two blank
+   lines", written the same way as the one under the page header so the two
+   cannot drift apart. */
+footer {
+  margin: calc(2 * 1.5em) 0 0;
+  padding: 1rem 0;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-faint);
+  font-size: 0.82rem;
+}
+
+/* --- prev/next controls, top and bottom --------------------------------
+   OWNER'S INSTRUCTION, 5 September 2026: "controls at both the top and bottom
+   of the pages".  tools/add_nav.py inserts both bars AFTER the PDFs are
+   printed - a "Next page" link is meaningless inside a PDF - so these rules
+   describe elements that exist only in the HTML.  They live here rather than
+   in add_nav.py so that the whole appearance of a page is decided in one
+   file. */
+
+.pagenav {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.9rem 0;
+}
+.pagenav-top    { border-bottom: 1px solid var(--rule); margin-bottom: 0.5rem; }
+.pagenav-bottom { border-top: 1px solid var(--rule); margin-top: 2.5rem; }
+
+.pagenav a {
+  flex: 1 1 0;
+  min-width: 0;
+  color: var(--ink-soft);
+  text-decoration: none;
+  font-size: 0.9rem;
+  line-height: 1.35;
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+}
+.pagenav a:hover { color: var(--ink); border-color: var(--rule-firm); background: var(--panel); }
+.pagenav .pn-prev { text-align: left; }
+.pagenav .pn-next { text-align: right; }
+.pagenav .pn-up   { flex: 0 0 auto; text-align: center; align-self: center; }
+.pagenav .pn-label {
+  display: block;
+  font-size: 0.7rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: 0.1rem;
+}
+.pagenav .pn-spacer { flex: 1 1 0; }
+@media (max-width: 34rem) {
+  .pagenav { flex-wrap: wrap; }
+  .pagenav .pn-up { flex: 1 1 100%; }
+}
+
+/* --- the page header -----------------------------------------------------
+   The product line, the title and the subtitle.  It used to carry the
+   copyright and licence too and be a page of its own; both went on
+   5 September 2026 - see the comment above TITLEPAGE for the instruction.
+
+   THE GAP BELOW IT IS THE "two blank lines" THE OWNER ASKED FOR, and it is
+   written as a multiple of the body line-height rather than a round number of
+   rems so that it stays two blank lines if the type size changes.  The same
+   figure separates the body from the footer. */
+
+.titlepage {
+  /* ***IT IS THE SAME WIDTH AS THE BODY, AND IT WAS NOT.***  This block was
+     "max-width: 40rem; margin: 0 auto" - a centred cover, which is what it was
+     when .page was a two-column grid with a sidebar beside it.  In a single
+     column it just left the title, the subtitle and the rule under them inset
+     by 86px from the text below, and the owner saw it on the User set's first
+     page: 640px against the body's 726px, so the longest title in the set
+     wrapped to two lines while the paragraphs beneath it ran wider.  Eight of
+     the fifty-three wrapped that way.  Nothing here is a cover any more, so
+     nothing here gets its own measure. */
+  max-width: none;
+  margin: 0 0 calc(2 * 1.5em);
+  padding: 2.5rem 0 1.25rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.titlepage .tp-product {
+  font-size: 0.78rem;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin: 0 0 1.6rem;
+}
+
+.titlepage .tp-product span {
+  display: inline-block;
+  margin-left: 0.5rem;
+  padding: 0.1rem 0.45rem;
+  border: 1px solid var(--rule-firm);
+  border-radius: 3px;
+  letter-spacing: 0.04em;
+}
+
+.titlepage h1.tp-title {
+  font-size: 2.35rem;
+  line-height: 1.15;
+  margin: 0 0 0.85rem;
+  border: 0;
+  padding: 0;
+}
+
+.titlepage .tp-subtitle {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0;
+}
+
+/* --- the licence block, on one page per set ------------------------------
+   Same markup the title page used to carry.  It is rendered into whichever
+   page holds the <!--LICENCE-BLOCK--> marker - 00a-copyright-and-licence in
+   each set - and nowhere else. */
+
+/* Body width, for the same reason as .titlepage above: it sits among ordinary
+   paragraphs and a block indented from them reads as a mistake. */
+.licenceblock {
+  max-width: none;
+  margin: 0 0 2rem;
+}
+
+.licenceblock dl.tp-meta {
+  margin: 0 0 2.2rem;
+  padding: 1.1rem 0;
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+
+.licenceblock dl.tp-meta > div {
+  display: flex;
+  gap: 1rem;
+  padding: 0.28rem 0;
+}
+
+.licenceblock dl.tp-meta dt {
+  flex: 0 0 9.5rem;
+  font-size: 0.8rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding-top: 0.15rem;
+}
+
+.licenceblock dl.tp-meta dd {
+  margin: 0;
+  flex: 1;
+}
+
+.licenceblock .tp-licence p {
+  font-size: 0.94rem;
+  line-height: 1.55;
+  color: var(--ink-soft);
+  margin: 0 0 0.9rem;
+  /* 06 Sep 26 - ***FULL WIDTH, LIKE EVERYTHING ELSE ON THE PAGE.***  Owner, on
+     the merged set: "the description of the license on that page is not full
+     width and causes several unneeded lines".  This was "max-width: 36rem"
+     against a body measure of about 45rem, so the licence summary wrapped
+     early and ran several lines longer than it needed to, next to paragraphs
+     that did not.
+     THIS IS THE .titlepage DEFECT AGAIN, one block along - that one was
+     "max-width: 40rem; margin: 0 auto", a centred measure left over from the
+     two-column layout, and it was corrected to none for the same reason.  A
+     narrower measure reads better in isolation and reads WRONG beside text
+     that is not narrowed. */
+  max-width: none;
+}
+
+.licenceblock .tp-url {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  font-size: 0.86em;
+  /* "break-all" broke it after "htt".  This only breaks when the line really
+     cannot hold the URL, which on a 40rem measure it can. */
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 34rem) {
+  .licenceblock dl.tp-meta > div { display: block; }
+  .licenceblock dl.tp-meta dt { margin-bottom: 0.1rem; }
+}
+
+/* --- print -------------------------------------------------------------
+   The browser IS the PDF exporter, and this block is now SHORT because the
+   screen rules above already are the PDF's appearance - that was the point of
+   the 5 September 2026 change.  What is left is the part that only makes sense
+   on paper: point sizes, page breaks, the sheet's screen chrome removed, and
+   the prev/next controls hidden.
+
+   THE PALETTE IS NO LONGER RESET HERE AND DOES NOT NEED TO BE.  It used to be,
+   because a machine in dark mode would otherwise print pale grey on white -
+   every rule that read a variable kept the dark value.  There is one palette
+   now and it is the printed one, so there is nothing to undo. */
+
+@media print {
+
+  body { background: #fff; font-size: 10.5pt; line-height: 1.45; }
+
+  /* The sheet is a screen device: on paper the paper is the sheet. */
+  .page {
+    max-width: none;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+
+  /* A "Next page" link pointing at an .html file is meaningless in a PDF.
+     add_nav.py also runs after mkpdf so they are not usually there at all;
+     this is the belt to that braces, for anyone printing from the browser
+     after the bars have been inserted. */
+  .pagenav { display: none; }
+
+  a { text-decoration: none; }
+
+  /* --- WHAT MUST NOT BE LEFT ALONE AT A PAGE BREAK ----------------------
+     Owner, 5 September 2026, pointing at a sheet that began with a rule and
+     nothing else: "also try to avoid situations like in the screen shot where
+     one line, in this case a horizontal rule, is on the following page".
+
+     THE RULE WAS AN h2's border-top, AND break-after:avoid COULD NOT HELP.
+     That property keeps a heading with what FOLLOWS it; the break here fell
+     INSIDE the heading's own box, between its border-top plus padding and its
+     text, so the border printed at the top of the next sheet and the words
+     went further down.  break-inside is the one that forbids that, and it has
+     to be on the headings themselves. */
+  h1, h2, h3, h4 {
+    break-inside: avoid; page-break-inside: avoid;
+    break-after: avoid;  page-break-after: avoid;
+  }
+  /* And the same defect one line at a time: a lone first or last line of a
+     paragraph stranded across the break. */
+  p, li, dd, dt { orphans: 3; widows: 3; }
+  ul, ol, dl { break-before: avoid; page-break-before: avoid; }
+
+  /* 06 Sep 26 - ***A LONG CODE BLOCK IS ALLOWED TO SPAN A PAGE, FOR THE SAME
+     REASON THE TABLE ABOVE IS.***  Owner, on the merged Administrator set:
+     "page 3 has an orphan and most the page is blank".  This is the table
+     defect exactly, one element along: headings are unbreakable AND glued to
+     what follows them, so an h2 with a tall pre under it could not fit in what
+     was left of a sheet and BOTH moved on, leaving the rest of that page
+     empty and whatever preceded them stranded.
+     A listing that flows across a break is normal in a printed manual; half a
+     blank sheet is not.  blockquote KEEPS the rule - they are a few lines, so
+     they always fit somewhere and splitting one reads worse than moving it. */
+  pre { break-inside: auto; page-break-inside: auto; }
+  blockquote { break-inside: avoid; page-break-inside: avoid; }
+
+  /* ***A TABLE IS ALLOWED TO SPAN A PAGE AND A ROW IS NOT.***  "break-inside:
+     avoid" used to be on the table too, and with headings now unbreakable as
+     well it produced the opposite of the defect it was there for: a heading
+     and its table would not fit in what was left of a sheet, so BOTH moved on
+     and left half a page blank.  These are reference tables of thirty rows;
+     flowing across a break is what they are supposed to do.  The header row
+     repeats at the top of each sheet the table continues onto, so a reader who
+     turns the page still knows what the columns are. */
+  table { break-inside: auto; page-break-inside: auto; }
+  thead { display: table-header-group; }
+  tr    { break-inside: avoid; page-break-inside: avoid; }
+
+  pre, code { border-color: #ccc; }
+  th { border-bottom: 1.5pt solid #000; }
+  td, th { border-bottom: 0.5pt solid #999; }
+  footer { border-top: 0.5pt solid #999; padding: 0.5rem 0 0; }
+
+  /* THE PAGE HEADER IS NO LONGER A SHEET OF ITS OWN.  It used to be, and
+     break-after:page is what did it; with the licence block gone it is three
+     lines, and three lines on an otherwise empty sheet is a gap rather than a
+     cover.  The two-line space below it is kept - the em is now the printed
+     one, which is the reason it is written as a multiple of line-height. */
+  .titlepage {
+    max-width: none;
+    margin: 0 0 calc(2 * 1.45em);
+    padding: 0 0 0.8rem;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+  .titlepage h1.tp-title { font-size: 22pt; }
+  .titlepage .tp-subtitle { font-size: 11pt; }
+  .licenceblock dl.tp-meta { border-color: #999; }
+  .licenceblock .tp-licence p { font-size: 9.5pt; }
+}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="pagenav pagenav-top">
+<a class="pn-prev" href="01a-account-maintenance.html"><span class="pn-label">&larr; Previous</span>Account Maintenance</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="03-operating-system-access.html"><span class="pn-label">Next &rarr;</span>Operating System Access</a>
+</nav>
+<section class="titlepage">
+<p class="tp-product">SD Core for Windows <span>W1.0-0</span></p>
+<h1 class="tp-title">Sessions and Locks</h1>
+<p class="tp-subtitle">Seeing who is logged in, ending a session that will not end itself, and inspecting or forcing the locks a session holds.</p>
+</section>
+
+<main>
+<p>These are the verbs for looking at the machine as a whole and intervening in it:
+<strong>whose sessions are running, what they are holding, and how to take either
+away.</strong> Every one of them is administrator-tier, and the ones that act on
+somebody else need an elevated session on top of that.</p>
+<blockquote>
+<p><strong>This document is separate so that it can be withheld.</strong> It links to
+nothing outside the administrator set. Where a user-set page is worth naming,
+it is named in words.</p>
+</blockquote>
+<p>SD folds case, so a command may be typed in either case. Commands are shown here
+in lower case. In the tables, <em>italics</em> mark something you supply and <strong>bold</strong>
+marks a word typed as it stands; braces mark an optional part.</p>
+<blockquote>
+<p><strong>Every listing on this page was produced by running it</strong>, on SD Core for
+Windows W1.0-0. The lock listings come from a program that took the locks
+first and then ran the verb against itself, because a lock nobody holds is not
+something a listing can show.</p>
+</blockquote>
+<h2 id="two-things-are-not-on-this-page-on-purpose">Two things are not on this page, on purpose<a class="headerlink" href="#two-things-are-not-on-this-page-on-purpose" title="Permanent link">#</a></h2>
+<p><strong>A programmer needs to understand locks without being able to force one</strong>, so
+the <em>user</em> documentation keeps the part of the subject that is theirs: what a
+task lock is against a database lock, and <code>release</code>, which gives back locks your
+own session holds and needs no privilege at all. The same goes for <code>status</code>,
+<code>phantom</code>, <code>pstat</code>, <code>pdebug</code> and <code>pdump</code> — a programmer's view of their own
+processes.</p>
+<p><strong>This page is the other half</strong>: the verbs that see and act across the machine.</p>
+<h2 id="who-is-logged-in-listu">Who is logged in: <code>listu</code><a class="headerlink" href="#who-is-logged-in-listu" title="Permanent link">#</a></h2>
+<pre><code>listu {no.page} {lptr {n}}
+</code></pre>
+<pre><code>:listu
+  User  Pid          Puid  Login time    Origin : Username
+    12  1789               27 Aug 13:14  : don
+    19  1808               27 Aug 13:53  : don
+*   27  1828               27 Aug 13:59  : don
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>*</code></strong></td>
+<td>the session you are typing in</td>
+</tr>
+<tr>
+<td><strong><code>User</code></strong></td>
+<td>SD's user number — what <code>logout</code>, <code>pstat</code> and <code>pdump</code> all take</td>
+</tr>
+<tr>
+<td><strong><code>Pid</code></strong></td>
+<td>the Windows process id</td>
+</tr>
+<tr>
+<td><strong><code>Puid</code></strong></td>
+<td>the user number of the <strong>parent</strong>, filled in for a phantom and blank otherwise</td>
+</tr>
+<tr>
+<td><strong><code>Origin</code></strong></td>
+<td>where the session came from</td>
+</tr>
+<tr>
+<td><strong><code>Username</code></strong></td>
+<td>the <strong>Windows</strong> account the session runs as, not the SD account it is in</td>
+</tr>
+</tbody>
+</table>
+<p><strong><code>Username</code> is the column that matters for permission.</strong> Almost every control
+on this page is keyed to the Windows identity, not to the SD account — so two
+sessions showing different accounts but the same username are, as far as
+<code>logout</code> is concerned, the same person's.</p>
+<p><strong><code>Origin</code> is blank for a local session and that is not a fault.</strong> It reports
+an address or a device name, and a console or piped session has neither. It
+reads <code>Phantom</code> for a phantom and an IP address for a network client.</p>
+<p><code>SDNet</code> is also among the values it can print, and you will not see it: SDNet
+was removed from this port, so nothing can open the kind of session that would
+report it.</p>
+<p><strong><code>(logout pending)</code></strong> after the name means somebody has asked that session to
+end and it has not gone. See below.</p>
+<h2 id="ending-a-session-logout">Ending a session: <code>logout</code><a class="headerlink" href="#ending-a-session-logout" title="Permanent link">#</a></h2>
+<pre><code>logout                  end this session
+logout n {n …}          end another session, by user number
+logout all              end every session but this one
+</code></pre>
+<p><strong><code>logout</code> with no argument ends your own session.</strong> It is <code>quit</code> under
+another name, which is worth knowing before typing it intending to list
+something.</p>
+<pre><code>:logout 999
+Only administrators can logout processes running with other usernames
+</code></pre>
+<p><strong>A session may end only sessions running under the same Windows account</strong>
+unless it is elevated. The refusal above came from an unelevated session, and
+user 999 does not exist — <strong>the privilege test happens before the number is
+looked up</strong>, so this message does not tell you whether the user was real.</p>
+<p><strong><code>logout all</code></strong> is stricter still: elevated <strong>and</strong> run from the <code>SDSYS</code>
+account. It leaves your own session alone.</p>
+<h3 id="when-a-session-will-not-end">When a session will not end<a class="headerlink" href="#when-a-session-will-not-end" title="Permanent link">#</a></h3>
+<p><code>logout</code> <strong>signals</strong> a process. If the process has already gone — killed from
+outside SD, or lost with a terminal — there is nothing to signal, and the entry
+stays with <strong><code>(logout pending)</code></strong> beside it.</p>
+<p><strong>The entry matters because it holds a slot and an exclusive-access claim.</strong>
+<code>NUMUSERS</code> counts it, and any verb that wants a file to itself — <code>build.index</code>
+is the usual one — is refused while it is there. <strong>Recovery is not another
+<code>logout</code>:</strong></p>
+<pre><code>sd -cleanup
+</code></pre>
+<p>run elevated, and a restart of the SD service if that does not take it.</p>
+<p><strong>Confirm the session is actually dead before clearing it.</strong> <code>pstat</code> <em>n</em>
+answers <em>(Not responding)</em> for a session with nothing behind it — it asks the
+process and waits about four seconds — and that is the difference between a dead
+entry and a busy one. <code>pstat</code> is a programmer verb and is documented in the user
+set.</p>
+<h2 id="what-is-locked-listreadu">What is locked: <code>list.readu</code><a class="headerlink" href="#what-is-locked-listreadu" title="Permanent link">#</a></h2>
+<pre><code>list.readu {user.no} {detail} {wait} {no.page} {lptr {n}}
+</code></pre>
+<pre><code>:list.readu
+There are no active file, read or update locks held by any user
+</code></pre>
+<p>That answer is about the <strong>whole system</strong>, not about you. With locks held:</p>
+<pre><code>User File Path........................... Type Id..............................
+  23    1 /cygdrive/c/ProgramData/SD/user RU   R1
+          _accounts/don/ZZLK31A
+  19    4 /cygdrive/c/ProgramData/SD/user RU   zzlock31
+          _accounts/don/voc
+  23    1 /cygdrive/c/ProgramData/SD/user RL   R2
+          _accounts/don/ZZLK31A
+</code></pre>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>User</code></strong></td>
+<td>the SD user number holding it — <code>listu</code> turns that into a person</td>
+</tr>
+<tr>
+<td><strong><code>File</code></strong></td>
+<td>SD's internal file number, and <strong>this is the number <code>unlock</code> wants</strong></td>
+</tr>
+<tr>
+<td><strong><code>Path</code></strong></td>
+<td>wrapped over as many lines as it needs, in POSIX form</td>
+</tr>
+<tr>
+<td><strong><code>Type</code></strong></td>
+<td><code>RU</code> update · <code>RL</code> read · <code>FX</code> exclusive file lock · <code>SX</code> shared file lock · <code>WAIT</code> a session waiting for one</td>
+</tr>
+<tr>
+<td><strong><code>Id</code></strong></td>
+<td>the record id; blank for a file lock</td>
+</tr>
+</tbody>
+</table>
+<p>A file lock has no id:</p>
+<pre><code>User File Path........................... Type Id..............................
+  23    1 /cygdrive/c/ProgramData/SD/user FX
+          _accounts/don/ZZLK31A
+</code></pre>
+<p><strong>The PATH is the POSIX one and that is not a display fault.</strong> SD holds file
+paths internally in <code>/cygdrive/c/...</code> form on this port. It names the same place
+as <code>C:\ProgramData\SD\...</code>.</p>
+<h3 id="the-keywords">The keywords<a class="headerlink" href="#the-keywords" title="Permanent link">#</a></h3>
+<p><strong><code>detail</code></strong> prints the record-lock budget above the listing:</p>
+<pre><code>:list.readu detail
+Record lock limit (NUMLOCKS) = 100, Current = 0, Peak = 2
+There are no active file, read or update locks held by any user
+</code></pre>
+<p><strong><code>Peak</code> is the one to watch.</strong> <code>Current</code> describes this instant, which is
+rarely the instant that mattered. A peak near the limit is how you find out
+<code>NUMLOCKS</code> needs raising <strong>before</strong> a program fails with the lock table full.
+<code>config</code> reports the configured limit.</p>
+<p><strong>A user number</strong> restricts the listing to one session. <strong><code>wait</code></strong> adds the
+sessions <em>waiting</em> for a lock, as <code>WAIT</code> rows — left out by default, so the
+plain listing shows the cause of a hold-up and not its victims. <strong>Ask for
+<code>wait</code> when something is stuck.</strong></p>
+<h3 id="a-lock-outliving-its-session">A lock outliving its session<a class="headerlink" href="#a-lock-outliving-its-session" title="Permanent link">#</a></h3>
+<p>The <code>19 … RU zzlock31</code> row above is real, and it is a lock on a record in an
+account's <code>voc</code> file left behind by a session that was killed while holding it.
+<strong>A dead session's locks are not released</strong>, any more than its user-table entry
+is, and everything wanting that record waits for a process that is not there.</p>
+<p><strong>Take the user number to <code>pstat</code>.</strong> <em>(Not responding)</em> means clear the session
+rather than wait for it.</p>
+<h2 id="task-locks-listlocks-lock-clearlocks">Task locks: <code>list.locks</code>, <code>lock</code>, <code>clear.locks</code><a class="headerlink" href="#task-locks-listlocks-lock-clearlocks" title="Permanent link">#</a></h2>
+<p>Task locks are <strong>64 numbered flags with no connection to any data</strong>. They mean
+whatever the programs using them agree they mean — usually <em>only one session
+runs this job at a time</em>, where the thing being protected is not a single file.</p>
+<pre><code>list.locks
+lock n {no.wait}
+clear.locks {n}
+</code></pre>
+<pre><code>:list.locks
+No task locks reserved by any user
+</code></pre>
+<p>and with lock 5 held by user 16, <code>*</code> marking your own session:</p>
+<pre><code>:list.locks
+ 0:       1:       2:       3:       4:       5: 16*   6:       7:
+ 8:       9:      10:      11:      12:      13:      14:      15:
+16:      17:      18:      19:      20:      21:      22:      23:
+</code></pre>
+<p><em>(64 numbers over eight rows; the rest are blank and are cut here.)</em></p>
+<h3 id="lock-waits-unless-you-tell-it-not-to"><code>lock</code> waits unless you tell it not to<a class="headerlink" href="#lock-waits-unless-you-tell-it-not-to" title="Permanent link">#</a></h3>
+<pre><code>:lock 5 no.wait
+Set task lock 5
+:lock 5 no.wait
+Task lock already owned by this process
+</code></pre>
+<p><strong>Without <code>no.wait</code> it waits for ever.</strong> It prints <em>Waiting for task lock to
+become available</em> once, then retries every two seconds until it gets it — right
+for a job that must run, wrong for anything unattended. <strong><code>no.wait</code> turns the
+wait into a refusal</strong> (<em>Task lock is already in use</em>), which a script can act on.</p>
+<h3 id="clearlocks-gives-back-your-own-and-only-your-own"><code>clear.locks</code> gives back your own, and only your own<a class="headerlink" href="#clearlocks-gives-back-your-own-and-only-your-own" title="Permanent link">#</a></h3>
+<pre><code>:clear.locks 5
+Released task lock 5
+:clear.locks
+All task locks released
+</code></pre>
+<p><strong>With no number it releases all 64 this session holds</strong>, and says <em>all</em> whether
+it held any or not.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><em>Released task lock n</em></td>
+<td>it was yours and it is now free</td>
+</tr>
+<tr>
+<td><em>Task lock n is held by another process</em></td>
+<td><strong><code>clear.locks</code> will not take it</strong></td>
+</tr>
+<tr>
+<td><em>Task lock n is not held by any process</em></td>
+<td>it was already free</td>
+</tr>
+<tr>
+<td><em>Task lock number must be in range 0 to 63</em></td>
+<td>from <code>clear.locks 99</code></td>
+</tr>
+</tbody>
+</table>
+<h2 id="forcing-a-lock-open-unlock">Forcing a lock open: <code>unlock</code><a class="headerlink" href="#forcing-a-lock-open-unlock" title="Permanent link">#</a></h2>
+<pre><code>unlock file n {user n} record.id {record.id …}
+unlock file n {user n} all
+unlock file n {user n} filelock
+unlock tasklock n {n …}
+</code></pre>
+<p><strong>This is the only verb that takes somebody else's lock, and it needs an
+elevated session</strong> — having the verb is not enough:</p>
+<pre><code>:unlock
+Command requires administrator privileges
+</code></pre>
+<p><strong>It names a file by number, not by name</strong> — the <code>File</code> column of <code>list.readu</code>.
+That is deliberate: the lock is on a file the machine has open, which may not be
+in your VOC at all and may be reached under different names in different
+accounts.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong><code>file</code></strong> <em>n</em></td>
+<td>the file, by the number <code>list.readu</code> printed</td>
+</tr>
+<tr>
+<td><strong><code>user</code></strong> <em>n</em></td>
+<td>restrict to one session's locks</td>
+</tr>
+<tr>
+<td><strong><code>all</code></strong></td>
+<td>every record lock matching, rather than named ids</td>
+</tr>
+<tr>
+<td><strong><code>filelock</code></strong></td>
+<td>the file lock, which cannot be combined with record ids</td>
+</tr>
+<tr>
+<td><strong><code>tasklock</code></strong> <em>n</em></td>
+<td>force a task lock, including one held by another process</td>
+</tr>
+</tbody>
+</table>
+<p><strong>A file number or a user number is compulsory</strong> — <em>Either a file number or a
+user number must be specified</em> — so there is no <code>unlock</code> that means <em>everything
+on the machine</em>.</p>
+<blockquote>
+<p><strong>Unlocking is not free and SD cannot make it so.</strong> A lock is a promise its
+holder is relying on. Forcing one open while its owner is alive lets two
+sessions write the same record and tells neither. <strong>Establish that the holder
+is dead first</strong> — <code>pstat</code> on the user number, <code>listu</code> for <em>(logout pending)</em> —
+and prefer clearing the session to clearing the lock.</p>
+</blockquote>
+<h3 id="unlock-tasklock-is-the-only-way-back-from-a-killed-holder"><code>unlock tasklock</code> is the only way back from a killed holder<a class="headerlink" href="#unlock-tasklock-is-the-only-way-back-from-a-killed-holder" title="Permanent link">#</a></h3>
+<p><strong>Task locks are released when a session ends normally.</strong> They are not part of
+any file, so nothing has to be written back.</p>
+<blockquote>
+<p><strong><code>sd -cleanup</code> does not give them back, and that is a defect.</strong> It releases
+a dead session's record locks and file locks and leaves its task locks held,
+by a user number nothing is behind, until SD itself is restarted.
+<code>list.locks</code> shows the number with an owner and <code>clear.locks</code> refuses it
+because it is not yours. <strong><code>unlock tasklock</code> <em>n</em>, elevated, is the way out</strong> —
+that is what the forced form is for. It is recorded in the project's fix
+lists.</p>
+</blockquote>
+<h2 id="who-has-these-verbs">Who has these verbs<a class="headerlink" href="#who-has-these-verbs" title="Permanent link">#</a></h2>
+<p><strong>All of them are administrator-tier</strong>, so a standard or programmer account does
+not have the names at all.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>the verb is enough</strong></td>
+<td><code>listu</code> <code>list.readu</code> <code>list.locks</code> <code>lock</code> <code>clear.locks</code></td>
+</tr>
+<tr>
+<td><strong>needs elevation as well</strong></td>
+<td><code>unlock</code>, and <code>logout</code> against another Windows account's session</td>
+</tr>
+</tbody>
+</table>
+<p><strong>The split is between looking and intervening.</strong> Seeing who is on the machine
+and what they hold is an administrator's ordinary business. Taking a session or
+a lock away from somebody else asks for the elevated token as well.</p>
+<h2 id="see-also">See also<a class="headerlink" href="#see-also" title="Permanent link">#</a></h2>
+<p><a href="01-accounts-and-security.html">Accounts and Security</a> ·
+<a href="03-operating-system-access.html">Operating System Access</a>.</p>
+</main>
+<nav class="pagenav pagenav-bottom">
+<a class="pn-prev" href="01a-account-maintenance.html"><span class="pn-label">&larr; Previous</span>Account Maintenance</a>
+<a class="pn-up" href="index.html"><span class="pn-label">Contents</span>Administrator</a>
+<a class="pn-next" href="03-operating-system-access.html"><span class="pn-label">Next &rarr;</span>Operating System Access</a>
+</nav>
+<footer>SD Core for Windows W1.0-0 &middot; &copy; Donald Montaine &middot; License: CC BY-SA</footer>
+</div>
+</body>
+</html>
