@@ -91,8 +91,8 @@ the command line that started the program: `RUN BP ZZMATH`.
 |---|---|
 | `@who` | `DON` — **upper case** |
 | `@logname`, `@user` | `don` — **lower case** |
-| `@path` | `/cygdrive/c/ProgramData/SD/user_accounts/don` |
-| `@sdsys` | `C:\ProgramData\SD\sdsys` |
+| `@path` | `/home/sd/user_accounts/don` |
+| `@sdsys` | `/usr/local/sdsys` |
 | `@user.no` | `67`, the same as `system(18)` |
 | `@tty` | **empty in a piped session** |
 | `@system.return.code` | `1` |
@@ -111,21 +111,13 @@ ends.
 os.execute command {capturing variable}
 ```
 
-**It is gated per account, and a refusal aborts the program rather than
-setting a status.** In an ordinary account:
-
-```
-don is not permitted to use OS.EXECUTE at line 10 of .../BP.OUT/ZZMATH
-```
-
-The program stops there. There is no `else`, no `on error` and no status to
-test, so **a program that may run in an account without the right must not
-reach the statement at all**.
-
-Permission is field 2 of the account's record in the system `os.users` file —
-not a VOC entry and not a Windows privilege. An administrator's session passes
-regardless. Ask your administrator to grant it; there is nothing a program can
-do about it.
+**Unlike SD Core for Windows, this runs unconditionally for every
+account here — there is no permission to check first.** `OS.EXECUTE`
+executes at the account's own Linux permissions, the same wall that
+already governs what that account's user could do at a shell prompt
+outside SD. This port keeps no second, SD-level gate behind it — see the
+*Administrator* set's *Accounts and Security* chapter, "There is no
+second wall for `sh` or `os.execute`."
 
 ## LOGMSG
 
@@ -167,8 +159,8 @@ gives a different but equally misleading answer — `sdext(101, 'pw', 'salt')`
 is *"Right bracket not found where expected"*, because a matrix takes at most
 two subscripts.
 
-Internal-only: `kernel()` — and therefore the Windows path conversion —
-`ospath()`, `option()`, `pterm()`, `sdext()`, `testlock()` and `getlocks()`.
+Internal-only: `kernel()`, `ospath()`, `option()`, `pterm()`, `sdext()`,
+`testlock()` and `getlocks()`.
 The compiler's list is longer than that; those seven are the ones this page
 put in front of it. They are reachable only from a program compiled
 with `$internal`, which additionally requires an administrator in the `SDSYS`

@@ -13,7 +13,7 @@ tables, *italics* mark something you supply and **bold** marks a word
 typed as it stands; braces mark an optional part.
 
 > **Every record on this page was read from the system dictionaries on SD
-> Core for Windows W1.0-0.** The `voc.dic` dictionary — the dictionary of
+> Core for Linux.** The `voc.dic` dictionary — the dictionary of
 > the VOC — is a stock file whose records illustrate every type.
 
 ## What a dictionary is

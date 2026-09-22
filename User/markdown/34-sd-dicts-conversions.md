@@ -13,7 +13,7 @@ tables, *italics* mark something you supply and **bold** marks a word
 typed as it stands; braces mark an optional part.
 
 > **Every conversion code on this page was read from the SD source on SD
-> Core for Windows W1.0-0.** The C engine in `op_oconv.c` and
+> Core for Linux.** The C engine in `op_oconv.c` and
 > `op_iconv.c` is the authority; the descriptions here follow what it
 > does, not what an upstream manual says it ought to do.
 

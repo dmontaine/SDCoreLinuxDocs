@@ -224,8 +224,9 @@ in [SD Basic - Dynamic Arrays](05-sd-basic-dynamic-arrays.html).
 
 ## What is not here
 
-These existed in OpenQM and in earlier SD releases and **are not in SD Core for
-Windows**. A program using one will not compile.
+These existed in OpenQM and in earlier SD releases and **are not in SD
+Core** (`bcomp`'s statement table, shared source with SD Core for
+Windows). A program using one will not compile.
 
 | | |
 |---|---|

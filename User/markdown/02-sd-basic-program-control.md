@@ -261,8 +261,9 @@ error, because the space changes what it is.
 
 ## What is not here
 
-These existed in OpenQM or earlier SD releases and **are not in SD Core for
-Windows**. A program using one will not compile.
+These existed in OpenQM or earlier SD releases and **are not in SD Core**
+(checked directly in `bcomp`'s own statement table, shared source with SD
+Core for Windows). A program using one will not compile.
 
 | | |
 |---|---|

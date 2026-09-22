@@ -6,8 +6,8 @@ page covers one subject and every statement on it. Here we put them
 together into programs that do something, and each program builds on
 the one before.
 
-**Every program on this page compiles and runs on SD Core for Windows
-W1.0-0.** The output shown is what SD printed. If you type the program
+**Every program on this page compiles and runs on SD Core for Linux.**
+The output shown is what SD printed. If you type the program
 in, compile it and run it, you will see the same thing.
 
 The reference pages are linked at the end of each section. Read them
@@ -31,13 +31,13 @@ You land at the `:` prompt. That is TCL — the command processor. From
 here you compile, catalogue and run programs. The programs themselves
 are written in SDBasic, which is a different language from TCL.
 
-Your `bp` file is an ordinary Windows folder. You can write programs
-in `ed` from inside SD, in `edit` or `micro` if your account can run
-external programs, or in any text editor you like — Notepad, VS Code,
-anything. The folder is on disk at:
+Your `bp` file is an ordinary Linux directory. You can write programs
+in `ed` from inside SD, in `nano` or `micro` — every account can run
+them, unconditionally — or in any text editor you like. The folder is
+on disk at:
 
 ```
-C:\ProgramData\SD\user_accounts\<account>\bp
+/home/sd/user_accounts/<account>/bp
 ```
 
 ## 1. Hello world
