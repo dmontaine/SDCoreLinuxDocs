@@ -269,7 +269,7 @@ things about it changed:
 | | |
 |---|---|
 | **VFS** | the virtual file system layer has been **removed from the C entirely**. `fileinfo()` never reports a VFS type, and the type code is gone |
-| **The data tree** | `/usr/local/sdsys` and the account directories are protected by ordinary Linux file permissions — see [Security](../GettingStarted/12-security.html) for exactly what that does and does not guarantee here |
+| **The data tree** | `/usr/local/sdsys` and the account directories are protected by ordinary Linux file permissions — see *Security* in the **Getting Started** set for exactly what that does and does not guarantee here |
 
 ## See also
 

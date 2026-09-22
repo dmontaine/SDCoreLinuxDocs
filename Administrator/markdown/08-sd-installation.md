@@ -91,7 +91,7 @@ crash the machine itself rebooted from always leaves a clean slate here.
 What can still happen is the daemon dying while the box stays up (killed,
 or `sd.service` restarted); `sd -start` checks the actual process, not
 merely the segment's presence, and says so rather than reporting a false
-success — see [Running SD](../GettingStarted/03-running-sd.html).
+success — see *Running SD* in the Getting Started set.
 
 ## Upgrading
 
@@ -115,10 +115,10 @@ answers and every setting has a verb that changes it afterwards
 
 **The installer does not run `update.accounts all`.** Checked directly
 against `installsdai.sh`: there is no such call anywhere in it. After an
-upgrade, log in as `sdsys` and run it yourself — see [Upgrading and
-uninstalling](../GettingStarted/01a-upgrading-and-uninstalling.html). Until
-you do, existing accounts keep working exactly as before, with the
-release's fixes in the catalogue but not reachable by name.
+upgrade, log in as `sdsys` and run it yourself — see *Upgrading and
+uninstalling* in the Getting Started set. Until you do, existing
+accounts keep working exactly as before, with the release's fixes in
+the catalogue but not reachable by name.
 
 **The dictionaries are reapplied automatically.** The definitions the
 release ships are added and updated by the install step that writes them
@@ -136,8 +136,8 @@ records, so an account created before a verb was withdrawn keeps it.
 
 **The default does not touch your accounts or your configuration.**
 Removing the database needs an explicit `DELETE` confirmation beyond the
-initial keep/discard prompt — see [Upgrading and
-uninstalling](../GettingStarted/01a-upgrading-and-uninstalling.html).
+initial keep/discard prompt — see *Upgrading and uninstalling* in the
+Getting Started set.
 
 **The uninstaller does not remove the `openssh-server` package.** It may
 predate SD or be in use for something else. It does remove the ssh

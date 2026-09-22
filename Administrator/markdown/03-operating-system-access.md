@@ -93,7 +93,7 @@ permission of its own — it runs at the account's own Linux permissions,
 the same as `sh`.
 
 **The screen editors, `nano` and `micro`, need no permission either** —
-see [Development and file commands](../GettingStarted/07-programmer-commands.html#editors).
+see *Development and file commands* in the **Getting Started** set.
 
 ## Who has these verbs
 

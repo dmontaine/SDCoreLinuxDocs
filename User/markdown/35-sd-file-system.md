@@ -23,9 +23,9 @@ The `bp` file is a directory file. VOC, `batch.jobs`, and the
 dictionaries are all directory files.
 
 > SD writes directory file records with the platform's own (LF) line
-> endings, and reads either LF or CR+LF correctly — see [Other
-> hardening](../GettingStarted/13-hardening.html#line-endings) for what
-> that means for a file that started life on a Windows machine.
+> endings, and reads either LF or CR+LF correctly — see *Other hardening*
+> in the **Getting Started** set for what that means for a file that
+> started life on a Windows machine.
 
 ## Dynamic files
 

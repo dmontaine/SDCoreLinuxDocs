@@ -133,15 +133,15 @@ show it.
 ```
 
 **`from DON` is the account you logged in as**, not the one you are in and not
-your Windows account. So the short form means *I am still where I started* and
+your Linux account. So the short form means *I am still where I started* and
 the long form means *I have moved* — which makes `who` the quick way to find
 out whether a `logto` actually took effect.
 
 **`SDSYS` cannot appear after `from` here, because `logto sdsys` is refused
-outright from any other account.** Administering SD means signing in to
-Windows as the `sdsys` account itself and starting a fresh session, not
-`logto`-ing there from one you already have — see the *Administrator* set's
-*Accounts and Security* chapter.
+outright from any other account.** Administering SD means logging in to the
+machine itself, locally, as the `sdsys` account, its own password, and
+starting a fresh session, not `logto`-ing there from one you already have —
+see the *Administrator* set's *Accounts and Security* chapter.
 
 ## What is not here
 
@@ -152,10 +152,11 @@ it**, in any account type, so the name is not even recognised. The F1 key at the
 command prompt reaches the same empty routine and therefore does nothing. **This
 documentation is the help system.**
 
-**`umask` is implemented and unreachable.** Internal verb 35 is a working
-routine that reports or sets the file-creation mask, and **no VOC record points
-at it either**. It cannot be typed. `umask()` from SD BASIC still works — see
-[SD Basic - System and Environment](16-sd-basic-system-and-environment.html).
+**Unlike SD Core for Windows, `umask` is a real, typeable verb here** —
+internal verb 35, with a VOC record (`newvoc/umask`) in every account, kept
+deliberately because it is a real, live mechanism on this port. See
+*Accounts and Security* in the **administrator documentation** for what it
+does and why Linux keeps it. `umask()` from SD BASIC works too.
 
 **PROC is removed.** So are `sed` and `update.record`. A `PQ`-type VOC record
 is **refused by name** rather than being reported as a bad dispatch code,

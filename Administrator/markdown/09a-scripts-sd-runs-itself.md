@@ -19,21 +19,20 @@ does inline, or does not do the way Windows does:**
 
 | Windows script | Here |
 |---|---|
-| `deny-logon.ps1` | nothing — an ordinary account's console login is not denied here at all (S.41: no second wall behind `sh` means nothing to gain by denying it). See [Security and the operating system](../GettingStarted/12a-security-and-the-operating-system.html) |
+| `deny-logon.ps1` | nothing — an ordinary account's console login is not denied here at all (S.41: no second wall behind `sh` means nothing to gain by denying it). See *Security and the operating system* in the Getting Started set |
 | `install-service.ps1` | a `systemd` unit file (`sd.service`, `sdclient.socket`), installed with `install`, not a script that creates a service |
 | `install-editors.ps1` | `apt-get install micro` and the `nano` syntax file copy, both inline in `installsdai.sh` |
 | `sync-route-groups.ps1`, `sd-path.ps1` | nothing — there is no per-account route group to seed and no PATH toggle; `sd` is symlinked into `/usr/local/bin` at install time |
-| the `secure-*` family (eleven scripts) | inline `chown`/`chmod` calls in `installsdai.sh`, at the specific paths that need them (`$cred` 700, `batch.jobs` 750, and so on — see [Security](../GettingStarted/12-security.html)) |
+| the `secure-*` family (eleven scripts) | inline `chown`/`chmod` calls in `installsdai.sh`, at the specific paths that need them (`$cred` 700, `batch.jobs` 750, and so on — see *Security* in the Getting Started set) |
 | `micro-home.ps1` | nothing installed — `nano`/`micro`'s own program (`gpl.bp/edit`) copies its syntax file into the caller's `~/.config/micro/syntax` itself, on first use, with no privilege needed. Self-healing, and it reaches an account made after the install without anything to re-run |
 
 ## What Windows automates that this port does not, yet
 
 **`upgrade-voc.ps1` — `update.accounts all` on every upgrade.** Checked
 directly: `installsdai.sh` has no such call. An administrator runs it by
-hand after an upgrade — see [Upgrading and
-uninstalling](../GettingStarted/01a-upgrading-and-uninstalling.html). This
-is a real gap against the Windows port's own behaviour, not a deliberate
-difference.
+hand after an upgrade — see *Upgrading and uninstalling* in the Getting
+Started set. This is a real gap against the Windows port's own
+behaviour, not a deliberate difference.
 
 **`reconcile-accounts.ps1` — runs at every service start on Windows.**
 This port's equivalent, `sd-reconcile-accounts`, is installed but **not**

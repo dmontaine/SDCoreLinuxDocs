@@ -67,8 +67,8 @@ on what it does while it waits.
 ### Contention between an API session and a local one
 
 **Known.** Two *local* sessions compete correctly, and the API's own
-session-confinement gate has its own witness coverage — see [API
-access](../GettingStarted/09-api-access.html).
+session-confinement gate has its own witness coverage — see *API access*
+in the **Getting Started** set.
 
 **Not known.** A lock held by a local terminal session and contested from
 an API connection specifically, watched together rather than each proven
@@ -120,10 +120,9 @@ ever sent. No UDP or ICMP socket has been opened.
 
 ### A cron job or systemd timer running as an account `create.account` made
 
-**Known.** `login`'s `batch.permitted` gate (see [Scheduled
-jobs](../GettingStarted/04-scheduled-jobs.html)) is unit-tested against
-mutants and its message text and audit reasons are verified directly
-against the running source.
+**Known.** `login`'s `batch.permitted` gate (see *Scheduled jobs* in the
+**Getting Started** set) is unit-tested against mutants and its message
+text and audit reasons are verified directly against the running source.
 
 **Not known.** Whether a *real* cron entry, running unattended as a Linux
 account SD created, actually reaches the gate the way an interactive

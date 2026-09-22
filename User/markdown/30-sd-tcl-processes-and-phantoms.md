@@ -2,7 +2,7 @@ Title: SD TCL - Processes and Phantoms
 Subtitle: Seeing what a session is doing, running work in the background, and taking a snapshot of a running program.
 
 Every SD session is a process with a **user number**, and almost everything on
-this page takes one. The number is not the Windows process id and it is not the
+this page takes one. The number is not the Linux process id and it is not the
 account name: it is SD's own handle on a session, it is reused after a session
 ends, and it is what `pstat` and `pdump` both expect.
 
@@ -15,7 +15,7 @@ in lower case. In the tables, *italics* mark something you supply and **bold**
 marks a word typed as it stands; braces mark an optional part.
 
 > **The listings on this page were produced by running them**, on SD Core for
-> Windows W1.0-0. The two exceptions are `phantom` and `pdebug`, and the reason
+> Linux. The two exceptions are `phantom` and `pdebug`, and the reason
 > is on the page: neither can be driven down a pipe, so both are described from
 > their source rather than shown.
 
@@ -73,7 +73,7 @@ User Detail
      Command: pstat user 27 level 1
      $PSTAT 141 (262)
      Command processor
-     /cygdrive/c/ProgramData/SD/user_accounts/don/BP.OUT/ZZMATH 34 (152)
+     /home/sd/user_accounts/don/bp.out/zzmath 34 (152)
      Command processor
 ```
 
@@ -130,13 +130,14 @@ never started.
 > to know.** When SD is fed commands down a pipe, the phantom child inherits
 > that pipe. The job then never completes — not even after the parent session
 > has exited — and the only way out is to kill the process, which leaves an
-> entry in the user table that needs an elevated `sd -cleanup` to clear.
+> entry in the user table that needs `sd -cleanup`, run as SDSYS, to clear.
 > **`phantom` is for a person at a prompt, or for a program, and not for a
 > piped script.** The listings above are quoted from the verb's own message
 > texts for that reason.
 
-**A phantom is not a scheduled job.** It runs once, now. Recurring work is a
-Windows scheduled task that starts SD, and that is a different subject.
+**A phantom is not a scheduled job.** It runs once, now. Recurring work is
+a cron job or systemd timer that starts SD, and that is a different
+subject, covered under *Scheduled jobs* in the **Getting Started** set.
 
 ### What a phantom does not inherit
 
@@ -182,7 +183,7 @@ and nothing is lost. The file is `sddump.`*n* in the directory named by the
 `DUMPDIR` is empty, which is how it ships:
 
 ```
-Dumping process state as C:\ProgramData\SD\sdsys/sddump.27
+Dumping process state as /usr/local/sdsys/sddump.27
 ```
 
 It holds the `@`-variables, the current sentence and command, the call stack,
@@ -195,7 +196,7 @@ it when the question it was written to answer has been answered.
 |---|---|
 | *User number required* | `pdump` with no number |
 | *Not logged in* | no session has that user number |
-| *PDUMP not allowed for processes run under other usernames* | the `PDUMP` configuration parameter has bit 1 set and the session is not elevated |
+| *PDUMP not allowed for processes run under other usernames* | the `PDUMP` configuration parameter has bit 1 set and the session is not SDSYS |
 
 **It is an event, not a call.** `pdump` marks the target and returns; the target
 writes the file when it next looks at its event flags. A process that is wedged
@@ -232,8 +233,8 @@ The debugger itself — the commands it takes once it is attached — is in
 there is no withheld set any more.
 
 **`pdump` still has a gate, and it is not about having the verb.** `pdump`
-*n* is yours to use on your own processes; against another Windows
-account's process, it refuses unless the session is SDSYS's. `pstat` reports
+*n* is yours to use on your own processes; against another account's
+process, it refuses unless the session is SDSYS's. `pstat` reports
 any session, with no such restriction.
 
 ## See also
