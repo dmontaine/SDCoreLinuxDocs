@@ -80,7 +80,7 @@ and then fails at run time:
 
 ```
 000002B3: Unable to load 'TALLY' object code at line 62 of
-/cygdrive/c/ProgramData/SD/user_accounts/don/BP.OUT/zzobj
+/home/sd/user_accounts/don/bp.out/zzobj
 ```
 
 **A local function must be declared before it is used.**

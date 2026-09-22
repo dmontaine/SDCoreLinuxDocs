@@ -156,21 +156,20 @@ config contrib             display the contributors
 
 ```
 :config
-Virtual Machine Version Number W1.0-0
+Virtual Machine Version Number L1.0-0
 APILOGIN  1
-APIPORT   4243
 CMDSTACK  99
 DEADLOCK  0
-DUMPDIR
+DUMPDIR   /usr/local/sdsys/dumps
 ERRLOG    50 kb
 ...
 NUMFILES  80
 NUMLOCKS  100
 NUMUSERS  20
 ...
-SH        C:/Windows/System32/WindowsPowerShell/v1.0/powershell.exe -NoProfile -NoLogo
-SORTWORK  /cygdrive/c/WINDOWS/TEMP
-TEMPDIR   /cygdrive/c/WINDOWS/TEMP
+SH        /bin/bash -i
+SORTWORK
+TEMPDIR
 YEARBASE  1930
 ```
 
@@ -211,9 +210,11 @@ anything `iconv(…, 'D')` accepts will do, and anything it does not is refused:
 
 **There is no confirmation and no undo.** It is described here from source
 rather than shown running, because demonstrating it would move the clock of
-whatever machine it ran on. **On Windows, changing the system date is itself a
-privileged operation**, so a session that has the verb may
-still be refused by the operating system underneath it.
+whatever machine it ran on. **Changing the system clock is itself a
+privileged Linux operation** (`CAP_SYS_TIME`), so a session that has the
+verb may still be refused by the operating system underneath it —
+SDSYS's own session is the local `sdsys` Linux user, which needs the same
+capability any other account would to actually move the clock.
 
 **Moving a live machine's date backwards is not a neutral act**: file
 timestamps, licence expiry, scheduled tasks and anything that reasons about
@@ -222,16 +223,17 @@ elapsed time all read it. Treat it as a maintenance operation on a quiet system.
 ## Deleting an account: `delete.account`
 
 ```
-delete.account account.name
+delete.account account.name {remove.home}
 ```
 
-Removes the account directory, its Windows group, its entry in the accounts
-register, and — for a user account SD itself created — the Windows account and
-its profile. **One confirmation covers all of it**, and the wording is decided
-before the question is asked, so it never offers to remove a Windows account it
-is not going to.
+Removes the account directory, its Linux group, its entry in the accounts
+register, and — for a user account SD itself created — the Linux user
+itself. **One confirmation covers all of it**, and the wording is decided
+before the question is asked, so it never offers to remove a Linux account it
+is not going to. **The Linux user's home directory is kept unless you add
+`remove.home`** — see *Managing accounts* in the Getting Started set.
 
-**It will not delete a Windows account SD did not create.** The account is
+**It will not delete a Linux account SD did not create.** The account is
 left in place and it says so.
 
 **Three refusals come before the confirmation**, so none of them can be reached
@@ -244,7 +246,7 @@ by accident:
 | *Account not registered in ACCOUNTS file* | the name is not one of SD's |
 
 *(Those three wordings are the verb's own; they are not shown as a transcript
-here because reaching them takes an elevated session, and an unelevated one is
+here because reaching them takes an SDSYS session, and an ordinary one is
 refused by the privilege gate first — which is itself the fourth refusal, and
 the one most people meet.)*
 
@@ -257,14 +259,11 @@ the one most people meet.)*
 
 **All of them are SDSYS's** — `create.account`, `modify.account`,
 `modify.password` for another account, `delete.account`, `clean.account`,
-`update.accounts`, `config`, `grant`, `revoke`, `list.grants`. An ordinary
-account has none of these names at all — this is not a permission it
-lacks, the verbs are simply not in its VOC.
-
-**`list.grants` is gated the same way even though it only reads.** It
-answers *who may enter this account*, which is worth knowing before you
-have it, and the gate is at the top of the program the three grant verbs
-share.
+`update.accounts`, `config`. An ordinary account has none of these names at
+all — this is not a permission it lacks, the verbs are simply not in its
+VOC. **Unlike SD Core for Windows, there is no separate `grant`/`revoke`/
+`list.grants` set** — `modify.account add`/`delete` folds the grant into
+one place; see [Accounts and Security](01-accounts-and-security.html).
 
 ## See also
 

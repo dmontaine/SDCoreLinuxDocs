@@ -14,7 +14,7 @@ in lower case. In the tables, *italics* mark something you supply and **bold**
 marks a word typed as it stands; braces mark an optional part.
 
 > **Every listing on this page was produced by running it**, on SD Core for
-> Windows W1.0-0. The lock listings come from a program that took the locks
+> Linux. The lock listings come from a program that took the locks
 > first and then ran the verb against itself, because a lock nobody holds is not
 > something a listing can show.
 
@@ -47,13 +47,13 @@ listu {no.page} {lptr {n}}
 |---|---|
 | **`*`** | the session you are typing in |
 | **`User`** | SD's user number — what `logout`, `pstat` and `pdump` all take |
-| **`Pid`** | the Windows process id |
+| **`Pid`** | the Linux process id |
 | **`Puid`** | the user number of the **parent**, filled in for a phantom and blank otherwise |
 | **`Origin`** | where the session came from |
-| **`Username`** | the **Windows** account the session runs as, not the SD account it is in |
+| **`Username`** | the **Linux** account the session runs as, not the SD account it is in |
 
 **`Username` is the column that matters for permission.** Almost every control
-on this page is keyed to the Windows identity, not to the SD account — so two
+on this page is keyed to the Linux identity, not to the SD account — so two
 sessions showing different accounts but the same username are, as far as
 `logout` is concerned, the same person's.
 
@@ -85,13 +85,14 @@ something.
 Only administrators can logout processes running with other usernames
 ```
 
-**A session may end only sessions running under the same Windows account**
-unless it is elevated. The refusal above came from an unelevated session, and
+**A session may end only sessions running under the same Linux account**
+unless it is SDSYS's. The refusal above came from an ordinary session, and
 user 999 does not exist — **the privilege test happens before the number is
 looked up**, so this message does not tell you whether the user was real.
 
-**`logout all`** is stricter still: elevated **and** run from the `SDSYS`
-account. It leaves your own session alone.
+**`logout all`** is stricter still: it must be run from the `SDSYS`
+account, reached the one way described in *Accounts and Security*. It
+leaves your own session alone.
 
 ### When a session will not end
 
@@ -108,7 +109,7 @@ is the usual one — is refused while it is there. **Recovery is not another
 sd -cleanup
 ```
 
-run elevated, and a restart of the SD service if that does not take it.
+run as SDSYS, and a restart of `sd.service` if that does not take it.
 
 **Confirm the session is actually dead before clearing it.** `pstat` *n*
 answers *(Not responding)* for a session with nothing behind it — it asks the
@@ -131,19 +132,16 @@ That answer is about the **whole system**, not about you. With locks held:
 
 ```
 User File Path........................... Type Id..............................
-  23    1 /cygdrive/c/ProgramData/SD/user RU   R1
-          _accounts/don/ZZLK31A
-  19    4 /cygdrive/c/ProgramData/SD/user RU   zzlock31
-          _accounts/don/voc
-  23    1 /cygdrive/c/ProgramData/SD/user RL   R2
-          _accounts/don/ZZLK31A
+  23    1 /home/sd/user_accounts/don/zzlk31a      RU   R1
+  19    4 /home/sd/user_accounts/don/voc          RU   zzlock31
+  23    1 /home/sd/user_accounts/don/zzlk31a      RL   R2
 ```
 
 | | |
 |---|---|
 | **`User`** | the SD user number holding it — `listu` turns that into a person |
 | **`File`** | SD's internal file number, and **this is the number `unlock` wants** |
-| **`Path`** | wrapped over as many lines as it needs, in POSIX form |
+| **`Path`** | wrapped over as many lines as it needs |
 | **`Type`** | `RU` update · `RL` read · `FX` exclusive file lock · `SX` shared file lock · `WAIT` a session waiting for one |
 | **`Id`** | the record id; blank for a file lock |
 
@@ -151,13 +149,8 @@ A file lock has no id:
 
 ```
 User File Path........................... Type Id..............................
-  23    1 /cygdrive/c/ProgramData/SD/user FX
-          _accounts/don/ZZLK31A
+  23    1 /home/sd/user_accounts/don/zzlk31a      FX
 ```
-
-**The PATH is the POSIX one and that is not a display fault.** SD holds file
-paths internally in `/cygdrive/c/...` form on this port. It names the same place
-as `C:\ProgramData\SD\...`.
 
 ### The keywords
 
@@ -260,7 +253,7 @@ unlock tasklock n {n …}
 ```
 
 **This is the only verb that takes somebody else's lock, and it needs an
-elevated session** — having the verb is not enough:
+SDSYS session** — having the verb is not enough:
 
 ```
 :unlock
@@ -299,15 +292,15 @@ any file, so nothing has to be written back.
 > a dead session's record locks and file locks and leaves its task locks held,
 > by a user number nothing is behind, until SD itself is restarted.
 > `list.locks` shows the number with an owner and `clear.locks` refuses it
-> because it is not yours. **`unlock tasklock` *n*, elevated, is the way out** —
-> that is what the forced form is for. It is recorded in the project's fix
-> lists.
+> because it is not yours. **`unlock tasklock` *n*, run as SDSYS, is the way
+> out** — that is what the forced form is for. It is recorded in the
+> project's fix lists.
 
 ## Who has these verbs
 
 **All of them are SDSYS's**, so an ordinary account does not have the names
 at all — being SDSYS is the whole of the gate, for every verb on this page,
-including `unlock` and `logout` against another Windows account's session.
+including `unlock` and `logout` against another Linux account's session.
 
 ## See also
 
