@@ -7,11 +7,11 @@ hold them back from a *standard* account and only give them to a
 [Accounts](05-account-types.html). This page is now a reference for what
 each of them does, not a list of what you have been given.
 
-**A few, named as they come up below, still need more than the verb**:
-cataloguing globally, and reaching the operating system through the two
-full-screen editors, are gated separately from the VOC — see
+**One thing, named as it comes up below, still needs more than the verb**:
+cataloguing globally is gated separately from the VOC — see
 [What actually gates these](#what-actually-gates-these) at the foot of this
-page.
+page. Unlike SD Core for Windows, the full-screen editors need nothing
+extra at all.
 
 ## Compile, catalogue and run
 
@@ -35,26 +35,28 @@ page.
 
 | | |
 |---|---|
-| **`ed`** | the line editor. Needs nothing installed |
-| **`edit`** | a **full-screen** editor — opens the record in Microsoft Edit |
-| **`micro`** | a **full-screen** editor — opens the record in micro |
+| **`ed`** | the line editor. Needs nothing installed. `edit` is an alias for it |
+| **`nano`** | a **full-screen** editor — opens the record in `nano` |
+| **`micro`** | a **full-screen** editor — opens the record in `micro` |
 | **`debug`** | the BASIC debugger |
 | **`pstat`** · **`pdebug`** · **`pdump`** · **`dump`** | process introspection |
 
 ### Editors
 
-**There are two, and they behave identically.** The verb chooses the editor
-and nothing else changes:
+**`edit` is not a full-screen editor here** — a real difference from SD
+Core for Windows, where it opens Microsoft Edit. There is no Linux
+equivalent to alias it to, so `edit` runs the **line** editor, `ed`,
+instead. The two full-screen editors are named for the program each runs:
 
 | | |
 |---|---|
-| **`edit`** | **Microsoft Edit** — ships in current Windows builds |
-| **`micro`** | **micro** — never ships with Windows; the installer fetches it |
+| **`nano`** | ships with Debian and Ubuntu already |
+| **`micro`** | installed by the SD installer as an ordinary package |
 
 ```
-edit  bp myprog
+nano  bp myprog
 micro bp myprog
-edit  dict customers name
+nano  dict customers name
 ```
 
 Either verb writes the record to a working copy, opens the editor on it,
@@ -62,34 +64,30 @@ reads it back, and asks whether to save. For a `bp` record it then offers
 the compile and the catalogue.
 
 **Both are terminal editors**, so both work over ssh as well as at the
-console. Where a machine does not have one, the SD installer installs it; if
-that could not be done, the verb says so and names the command that
-installs it. `C:\ProgramData\SD\install-editors.log` records what the
-installer found.
+console.
 
-**Only `micro` highlights SD basic.** Microsoft Edit has no syntax
-highlighting at all, which is the one real difference between the two
-verbs:
+**Both highlight SD BASIC — a difference from SD Core for Windows, where
+only `micro` did** (Microsoft Edit has no syntax highlighting at all).
+`micro`'s highlighting is per-user (`~/.config/micro/syntax`, staged by
+the installer where it can); `nano`'s is system-wide
+(`/usr/share/nano/sdbasic.nanorc`, included by `/etc/nanorc`) — one copy
+serves every account on the machine:
 
 | | |
 |---|---|
-| **`micro`** | statements, reserved words, intrinsic functions, `@variables`, `$directives`, labels, strings, numbers and comments |
-| **`edit`** | plain text |
+| **`nano`**, **`micro`** | statements, reserved words, intrinsic functions, `@variables`, `$directives`, labels, strings, numbers and comments |
 
 **It applies to a `bp` record and to nothing else.** SD names the working
-copy so that micro can recognise the language — a record edited out of any
+copy so the editor can recognise the language — a record edited out of any
 other file is treated as plain text, which is correct for a VOC entry or a
 data record.
 
 > **The word lists are generated from the compiler.** They come out of
-> `BCOMP`'s own tables — **218 statements, 37 reserved words and 176
+> `bcomp`'s own tables — **182 statements, 37 reserved words and 176
 > intrinsic functions** — so the highlighting cannot drift from the
 > language. **If a name you expect is not coloured, that is worth
 > reporting**: it means the two have come apart, which is exactly what
 > generating them was meant to prevent.
-
-**Nothing is installed into your profile.** SD ships the rules with itself
-and points micro at them, so they work for every account on the machine.
 
 **`ed` is unaffected and is still there.**
 
@@ -148,24 +146,19 @@ rather than being left to surprise you.
 **A compiled dictionary record is truncated to its first 15 fields** while
 you edit it, and recompiled with `cd` when you save.
 
-### Give these verbs only to people you trust
+### An editor is not a hole, but it is worth thinking about
 
 **An editor can write anywhere its user can write.** It opens the record
 you named, but nothing stops the person then opening any other file on the
-machine that their Windows account may open — inside the SD data tree or
-outside it altogether. **That is not a hole in SD; it is what an editor
-is**, and it is the reason these two verbs are behind `OS.EXECUTE`
-permission and not merely behind having the verb — see
-[What actually gates these](#what-actually-gates-these).
-
-**So `os.users` field 2 is a statement of trust in a person, not a
-convenience.** Before granting it, ask the same question you would ask
-before giving somebody the shell — because in terms of what they can reach
-on disk, you are.
+machine that their Linux account may open — inside the SD data tree or
+outside it altogether. **That is not a gap in SD; it is what an editor
+is** — and it is exactly the same reach that account's own login shell
+already has, since SD keeps no second wall behind Linux's own permissions.
+See [Security and the operating system](12a-security-and-the-operating-system.html).
 
 Neither editor can run a command, so neither is a shell. **What they are is
-read and write access to the filesystem, with the account's own Windows
-permissions.** See [Security](12-security.html).
+read and write access to the filesystem, with the account's own Linux
+permissions.**
 
 ### Over ssh
 
@@ -210,56 +203,27 @@ The removed full-screen editors are a different matter: `sed`,
 
 ## What actually gates these
 
-**Having the verb is not the whole story for two things above: cataloguing
-globally, and the two full-screen editors.** Both need more than being in
-the VOC — and since every account has the VOC now, this is the part worth
-knowing before you rely on anything in this page as a boundary.
+**Having the verb is not the whole story for one thing above: cataloguing
+globally.** It needs more than being in the VOC — and since every account
+has the VOC now, this is the part worth knowing before you rely on
+anything in this page as a boundary.
 
 | | |
 |---|---|
-| File permissions | Windows ACLs on the data tree — see [Security](12-security.html) |
-| Where an account may sign in | the `sdsshonly` deny rights — see [ssh access](08-ssh-access.html) |
-| Reaching the operating system | the `os.users` permit list, both **`sh`** and `OS.EXECUTE` |
+| File permissions | ordinary Linux file permissions on the data tree — see [Security](12-security.html) |
+| Reaching the operating system | none, for `sh`, `OS.EXECUTE`, or either editor — every account has it, unconditionally |
 | What an API session may open | the containment gate, rooted at the account the session stands in |
 
-### The editors need `OS.EXECUTE` permission as well as the verb
+**Unlike SD Core for Windows, the full-screen editors need no separate
+permission — they run the moment the verb is typed, for every account.**
+There is no `os.users` file, and nothing to grant before `nano` or `micro`
+work. The gate that page describes (`os.users` field 2) does not exist on
+this port at all: this account's own Linux permissions are already the
+only wall an editor — or a shell — ever runs into. See
+[Security and the operating system](12a-security-and-the-operating-system.html).
 
-**An editor runs outside SD, so reaching one is reaching the operating
-system** — and who may do that is **field 2 of your record in
-`os.users`**, the same field that governs `OS.EXECUTE` from inside a
-program. Two gates, and both have to pass:
-
-| | |
-|---|---|
-| the VOC | everyone has **`edit`** and **`micro`** |
-| `os.users` field 2 | decides **whether either one runs** |
-
-**SDSYS passes this on its own**, exactly as `sh` does, so an empty list
-cannot lock the machine's own administrator out. **A missing record, or a
-missing file, means no**, for every ordinary account — the same direction
-`sh` fails in.
-
-If you have the verb and not the permission you get told so by name, and
-told what to ask for:
-
-```
-edit is not available to fred.
-It runs an editor outside SD, so it needs OS.EXECUTE permission: field 2
-of your record in the SD system file os.users, which only SDSYS can change.
-ed, the line editor, needs none of this.
-```
-
-SDSYS grants it — see [Administrator commands](06-administrator-commands.html#how-you-grant-it).
-
-**A session with no terminal is refused first and separately**: an API
-session or a piped script has nowhere to draw a full screen, and is told
-that rather than being told about `os.users`.
-
-> **WHAT AN EDITOR CAN REACH, and it is worth knowing before you grant it.**
-> An editor can open any file the person running it is allowed to open, so
-> both verbs reach beyond SD's own files. Neither is a shell — neither
-> editor can run a command. That is what field 2 is deciding, and it is why
-> the verb alone was never enough. See [Security](12-security.html).
+**A session with no terminal is refused**: an API session or a piped
+script has nowhere to draw a full screen.
 
 ## Two things to know when you compile
 
