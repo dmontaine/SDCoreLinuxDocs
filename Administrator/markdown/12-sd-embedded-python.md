@@ -109,8 +109,21 @@ namespace - rather than a type-specific handle.
 | Function | Returns |
 |---|---|
 | `PY_OBJLEN(objname)` | Its length, as Python's own `len()` would report. Returns `SD_INT_OVERFLW` (**-10302**) if the true length does not fit a 32-bit int |
-| `PY_OBJTYPE(objname)` | Its Python type name, as a string |
+| `PY_OBJTYPE(objname)` | A numeric type code, **not a type name** - see the table below |
 | `PY_GETATTR(objname)` | Its value as a string - by way of `sdext()`'s `SD_PyGetAtt`, not `SDPYOBJ` like everything else on this page. See *What calls this, underneath*, below |
+
+`PY_OBJTYPE` returns one of six codes, checked directly against a real call
+(`PY_LISTCRTE` followed by `PY_OBJTYPE` on the result returned `2`, matching
+the table below, not the word "list"):
+
+| Code | Python type |
+|---|---|
+| 0 | unknown - none of the five below |
+| 1 | string (`str`) |
+| 2 | list |
+| 3 | dictionary (`dict`) |
+| 4 | integer (`int`) |
+| 5 | float |
 
 ## Error codes
 
