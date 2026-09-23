@@ -5,7 +5,7 @@ Subtitle: The catalogued names beginning with !, which of them an application ma
 counted directly from `gpl.bp`, not carried over from SD Core for
 Windows's own count of forty-two. Twenty-one are the embedded Python
 interface (`!PY_CREATEDICT` and the rest — see the *Administrator* set's
-*Encryption and the SDEXT interface* chapter; this page does not repeat
+*Embedded Python* chapter; this page does not repeat
 them), and this port has no need for several Windows-only ones this page
 used to list — `!ELEVATE`, `!PS_SCRIPT`, `!DELETE_USER`, `!OS_GROUP` and
 `!PROFILE_DIR` among them, noted below where each would have been. They
