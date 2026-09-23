@@ -156,7 +156,7 @@ config contrib             display the contributors
 
 ```
 :config
-Virtual Machine Version Number L1.0-0
+Virtual Machine Version Number L1.1-0
 APILOGIN  1
 CMDSTACK  99
 DEADLOCK  0

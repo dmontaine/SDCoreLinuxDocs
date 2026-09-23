@@ -116,7 +116,7 @@ connect.
 
 ## What this release is
 
-**L1.0-0.** Linux only. There are no `#ifdef` branches keeping Windows alive
+**L1.1-0.** Linux only. There are no `#ifdef` branches keeping Windows alive
 in this source — SD Core for Windows is a separate project and this is not a
 build of it.
 
@@ -164,7 +164,7 @@ differently from OpenQM and is not described here**, and **anything in these
 pages that turns out not to be true of the build you are running**. The second
 is as valuable as the first.
 
-**Quote the version as `L1.0-0`** — the string in the header bar of every
-page here, and in what `sd --version` reports. The bare `1.0-0` is the same
+**Quote the version as `L1.1-0`** — the string in the header bar of every
+page here, and in what `sd --version` reports. The bare `1.1-0` is the same
 release; the `L` says it is the Linux one, and that is the part worth
 keeping in a report.
