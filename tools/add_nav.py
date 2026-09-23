@@ -19,8 +19,14 @@ A SET INDEX DOES NOT LINK BACK TO THE MASTER INDEX, and that is deliberate
 rather than an omission.  Each set is handed out on its own, so the master
 index is not there for whoever received one set - the link was a 404 in every
 delivered copy, and check_all_links.py reported exactly that three times during
-the W1.0-0 audit.  The master index is for browsing the tree locally and links
-downward only.
+the W1.0-0 audit (SD Core for Windows' own docs repo).  The master index is
+for browsing the tree locally and links downward only.
+
+22 Sep 2026 - ported from SD Core for Windows' docs repo, unchanged but for
+PRODUCT/VERSION, the SETS descriptions, and the get_title() regex below,
+which had SD Core for Windows' own product name written into it literally
+rather than built from PRODUCT - it would have matched nothing on this fork
+and silently fallen through to the tp-title fallback every time.
 """
 
 import os
@@ -37,14 +43,14 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import mkdoc
 
 DOCS_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-PRODUCT = "SD Core for Windows"
-VERSION = "W1.0-0"
+PRODUCT = "SD Core for Linux"
+VERSION = "L1.1-0"
 
 # ── Set definitions ──────────────────────────────────────────
 
 SETS = {
     "GettingStarted": {
-        "desc": "Installing and running SD Core on Windows, and what differs from OpenQM and SD on Linux.",
+        "desc": "Installing and running SD Core on Linux, and what differs from OpenQM and SD Core for Windows.",
     },
     "User": {
         "desc": "For programmers and operators. SDBasic, TCL, the VOC, dictionaries, the file system, and the client API.",
@@ -207,7 +213,7 @@ def get_title(html_path):
     with open(html_path, 'r', encoding='utf-8') as f:
         content = f.read()
     # Try <title> tag first
-    m = re.search(r'<title>(.+?) - SD Core for Windows</title>', content)
+    m = re.search(r'<title>(.+?) - ' + re.escape(PRODUCT) + r'</title>', content)
     if m:
         return m.group(1)
     # Fallback: tp-title

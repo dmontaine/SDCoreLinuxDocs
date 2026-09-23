@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 """mkbook.py - assemble one HTML "book" per set, for a single merged PDF.
 
-    python tools\\mkbook.py --set Administrator --out Administrator\\book.html
+    python3 tools/mkbook.py --set Administrator --out Administrator/book/Administrator.html
+
+22 Sep 2026 - ported from SD Core for Windows' docs repo, unchanged but for
+PRODUCT/VERSION and the SET_BLURB text below - the assembly itself has no
+Windows-specific path or API code.
 
 WHY THIS EXISTS.  The release ships PDF only, and 86 separate PDFs is not a
 document - it is a pile of fragments with no continuous page numbers, no
@@ -54,11 +58,11 @@ LICENCE_URL = 'https://creativecommons.org/licenses/by-sa/4.0/'
 # still reads.  They are here rather than imported from add_nav.py because that
 # module runs work at import time.
 SET_BLURB = {
-    'GettingStarted': 'Installing SD Core for Windows, and finding your way '
+    'GettingStarted': 'Installing SD Core for Linux, and finding your way '
                       'around it for the first time.',
-    'User':           'Using SD Core for Windows: SD BASIC, TCL, the '
+    'User':           'Using SD Core for Linux: SD BASIC, TCL, the '
                       'dictionaries and the file system.',
-    'Administrator':  'Running an SD Core for Windows installation: accounts, '
+    'Administrator':  'Running an SD Core for Linux installation: accounts, '
                       'security, remote access and the machine.',
 }
 
@@ -225,8 +229,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--set', required=True)
     ap.add_argument('--out', required=True)
-    ap.add_argument('--product', default='SD Core for Windows')
-    ap.add_argument('--version', default='W1.0-0')
+    ap.add_argument('--product', default='SD Core for Linux')
+    ap.add_argument('--version', default='L1.1-0')
     args = ap.parse_args()
 
     set_name = args.set

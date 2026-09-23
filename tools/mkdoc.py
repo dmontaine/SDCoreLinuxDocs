@@ -1,19 +1,19 @@
 #
 # mkdoc.py - render documentation Markdown to single-file HTML
 #
-# command line: python3 gplbld/mkdoc.py --in DIR|FILE... --out DIR
-# eg  python gplbld/mkdoc.py --in docs/sample --out docs/sample
+# command line: python3 tools/mkdoc.py --in DIR|FILE... --out DIR
+# eg  python3 tools/mkdoc.py --in GettingStarted/markdown --out GettingStarted/html
 #
-# NOTHING CALLS THIS YET, DELIBERATELY.  It is not wired into stage.py or
-# sd.iss, because naming a .md in either of those files is what makes
-# assert-current watch it (the $shipsAs valve, assert-current.ps1:484), and
-# from that moment every documentation edit demands a full cycle before any
-# verifier will run.  That is correct once the documentation ships; it is a
-# toll nobody should pay while the format is still being judged.  See
-# HISTORY.md, "20 Aug 2026 - assert-current demanded a full cycle for a
-# markdown file".
+# 22 Sep 2026 - PORTED FROM SD CORE FOR WINDOWS' DOCS REPO, ITS OWN
+#   tools/mkdoc.py, UNCHANGED BUT FOR THE TWO DEFAULTS BELOW AND THE FONT
+#   STACK.  The conversion itself (python-markdown, no binary dependency) and
+#   the CSS were already fully portable - nothing here calls a Windows API or
+#   assumes a Windows path.  Not wired into installsdai.sh for the same
+#   reason the port gives for its own installer: naming a .md there is what
+#   would make assert-current watch it, and that toll is not owed while the
+#   format is still being judged.
 #
-# WHY HTML AT ALL, AND WHY ONE FILE.  Every Windows machine has a browser, so
+# WHY HTML AT ALL, AND WHY ONE FILE.  Every machine has a browser, so
 # there is nothing to install and no format to explain.  Embedding the CSS
 # means there is no asset folder to break, no relative path to get wrong when
 # the file is copied off the machine, and nothing to fetch - which matters
@@ -107,7 +107,7 @@ body {
   margin: 0;
   background: var(--ground);
   color: var(--ink);
-  font-family: "Segoe UI", -apple-system, "Helvetica Neue", Arial, sans-serif;
+  font-family: "Segoe UI", "Noto Sans", "DejaVu Sans", "Cantarell", -apple-system, "Helvetica Neue", Arial, sans-serif;
   font-size: 16px;
   line-height: 1.5;
   -webkit-text-size-adjust: 100%;
@@ -804,8 +804,8 @@ def main():
     ap.add_argument('--in', dest='inputs', nargs='+', required=True,
                     metavar='PATH', help='.md files, or directories of them')
     ap.add_argument('--out', required=True, metavar='DIR')
-    ap.add_argument('--product', default='SD Core for Windows')
-    ap.add_argument('--version', default='W1.0-0')
+    ap.add_argument('--product', default='SD Core for Linux')
+    ap.add_argument('--version', default='L1.1-0')
     args = ap.parse_args()
 
     sources = []
