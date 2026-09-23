@@ -91,7 +91,7 @@ none of that is withheld any more. What an account cannot do is administer:
 create, delete, or suspend another account; change system-wide
 configuration. Reaching the operating system through `sh` or `OS.EXECUTE`
 needs **no permission at all** — see
-[Reaching the operating system](05a-managing-accounts.html#reaching-the-operating-system).
+[There is no second wall](12a-security-and-the-operating-system.html#there-is-no-second-wall).
 
 > **None of this is a wall inside SD.** The VOC is the same for every
 > ordinary account; what actually stops one account reaching another's data

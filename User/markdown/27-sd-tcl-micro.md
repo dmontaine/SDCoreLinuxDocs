@@ -144,7 +144,7 @@ none is mangled. The full rules are on
 **Every account has `micro`, `nano`, `edit` and `ed`, and all four simply
 run** — unlike SD Core for Windows, there is no permission behind
 `micro`/`nano` to grant first. See [SD TCL - The nano Screen
-Editor](26-sd-tcl-edit.html#no-gate--every-account-reaches-both-unconditionally).
+Editor](26-sd-tcl-edit.html#no-gate-every-account-reaches-both-unconditionally).
 
 ## See also
 
