@@ -118,8 +118,8 @@ Field 2 of a verb record says how to run it, and field 3 says what to run:
 
 | | | |
 |---|---|---|
-| `CA` | *name* | a catalogued program — 97 of the shipped verbs |
-| `IN` | *n* | internal verb *n*, handled by the command processor itself — 45 |
+| `CA` | *name* | a catalogued program — 95 of the shipped verbs |
+| `IN` | *n* | internal verb *n*, handled by the command processor itself — 43 |
 | `OS` | *text* | an operating-system command — `sh` and `!` |
 | `CS` | *path* | a locally catalogued function |
 
@@ -131,7 +131,7 @@ and what SDSYS alone can do is withheld by giving or withholding the VOC
 record itself**, not by a security subroutine — but the mechanism is there
 for a site that wants a verb guarded rather than absent.
 
-There are **41 internal verbs**, numbered, and the numbers are positional in the
+There are **40 internal verb numbers**, and the numbers are positional in the
 command processor's dispatch list. Several names share one: `off` and `quit` are
 both internal verb 1, `clr` and `cs` are both 2, and each of `clear.data`,
 `clear.input`, `clear.prompts` and `clear.select` has a run-together spelling

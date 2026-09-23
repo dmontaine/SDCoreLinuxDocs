@@ -132,12 +132,16 @@ entry actually contains without an editor.
 ## The VOC and account creation
 
 `CREATE.ACCOUNT` copies the VOC from `NEWVOC` in the system directory —
-**398 records**, counted directly, and identical for every ordinary
-account. SDSYS's own VOC is copied from `voc_template` instead — **431
+**399 records**, counted directly, and identical for every ordinary
+account. SDSYS's own VOC is copied from `voc_template` instead — **424
 records** — which carries the administration verbs `NEWVOC` does not:
-`create.account`, `delete.account`, `modify.account`, `grant`, `revoke`,
-`list.grants`, and the rest of the set the *Administrator* documentation
-covers.
+`create.account`, `delete.account`, `modify.account`, `config`, `set.date`,
+`update.accounts`, `clean.account`, `list.readu`, `list.locks`, `lock`,
+`unlock`, `listu`, `remote.ssh`, `remote.api`, and the rest of the set the
+*Administrator* documentation covers. **Unlike SD Core for Windows, there is
+no separate `grant`/`revoke`/`list.grants` set** — `modify.account
+add`/`delete` folds the grant into one place; see *Accounts and Security* in
+the Administrator set.
 
 **What SDSYS alone can do is in the VOC, not in the verb.** An ordinary
 account does not have `create.account` because the VOC record for it is
@@ -154,8 +158,12 @@ SD tries a name as typed, then lower, then upper. What it changes is what
 SD prints back: `CT VOC LIST` answers `VOC list`.
 
 The file-pointer entries — `bp`, `bp.out`, `gpl.bp`, `gpl.bp.out` — moved
-to lower case on 19 Aug 2026. `VOC`, `NEWVOC`, `ACCOUNTS`, `MESSAGES`,
-`SYSCOM` and `QFILE` are still upper case on disk and are next.
+to lower case on 19 Aug 2026. **The migration is complete, not partial**: an
+account's own `voc`, and the system directory's `newvoc`, `accounts`,
+`messages` and `syscom`, are all lower case on disk too, confirmed directly
+— there is nothing left in upper case to migrate. `qfile` was never a path
+of its own; it is a VOC pointer to `@SDSYS/$ipc`, the session IPC area, and
+has no on-disk name to fold.
 
 ## What is not here
 

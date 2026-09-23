@@ -189,9 +189,13 @@ read when SD starts. This form overrides one for the session you are in, which
 is the right tool for trying a value before writing it down and the wrong one
 for changing an installation.
 
-**`config gpl` and `config contrib` read a record inside SD** rather than
-running a pager over a file, so they work in any account and need no
-operating-system access.
+**`config gpl` and `config contrib` shell out to `less`**, against two plain
+files in the system directory (`sdsys/licence`, `sdsys/contrib`) — not a VOC
+record, despite reading like one. `gpl.bp/config` runs `!less
+sdsys/licence` and `!less sdsys/contrib` directly. That still works in any
+account: `sh`/`!`/`os.execute` run unconditionally for every account after
+the tiered-account teardown (S.27, "no second wall"), so there is no
+operating-system access this needs and does not already have.
 
 ## Setting the machine's date: `set.date`
 

@@ -304,7 +304,7 @@ upstream's, not this port's: `sdb64` carries the identical code.
 
 ### Do not nest transactions
 
-**A `commit` inside a Nested transaction abandons the outer one, and the outer
+**A `commit` inside a nested transaction abandons the outer one, and the outer
 write is lost.** With an outer transaction writing `R2` and an inner one
 writing `R3`:
 

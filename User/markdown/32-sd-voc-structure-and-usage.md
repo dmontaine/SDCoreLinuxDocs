@@ -47,21 +47,27 @@ valid PROC and it is the interpreter that is gone.
 ### What SDSYS's own VOC holds
 
 Counted directly from `voc_template` in the system directory — SDSYS's own
-VOC, 431 records:
+VOC, 424 records, by each record's own field-1 type character:
 
 | Type | Count |
 |---|---|
-| `V` | 144 |
+| `V` | 140 |
 | `K` | 248 |
-| `F` | 16 |
+| `F` | 15 |
 | `R` | 10 |
 | `PA` | 4 |
 | `PH` | 2 |
 | `S` | 2 |
 | `Q` | 2 |
-| `X` | 3 |
+| `X` | 1 |
 
-**An ordinary account's `newvoc` holds 398** — the same shape of table,
+**The `V` count here is the literal type character, not the dispatchable
+total.** `break`, `count`, `display` and `off` are type `K` — the four
+keyword-verbs described below — so the 144 figure used elsewhere on this page
+for "everything the command processor can run as a verb" is this 140 plus
+those four.
+
+**An ordinary account's `newvoc` holds 399** — the same shape of table,
 smaller only because it lacks SDSYS's own administration verbs and a few
 system file pointers; it is not a *different kind* of VOC, and every
 ordinary account's copy is identical.
@@ -141,8 +147,8 @@ target, and the remaining fields carry options.
 
 | Field 2 | Field 3 | What it does |
 |---|---|---|
-| `CA` | *catalogue name* | a catalogued program — 99 of the shipped verbs |
-| `IN` | *number* | internal verb *n*, handled by the command processor itself — 42 verbs |
+| `CA` | *catalogue name* | a catalogued program — 95 of the shipped verbs |
+| `IN` | *number* | internal verb *n*, handled by the command processor itself — 43 verbs |
 | `OS` | *text* | an operating-system command — `sh` and `!`, and nothing else |
 | `CS` | *path* | a locally catalogued function |
 
@@ -221,7 +227,7 @@ command with its first arguments filled in.
 
 ```
 001  PA
-002  TERM WINDOWS
+002  TERM ANSI
 003  TERM 120,36
 004  PTERM CASE NOINVERT
 ```
@@ -271,13 +277,18 @@ supplier` parse.
 
 ```
 001  X
-002  Most of SD is licensed under the GPL v3.0 ...
+002  L1.0-0
 ```
 
-This is `$licence`. An X-record is **not a command** — it is miscellaneous
-data the VOC holds so that a program or a user can read it by name.
-`$contrib` and `$RELEASE` are also X-records. Nobody dispatches them; they
-are read with `read` from BASIC or with `ct` from the command line.
+This is `$release`, and it is SDSYS's **only** X-record. An X-record is
+**not a command** — it is miscellaneous data the VOC holds so that a program
+can read it by name with `read` from BASIC or `ct` from the command line.
+
+**The licence and the contributor list are not VOC records at all**, despite
+looking like the obvious candidates. `config gpl` and `config contrib` shell
+out to `less` against two plain files in the system directory,
+`sdsys/licence` and `sdsys/contrib` — see *Account Maintenance* in the
+Administrator set.
 
 ## Continued in
 
