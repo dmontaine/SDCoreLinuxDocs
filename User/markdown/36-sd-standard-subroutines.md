@@ -3,7 +3,7 @@ Subtitle: The catalogued names beginning with !, which of them an application ma
 
 **This port ships fifty catalogued routines whose names begin with `!`** —
 counted directly from `gpl.bp`, not carried over from SD Core for
-Windows's own count of forty-two. Twenty are the embedded Python
+Windows's own count of forty-two. Twenty-one are the embedded Python
 interface (`!PY_CREATEDICT` and the rest — see the *Administrator* set's
 *Encryption and the SDEXT interface* chapter; this page does not repeat
 them), and this port has no need for several Windows-only ones this page
